@@ -57,7 +57,8 @@
     G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai });
     G.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
     if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
-    UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: cfg.ai.filter(x => !x).length };
+    UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: cfg.ai.filter(x => !x).length, hasAI: cfg.ai.some(x => x) };
+    undoStack = [];
     $('#setup').classList.add('hidden');
     $('#game').classList.remove('hidden');
     $('#win-modal').classList.add('hidden');
@@ -294,27 +295,97 @@
   }
   function interactable() { return G && G.phase === 'play' && UI.phase === 'main' && !G.acted && !me().isAI && !UI.busy; }
 
+  // ---------------------------------------------------------------- animations
+  const ANIM_MS = 620;
+  function centerOf(el) { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }
+  function flyNode(n, fx, fy, tx, ty) {
+    n.style.transform = `translate(${fx}px,${fy}px)`;
+    document.body.appendChild(n);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      n.style.transform = `translate(${tx}px,${ty}px) scale(.62)`;
+      n.style.opacity = '0.12';
+    }));
+    setTimeout(() => n.remove(), ANIM_MS + 90);
+  }
+  function flyBall(color, rect, dc) {
+    if (!rect) return;
+    const n = document.createElement('div'); n.className = 'fly'; n.innerHTML = `<div class="ball ${color}"></div>`;
+    flyNode(n, rect.left + rect.width / 2 - 17, rect.top + rect.height / 2 - 17, dc[0] - 17, dc[1] - 17);
+  }
+  function flyCard(img, rect, dc) {
+    const n = document.createElement('div'); n.className = 'fly fly-card';
+    if (img) n.innerHTML = `<img src="${img}">`; else n.style.background = 'linear-gradient(135deg,#3a2a6e,#221a4a)';
+    const fx = rect ? rect.left + rect.width / 2 : dc[0], fy = rect ? rect.top + rect.height / 2 : dc[1];
+    flyNode(n, fx - 30, fy - 40, dc[0] - 30, dc[1] - 40);
+  }
+  function captureSrc(dec) {
+    const src = [];
+    if (!dec) return src;
+    if (dec.type === 'take') {
+      for (const c of (dec.colors || [])) { const el = $(`.supply-row[data-color="${c}"] .ball`); src.push({ color: c, rect: el ? el.getBoundingClientRect() : null }); }
+    } else if (dec.cardId) {
+      let el = $(`.card[data-card="${dec.cardId}"]`) || $(`[data-reserve-capture="${dec.cardId}"]`);
+      const card = G.byId[dec.cardId];
+      src.push({ rect: el ? el.getBoundingClientRect() : null, img: card ? card.img : null });
+    }
+    return src;
+  }
+  function playGhosts(src, dec, pid) {
+    const panel = $$('#players .player')[pid];
+    if (!panel) return;
+    panel.classList.add('receiving'); setTimeout(() => panel.classList.remove('receiving'), 520);
+    const dc = centerOf(panel);
+    if (dec.type === 'take') { for (const it of (src || [])) flyBall(it.color, it.rect, dc); }
+    else if (dec.type === 'capture' || dec.type === 'reserve') { const it = (src || [])[0]; if (it) flyCard(it.img, it.rect, dc); }
+  }
+  // capture source rects, apply mutation, render, animate ghosts to the player, then continue
+  function applyAnimated(dec, pid, mutate, after) {
+    const src = captureSrc(dec);
+    const r = mutate();
+    if (r && r.ok === false) { flashHint(r.error); return; }
+    render(); playGhosts(src, dec, pid);
+    setTimeout(after, ANIM_MS);
+  }
+
   function doTake() {
-    const r = E.actionTake(G, UI.pick);
-    if (!r.ok) { flashHint(r.error); return; }
-    UI.pick = [];
-    afterMainAction();
+    const colors = UI.pick.slice(); const pid = G.turn;
+    applyAnimated({ type: 'take', colors }, pid, () => { const r = E.actionTake(G, colors); if (r.ok) UI.pick = []; return r; }, afterMainAction);
   }
   function doCapture() {
-    const r = E.actionCapture(G, UI.selCard);
-    if (!r.ok) { flashHint(r.error); return; }
-    UI.selCard = null;
-    afterMainAction();
+    const cid = UI.selCard, pid = G.turn;
+    applyAnimated({ type: 'capture', cardId: cid }, pid, () => { const r = E.actionCapture(G, cid); if (r.ok) UI.selCard = null; return r; }, afterMainAction);
   }
   function doReserveCard() {
-    const r = E.actionReserve(G, { fromField: UI.selCard });
-    if (!r.ok) { flashHint(r.error); return; }
-    UI.selCard = null; afterMainAction();
+    const cid = UI.selCard, pid = G.turn;
+    applyAnimated({ type: 'reserve', cardId: cid }, pid, () => { const r = E.actionReserve(G, { fromField: cid }); if (r.ok) UI.selCard = null; return r; }, afterMainAction);
   }
   function doReserveDeck() {
-    const r = E.actionReserve(G, { fromDeck: UI.selDeck });
-    if (!r.ok) { flashHint(r.error); return; }
-    UI.selDeck = null; afterMainAction();
+    const tier = UI.selDeck, pid = G.turn;
+    applyAnimated({ type: 'reserve', deck: tier }, pid, () => { const r = E.actionReserve(G, { fromDeck: tier }); if (r.ok) UI.selDeck = null; return r; }, afterMainAction);
+  }
+  function decodePlan(plan) {
+    const a = plan && plan.action; if (!a) return { type: 'pass' };
+    if (a.type === 'take') return { type: 'take', colors: a.colors };
+    if (a.type === 'capture') return { type: 'capture', cardId: a.cardId };
+    if (a.type === 'reserve') return { type: 'reserve', cardId: (a.target && a.target.fromField) || null, deck: (a.target && a.target.fromDeck) || null };
+    return { type: 'pass' };
+  }
+
+  // ---------------------------------------------------------------- undo (悔棋, vs AI)
+  let undoStack = [];
+  function pushUndo() { undoStack.push({ s: E.clone(G), log: G.log.slice() }); if (undoStack.length > 60) undoStack.shift(); }
+  function doUndo() {
+    if (UI.busy || undoStack.length < 2) return;
+    undoStack.pop();                                   // drop current turn's snapshot
+    const snap = undoStack[undoStack.length - 1];      // back to previous human-turn start
+    G = E.clone(snap.s); G.log = snap.log.slice();
+    UI.phase = 'main'; UI.pick = []; UI.selCard = UI.selDeck = null; UI.busy = false;
+    render(); updateUndoBtn();
+  }
+  function updateUndoBtn() {
+    const btn = $('#undo-btn'); if (!btn) return;
+    const show = UI.hasAI && G && G.phase === 'play' && !me().isAI && !UI.busy && undoStack.length >= 2;
+    btn.classList.toggle('hidden', !show);
   }
   function doDiscard(color) {
     if (UI.phase !== 'discard') return;
@@ -348,12 +419,14 @@
 
   // ---------------------------------------------------------------- turn control
   function beginTurn() {
-    if (G.phase === 'gameover') return;
+    if (G.phase === 'gameover') { updateUndoBtn(); return; }
     const p = me();
-    if (p.isAI) { render(); setTimeout(aiPlay, 650); return; }
+    if (p.isAI) { render(); updateUndoBtn(); setTimeout(aiPlay, 120); return; }
+    if (UI.hasAI) pushUndo();                 // snapshot at each human turn start (undo target)
     // hotseat: hide previous player's hidden info before a human's turn
     if (UI.humans >= 2) { showPassOverlay(p); }
     else render();
+    updateUndoBtn();
   }
 
   function showPassOverlay(p) {
@@ -377,39 +450,33 @@
 
   function aiPlay() {
     if (G.phase === 'gameover') return;
-    const p = me();
-    UI.busy = true;
-    // AlphaZero net seat: net-guided MCTS plays the whole turn (auto discard + evolution)
-    if (p.diff === 'alphazero' && window.AZAI && AZAI.hasWeights()) {
-      setTimeout(() => {
-        try { AZAI.playTurn(G, { sims: 100 }); }
-        catch (e) { AZAI._err = e; }
-        UI.busy = false; UI.phase = 'main';
-        if (G.phase === 'gameover') { render(); showWin(); return; }
-        render(); beginTurn();
-      }, 350);
-      return;
-    }
-    const plan = AI.chooseTurn(G, { difficulty: p.diff || 'hard' });
-    // step 1: main action
-    if (plan.action) E.applyAction(G, plan.action); else E.actionPass(G);
-    render();
+    const p = me(), pid = G.turn;
+    UI.busy = true; updateUndoBtn();
+    const think = 1700 + Math.random() * 1500;        // ~1.7–3.2s, human-like pacing
     setTimeout(() => {
-      // step 2: discards
-      for (const c of plan.discards) E.actionDiscard(G, c);
-      if (plan.discards.length) render();
-      setTimeout(() => {
-        // step 3: evolution
-        if (plan.evolution) { E.actionEvolve(G, plan.evolution.fromId, plan.evolution.toId); render(); }
-        setTimeout(() => {
-          UI.busy = false;
+      if (!G || G.phase === 'gameover') { UI.busy = false; return; }
+      let dec, applyFn;
+      if (p.diff === 'alphazero' && window.AZAI && AZAI.hasWeights()) {
+        let a; try { a = AZAI.mctsMove(G, 100); } catch (e) { a = null; }
+        dec = (a != null && AZAI.decodeAction) ? AZAI.decodeAction(G, a) : { type: 'pass' };
+        applyFn = () => { try { if (a != null) AZAI.stepAuto(G, a); else E.actionPass(G), E.endTurn(G); } catch (e) { } };
+      } else {
+        const plan = AI.chooseTurn(G, { difficulty: p.diff || 'hard' });
+        dec = decodePlan(plan);
+        applyFn = () => {
+          if (plan.action) E.applyAction(G, plan.action); else E.actionPass(G);
+          for (const c of plan.discards) E.actionDiscard(G, c);
+          if (plan.evolution) E.actionEvolve(G, plan.evolution.fromId, plan.evolution.toId);
           E.endTurn(G);
-          UI.phase = 'main';
-          if (G.phase === 'gameover') { render(); showWin(); return; }
-          render(); beginTurn();
-        }, plan.evolution ? 600 : 200);
-      }, plan.discards.length ? 500 : 50);
-    }, 600);
+        };
+      }
+      const src = captureSrc(dec);     // capture pre-move source positions
+      applyFn();                       // mutate G (incl. endTurn)
+      UI.busy = false; UI.phase = 'main';
+      render(); playGhosts(src, dec, pid);
+      if (G.phase === 'gameover') { setTimeout(showWin, ANIM_MS); return; }
+      setTimeout(beginTurn, ANIM_MS);
+    }, think);
   }
 
   // ---------------------------------------------------------------- win
@@ -454,6 +521,7 @@
       b.classList.add('active'); buildSeats(+b.dataset.n);
     });
     $('#start-btn').addEventListener('click', startGame);
+    $('#undo-btn').addEventListener('click', doUndo);
     $('#rules-btn').addEventListener('click', () => $('#rules-modal').classList.remove('hidden'));
     $('#rules-modal').addEventListener('click', (e) => { if (e.target.id === 'rules-modal' || e.target.classList.contains('close-rules')) $('#rules-modal').classList.add('hidden'); });
     $('#menu-btn').addEventListener('click', () => { if (confirm('返回主菜单？当前对局将丢失。')) { $('#game').classList.add('hidden'); $('#setup').classList.remove('hidden'); } });

@@ -196,3 +196,20 @@ button:disabled{opacity:.45;cursor:not-allowed}
   .card{width:72px;height:96px}
   .deck-pile{width:72px;height:96px}
 }
+
+/* ---------- fly animations (token / card moving to a player) ---------- */
+#fly-layer{position:fixed;inset:0;pointer-events:none;z-index:90}
+.fly{position:fixed;left:0;top:0;will-change:transform,opacity;transition:transform .6s cubic-bezier(.34,.7,.3,1),opacity .6s}
+.fly .ball{box-shadow:0 4px 12px rgba(0,0,0,.5)}
+.fly-card{width:60px;height:80px;border-radius:7px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.55);border:1px solid rgba(0,0,0,.4)}
+.fly-card img{width:100%;height:100%;object-fit:cover;display:block}
+@keyframes recv{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+.player.receiving{animation:recv .5s ease}
+
+/* newly-taken token / captured card flash on the panel */
+@keyframes tokenpop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+
+/* ---------- undo (悔棋) button ---------- */
+#undo-btn{position:fixed;bottom:14px;left:18px;z-index:40;background:linear-gradient(180deg,#3a4290,#2a3170);color:#fff;border:1px solid var(--line);box-shadow:var(--shadow);font-weight:700;padding:10px 16px;border-radius:12px}
+#undo-btn:hover{filter:brightness(1.1)}
+#undo-btn .ti,#undo-btn i{margin-right:4px}

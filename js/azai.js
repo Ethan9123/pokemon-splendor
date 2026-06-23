@@ -225,6 +225,17 @@
     stepAuto(G, a);
     return a;
   }
+  // decode an action index into {type, colors|cardId|deck} for the UI's move animation
+  function decodeAction(s, a) {
+    if (a < A_TAKE2) return { type: 'take', colors: TAKE3[a - A_TAKE3].map(i => COLORS[i]) };
+    if (a < A_TAKE1) { const c = COLORS[a - A_TAKE2]; return { type: 'take', colors: [c, c] }; }
+    if (a < A_CAP_FIELD) return { type: 'take', colors: [COLORS[a - A_TAKE1]] };
+    if (a < A_CAP_RES) { const [t, sl] = FIELD_ORDER[a - A_CAP_FIELD]; return { type: 'capture', cardId: s.field[t][sl] }; }
+    if (a < A_RES_FIELD) return { type: 'capture', cardId: s.players[s.turn].reserve[a - A_CAP_RES] };
+    if (a < A_RES_DECK) { const [t, sl] = NORMAL_FIELD_ORDER[a - A_RES_FIELD]; return { type: 'reserve', cardId: s.field[t][sl] }; }
+    if (a < A_PASS) return { type: 'reserve', deck: NORMAL_TIERS[a - A_RES_DECK] };
+    return { type: 'pass' };
+  }
   // fallback when no net loaded: 1-ply by engine score (rough)
   function pickByEval(G) {
     const acts = legalActionsIdx(G); let best = acts[0], bv = -1e30;
@@ -234,7 +245,7 @@
 
   return {
     N_ACTIONS, N_FEAT, encode, legalMask, legalActionsIdx, applyIdx, stepAuto,
-    setWeights, hasWeights, infer, forward, mctsMove, playTurn,
+    setWeights, hasWeights, infer, forward, mctsMove, playTurn, decodeAction,
     A_TAKE3, A_TAKE2, A_TAKE1, A_CAP_FIELD, A_CAP_RES, A_RES_FIELD, A_RES_DECK, A_PASS,
     FIELD_ORDER, NORMAL_FIELD_ORDER, TAKE3, COLORS,
   };
