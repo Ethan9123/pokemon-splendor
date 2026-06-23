@@ -1,0 +1,702 @@
+[
+ {
+  "id": "s1_01",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_01.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_01.png"
+ },
+ {
+  "id": "s1_02",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_02.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_02.png"
+ },
+ {
+  "id": "s1_03",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_03.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_03.png"
+ },
+ {
+  "id": "s1_04",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_04.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_04.png"
+ },
+ {
+  "id": "s1_05",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_05.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_05.png"
+ },
+ {
+  "id": "s1_06",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_06.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_06.png"
+ },
+ {
+  "id": "s1_07",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_07.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_07.png"
+ },
+ {
+  "id": "s1_08",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_08.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_08.png"
+ },
+ {
+  "id": "s1_09",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_09.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_09.png"
+ },
+ {
+  "id": "s1_10",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_10.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_10.png"
+ },
+ {
+  "id": "s1_11",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_11.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_11.png"
+ },
+ {
+  "id": "s1_12",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_12.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_12.png"
+ },
+ {
+  "id": "s1_13",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_13.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_13.png"
+ },
+ {
+  "id": "s1_14",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_14.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_14.png"
+ },
+ {
+  "id": "s1_15",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_15.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_15.png"
+ },
+ {
+  "id": "s1_16",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_16.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_16.png"
+ },
+ {
+  "id": "s1_17",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_17.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_17.png"
+ },
+ {
+  "id": "s1_18",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_18.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_18.png"
+ },
+ {
+  "id": "s1_19",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_19.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_19.png"
+ },
+ {
+  "id": "s1_20",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_20.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_20.png"
+ },
+ {
+  "id": "s1_21",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_21.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_21.png"
+ },
+ {
+  "id": "s1_22",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_22.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_22.png"
+ },
+ {
+  "id": "s1_23",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_23.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_23.png"
+ },
+ {
+  "id": "s1_24",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_24.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_24.png"
+ },
+ {
+  "id": "s1_25",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_25.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_25.png"
+ },
+ {
+  "id": "s1_26",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_26.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_26.png"
+ },
+ {
+  "id": "s1_27",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_27.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_27.png"
+ },
+ {
+  "id": "s1_28",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_28.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_28.png"
+ },
+ {
+  "id": "s1_29",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_29.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_29.png"
+ },
+ {
+  "id": "s1_30",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_30.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_30.png"
+ },
+ {
+  "id": "s1_31",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_31.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_31.png"
+ },
+ {
+  "id": "s1_32",
+  "tier": "stage1",
+  "vp_tag": 1,
+  "img": "assets/cards/s1_32.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_32.png"
+ },
+ {
+  "id": "s1_33",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_33.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_33.png"
+ },
+ {
+  "id": "s1_34",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_34.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_34.png"
+ },
+ {
+  "id": "s1_35",
+  "tier": "stage1",
+  "vp_tag": 0,
+  "img": "assets/cards/s1_35.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s1_35.png"
+ },
+ {
+  "id": "s2_01",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_01.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_01.png"
+ },
+ {
+  "id": "s2_02",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_02.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_02.png"
+ },
+ {
+  "id": "s2_03",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_03.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_03.png"
+ },
+ {
+  "id": "s2_04",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_04.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_04.png"
+ },
+ {
+  "id": "s2_05",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_05.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_05.png"
+ },
+ {
+  "id": "s2_06",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_06.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_06.png"
+ },
+ {
+  "id": "s2_07",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_07.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_07.png"
+ },
+ {
+  "id": "s2_08",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_08.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_08.png"
+ },
+ {
+  "id": "s2_09",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_09.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_09.png"
+ },
+ {
+  "id": "s2_10",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_10.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_10.png"
+ },
+ {
+  "id": "s2_11",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_11.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_11.png"
+ },
+ {
+  "id": "s2_12",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_12.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_12.png"
+ },
+ {
+  "id": "s2_13",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_13.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_13.png"
+ },
+ {
+  "id": "s2_14",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_14.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_14.png"
+ },
+ {
+  "id": "s2_15",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_15.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_15.png"
+ },
+ {
+  "id": "s2_16",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_16.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_16.png"
+ },
+ {
+  "id": "s2_17",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_17.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_17.png"
+ },
+ {
+  "id": "s2_18",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_18.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_18.png"
+ },
+ {
+  "id": "s2_19",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_19.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_19.png"
+ },
+ {
+  "id": "s2_20",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_20.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_20.png"
+ },
+ {
+  "id": "s2_21",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_21.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_21.png"
+ },
+ {
+  "id": "s2_22",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_22.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_22.png"
+ },
+ {
+  "id": "s2_23",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_23.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_23.png"
+ },
+ {
+  "id": "s2_24",
+  "tier": "stage2",
+  "vp_tag": 2,
+  "img": "assets/cards/s2_24.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_24.png"
+ },
+ {
+  "id": "s2_25",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_25.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_25.png"
+ },
+ {
+  "id": "s2_26",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_26.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_26.png"
+ },
+ {
+  "id": "s2_27",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_27.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_27.png"
+ },
+ {
+  "id": "s2_28",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_28.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_28.png"
+ },
+ {
+  "id": "s2_29",
+  "tier": "stage2",
+  "vp_tag": 1,
+  "img": "assets/cards/s2_29.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_29.png"
+ },
+ {
+  "id": "s2_30",
+  "tier": "stage2",
+  "vp_tag": 3,
+  "img": "assets/cards/s2_30.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s2_30.png"
+ },
+ {
+  "id": "s3_01",
+  "tier": "stage3",
+  "vp_tag": 4,
+  "img": "assets/cards/s3_01.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_01.png"
+ },
+ {
+  "id": "s3_02",
+  "tier": "stage3",
+  "vp_tag": 5,
+  "img": "assets/cards/s3_02.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_02.png"
+ },
+ {
+  "id": "s3_03",
+  "tier": "stage3",
+  "vp_tag": 5,
+  "img": "assets/cards/s3_03.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_03.png"
+ },
+ {
+  "id": "s3_04",
+  "tier": "stage3",
+  "vp_tag": 3,
+  "img": "assets/cards/s3_04.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_04.png"
+ },
+ {
+  "id": "s3_05",
+  "tier": "stage3",
+  "vp_tag": 3,
+  "img": "assets/cards/s3_05.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_05.png"
+ },
+ {
+  "id": "s3_06",
+  "tier": "stage3",
+  "vp_tag": 3,
+  "img": "assets/cards/s3_06.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_06.png"
+ },
+ {
+  "id": "s3_07",
+  "tier": "stage3",
+  "vp_tag": 3,
+  "img": "assets/cards/s3_07.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_07.png"
+ },
+ {
+  "id": "s3_08",
+  "tier": "stage3",
+  "vp_tag": 5,
+  "img": "assets/cards/s3_08.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_08.png"
+ },
+ {
+  "id": "s3_09",
+  "tier": "stage3",
+  "vp_tag": 4,
+  "img": "assets/cards/s3_09.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_09.png"
+ },
+ {
+  "id": "s3_10",
+  "tier": "stage3",
+  "vp_tag": 4,
+  "img": "assets/cards/s3_10.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_10.png"
+ },
+ {
+  "id": "s3_11",
+  "tier": "stage3",
+  "vp_tag": 5,
+  "img": "assets/cards/s3_11.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_11.png"
+ },
+ {
+  "id": "s3_12",
+  "tier": "stage3",
+  "vp_tag": 3,
+  "img": "assets/cards/s3_12.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_12.png"
+ },
+ {
+  "id": "s3_13",
+  "tier": "stage3",
+  "vp_tag": 5,
+  "img": "assets/cards/s3_13.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_13.png"
+ },
+ {
+  "id": "s3_14",
+  "tier": "stage3",
+  "vp_tag": 4,
+  "img": "assets/cards/s3_14.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_14.png"
+ },
+ {
+  "id": "s3_15",
+  "tier": "stage3",
+  "vp_tag": 4,
+  "img": "assets/cards/s3_15.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\s3_15.png"
+ },
+ {
+  "id": "rr_01",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_01.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_01.png"
+ },
+ {
+  "id": "rr_02",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_02.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_02.png"
+ },
+ {
+  "id": "rr_03",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_03.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_03.png"
+ },
+ {
+  "id": "rr_04",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_04.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_04.png"
+ },
+ {
+  "id": "rr_05",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_05.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_05.png"
+ },
+ {
+  "id": "rr_06",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_06.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_06.png"
+ },
+ {
+  "id": "rr_07",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_07.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_07.png"
+ },
+ {
+  "id": "rr_08",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_08.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_08.png"
+ },
+ {
+  "id": "rr_09",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_09.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_09.png"
+ },
+ {
+  "id": "rr_10",
+  "tier": "rare",
+  "vp_tag": 0,
+  "img": "assets/cards/rr_10.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\rr_10.png"
+ },
+ {
+  "id": "lg_01",
+  "tier": "legend",
+  "vp_tag": 0,
+  "img": "assets/cards/lg_01.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_01.png"
+ },
+ {
+  "id": "lg_02",
+  "tier": "legend",
+  "vp_tag": 0,
+  "img": "assets/cards/lg_02.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_02.png"
+ },
+ {
+  "id": "lg_03",
+  "tier": "legend",
+  "vp_tag": 0,
+  "img": "assets/cards/lg_03.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_03.png"
+ },
+ {
+  "id": "lg_04",
+  "tier": "legend",
+  "vp_tag": 0,
+  "img": "assets/cards/lg_04.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_04.png"
+ },
+ {
+  "id": "lg_05",
+  "tier": "legend",
+  "vp_tag": 0,
+  "img": "assets/cards/lg_05.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_05.png"
+ },
+ {
+  "id": "lg_06",
+  "tier": "legend",
+  "vp_tag": 2,
+  "img": "assets/cards/lg_06.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_06.png"
+ },
+ {
+  "id": "lg_07",
+  "tier": "legend",
+  "vp_tag": 2,
+  "img": "assets/cards/lg_07.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_07.png"
+ },
+ {
+  "id": "lg_08",
+  "tier": "legend",
+  "vp_tag": 2,
+  "img": "assets/cards/lg_08.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_08.png"
+ },
+ {
+  "id": "lg_09",
+  "tier": "legend",
+  "vp_tag": 2,
+  "img": "assets/cards/lg_09.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_09.png"
+ },
+ {
+  "id": "lg_10",
+  "tier": "legend",
+  "vp_tag": 2,
+  "img": "assets/cards/lg_10.png",
+  "abspath": "C:\\Users\\kids1\\Downloads\\桌游资料\\璀璨宝石\\pokemon-splendor\\assets\\cards\\lg_10.png"
+ }
+]

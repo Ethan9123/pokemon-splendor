@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>璀璨宝石 · 宝可梦</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- ===== Setup / menu screen ===== -->
+  <div id="setup" class="screen">
+    <div class="setup-card">
+      <h1 class="brand"><span class="brand-splendor">璀璨宝石</span><span class="brand-dot">·</span><span class="brand-pkmn">宝可梦</span></h1>
+      <p class="tagline">收集精灵球，捕捉并进化宝可梦，率先达到 18 分成为冠军训练家！</p>
+
+      <div class="setup-row">
+        <label>玩家人数</label>
+        <div id="player-count" class="seg">
+          <button data-n="2" class="active">2</button>
+          <button data-n="3">3</button>
+          <button data-n="4">4</button>
+        </div>
+      </div>
+
+      <div id="seats" class="seats"></div>
+
+      <div class="setup-actions">
+        <button id="start-btn" class="primary">开始游戏</button>
+        <button id="rules-btn" class="ghost">规则说明</button>
+      </div>
+      <div class="credit">素材源自 TTS 模组「璀璨宝石：宝可梦」 · 卡牌数据由原始卡面提取</div>
+    </div>
+  </div>
+
+  <!-- ===== Rules modal ===== -->
+  <div id="rules-modal" class="modal hidden">
+    <div class="modal-box">
+      <h2>游戏规则</h2>
+      <div class="rules-body">
+        <p><b>目标：</b>率先达到 <b>18 分</b>。某玩家到达后，本轮结束（每人回合数相同），分高者胜。平局比训练板下方卡牌数（进化次数），再比场上宝可梦数。</p>
+        <p><b>精灵球（6 种）：</b>精灵球(红)、超级球(蓝)、高级球(黑)、治愈球(粉)、先机球(黄)，以及 <b>大师球(紫)</b>——万能球，可替代任意颜色。</p>
+        <p><b>每回合三选一：</b></p>
+        <ul>
+          <li>① 拿取 3 个<b>不同</b>颜色的精灵球（大师球不可拿）。</li>
+          <li>② 拿取 2 个<b>同色</b>精灵球（该色供应 ≥ 4 时）。</li>
+          <li>③ <b>保留</b>一张普通宝可梦（场上或牌堆顶）进手牌，并获得 1 个大师球（手牌上限 3，稀有/传说不可保留）。</li>
+        </ul>
+        <p><b>捕捉：</b>支付卡牌左下角的精灵球成本即可捕捉（场上或自己手牌）。已捕捉宝可梦右上角的球是<b>永久折扣</b>。稀有/传说必须用大师球，且各提供 2 个折扣。</p>
+        <p><b>进化（回合结束，非行动）：</b>若你已捕捉的宝可梦的进化形出现在场上或你的手牌中，且你的折扣+精灵球满足卡面顶部的进化花费，即可进化：用进化形替换原卡，原卡放到训练板下方（不再计分/折扣）。每回合至多进化 1 只。</p>
+        <p><b>精灵球上限 10：</b>回合结束若超过 10 个，需归还至 10。</p>
+      </div>
+      <button class="primary close-rules">明白了</button>
+    </div>
+  </div>
+
+  <!-- ===== Game screen ===== -->
+  <div id="game" class="screen hidden">
+    <header id="topbar">
+      <div class="topbar-left">
+        <span class="brand-mini">璀璨宝石 · 宝可梦</span>
+      </div>
+      <div id="turn-banner"></div>
+      <div class="topbar-right">
+        <button id="menu-btn" class="ghost small">菜单</button>
+      </div>
+    </header>
+
+    <div id="layout">
+      <main id="board">
+        <section id="field"></section>
+      </main>
+      <aside id="side">
+        <div id="supply" class="panel"></div>
+        <div id="action-bar" class="panel"></div>
+        <div id="log" class="panel"><div class="panel-title">游戏记录</div><div id="log-lines"></div></div>
+      </aside>
+    </div>
+
+    <footer id="players"></footer>
+  </div>
+
+  <!-- ===== Win modal ===== -->
+  <div id="win-modal" class="modal hidden">
+    <div class="modal-box win">
+      <div id="win-content"></div>
+      <button class="primary" id="play-again">再来一局</button>
+    </div>
+  </div>
+
+  <!-- card zoom preview -->
+  <div id="zoom" class="hidden"><img id="zoom-img" alt="" /></div>
+
+  <script src="js/cards.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
