@@ -29,6 +29,8 @@
   const NORMAL_TIERS = ['stage1', 'stage2', 'stage3'];
   const FIELD_TIERS = ['stage1', 'stage2', 'stage3', 'rare', 'legend'];
   const FIELD_SLOTS = { stage1: 4, stage2: 4, stage3: 4, rare: 1, legend: 1 };
+  const SPECIAL_TIERS = ['rare', 'legend'];
+  const SPECIAL_DECK_SIZE = 5; // 神兽/幻兽: only 5 of the 10-card pool play per game (1 revealed + 4 in deck)
   const HAND_MAX = 3;
   const TOKEN_MAX = 10;
   const WIN_SCORE = 18;
@@ -85,6 +87,9 @@
     for (const tier of FIELD_TIERS) {
       decks[tier] = shuffle(cardDB.filter(c => c.tier === tier).map(c => c.id), rng);
     }
+    // 神兽/幻兽: draw only 5 of the 10-card pool into each special deck per game
+    const specialSize = opts.specialDeckSize || SPECIAL_DECK_SIZE;
+    for (const tier of SPECIAL_TIERS) decks[tier] = decks[tier].slice(0, specialSize);
     const field = {};
     for (const tier of FIELD_TIERS) {
       field[tier] = [];
