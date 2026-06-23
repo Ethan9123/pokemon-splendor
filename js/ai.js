@@ -46,6 +46,11 @@
     // the AI keeps capturing rather than hoarding tokens.
     const cards = p.board.length;
     score += cards * 16;
+    // 神兽/稀有 (rare/legend) anchor a colour high-score flow: 2 same-colour discounts
+    // (+2VP for legend). Owning them is worth extra beyond a normal card.
+    let rlOwned = 0;
+    for (const id of p.board) { const t = s.byId[id].tier; if (t === 'rare' || t === 'legend') rlOwned++; }
+    score += rlOwned * 10;
     let totalBonus = 0;
     const distinct = COLORS.filter(c => { totalBonus += b[c]; return b[c] > 0; }).length;
     score += totalBonus * 4;
@@ -74,7 +79,8 @@
       if (!card.vp && card.tier !== 'rare') continue;
       let gap = card.cost.purple || 0;
       for (const c of COLORS) gap += Math.max(0, (card.cost[c] || 0) - b[c] - p.tokens[c]);
-      const worth = (card.vp || 0) + (card.bonusCount || 1) * 1.5;
+      let worth = (card.vp || 0) + (card.bonusCount || 1) * 1.5;
+      if (card.tier === 'rare' || card.tier === 'legend') worth += 3; // high-priority anchor
       const v = worth / (1 + gap * 1.4);
       if (v > bestProx) bestProx = v;
     }
