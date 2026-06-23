@@ -31,6 +31,7 @@
            <option value="hard">高手</option>
            <option value="normal">普通</option>
            <option value="easy">新手</option>
+           <option value="alphazero">AlphaZero(实验)</option>
          </select>`;
       seats.appendChild(div);
       $(`[data-kind="${i}"]`, div).value = def;
@@ -55,6 +56,7 @@
     const cfg = readConfig();
     G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai });
     G.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
+    if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
     UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: cfg.ai.filter(x => !x).length };
     $('#setup').classList.add('hidden');
     $('#game').classList.remove('hidden');
@@ -365,10 +367,29 @@
     renderBanner();
   }
 
+  let policyLoaded = false;
+  function loadPolicy() {
+    if (policyLoaded || !window.AZAI) return;
+    fetch('assets/policy.json').then(r => (r.ok ? r.json() : null)).then(j => {
+      if (j && j.weights) { AZAI.setWeights(j); policyLoaded = true; }
+    }).catch(() => {});
+  }
+
   function aiPlay() {
     if (G.phase === 'gameover') return;
     const p = me();
     UI.busy = true;
+    // AlphaZero net seat: net-guided MCTS plays the whole turn (auto discard + evolution)
+    if (p.diff === 'alphazero' && window.AZAI && AZAI.hasWeights()) {
+      setTimeout(() => {
+        try { AZAI.playTurn(G, { sims: 100 }); }
+        catch (e) { AZAI._err = e; }
+        UI.busy = false; UI.phase = 'main';
+        if (G.phase === 'gameover') { render(); showWin(); return; }
+        render(); beginTurn();
+      }, 350);
+      return;
+    }
     const plan = AI.chooseTurn(G, { difficulty: p.diff || 'hard' });
     // step 1: main action
     if (plan.action) E.applyAction(G, plan.action); else E.actionPass(G);
