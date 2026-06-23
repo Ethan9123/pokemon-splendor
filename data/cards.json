@@ -16,7 +16,7 @@
   },
   "evolvesTo": "火恐龙",
   "evoCost": {
-   "color": "black",
+   "color": "yellow",
    "count": 3
   },
   "img": "assets/cards/s1_01.jpg"
@@ -26,14 +26,14 @@
   "tier": "stage1",
   "name": "妙蛙种子",
   "vp": 1,
-  "bonus": "blue",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 0,
    "blue": 0,
-   "black": 4,
+   "black": 0,
    "pink": 0,
-   "yellow": 0,
+   "yellow": 4,
    "purple": 0
   },
   "evolvesTo": "妙蛙草",
@@ -60,7 +60,7 @@
   },
   "evolvesTo": "火恐龙",
   "evoCost": {
-   "color": "black",
+   "color": "yellow",
    "count": 3
   },
   "img": "assets/cards/s1_03.jpg"
@@ -158,7 +158,7 @@
   "tier": "stage1",
   "name": "尼多兰",
   "vp": 0,
-  "bonus": "black",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 2,
@@ -236,7 +236,7 @@
   },
   "evolvesTo": "鬼斯通",
   "evoCost": {
-   "color": "blue",
+   "color": "black",
    "count": 3
   },
   "img": "assets/cards/s1_11.jpg"
@@ -251,9 +251,9 @@
   "cost": {
    "red": 0,
    "blue": 0,
-   "black": 0,
+   "black": 1,
    "pink": 0,
-   "yellow": 3,
+   "yellow": 2,
    "purple": 0
   },
   "evolvesTo": "比比鸟",
@@ -324,7 +324,7 @@
   },
   "evolvesTo": "臭臭花",
   "evoCost": {
-   "color": "blue",
+   "color": "yellow",
    "count": 2
   },
   "img": "assets/cards/s1_15.jpg"
@@ -346,7 +346,7 @@
   },
   "evolvesTo": "豪力",
   "evoCost": {
-   "color": "black",
+   "color": "yellow",
    "count": 3
   },
   "img": "assets/cards/s1_16.jpg"
@@ -356,7 +356,7 @@
   "tier": "stage1",
   "name": "鬼斯",
   "vp": 0,
-  "bonus": "blue",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 1,
@@ -382,15 +382,15 @@
   "bonusCount": 1,
   "cost": {
    "red": 0,
-   "blue": 2,
-   "black": 0,
+   "blue": 0,
+   "black": 2,
    "pink": 0,
    "yellow": 2,
    "purple": 0
   },
   "evolvesTo": "臭臭花",
   "evoCost": {
-   "color": "blue",
+   "color": "yellow",
    "count": 2
   },
   "img": "assets/cards/s1_18.jpg"
@@ -400,7 +400,7 @@
   "tier": "stage1",
   "name": "尼多兰",
   "vp": 0,
-  "bonus": "blue",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 0,
@@ -444,7 +444,7 @@
   "tier": "stage1",
   "name": "蚊香蝌蚪",
   "vp": 0,
-  "bonus": "blue",
+  "bonus": "pink",
   "bonusCount": 1,
   "cost": {
    "red": 3,
@@ -456,7 +456,7 @@
   },
   "evolvesTo": "蚊香蛙",
   "evoCost": {
-   "color": "blue",
+   "color": "black",
    "count": 2
   },
   "img": "assets/cards/s1_21.jpg"
@@ -488,7 +488,7 @@
   "tier": "stage1",
   "name": "蚊香蝌蚪",
   "vp": 0,
-  "bonus": "blue",
+  "bonus": "pink",
   "bonusCount": 1,
   "cost": {
    "red": 0,
@@ -500,7 +500,7 @@
   },
   "evolvesTo": "蚊香蛙",
   "evoCost": {
-   "color": "blue",
+   "color": "black",
    "count": 2
   },
   "img": "assets/cards/s1_23.jpg"
@@ -515,9 +515,9 @@
   "cost": {
    "red": 1,
    "blue": 1,
-   "black": 1,
+   "black": 0,
    "pink": 1,
-   "yellow": 0,
+   "yellow": 1,
    "purple": 0
   },
   "evolvesTo": "铁壳蛹",
@@ -536,10 +536,10 @@
   "bonusCount": 1,
   "cost": {
    "red": 0,
-   "blue": 2,
+   "blue": 0,
    "black": 1,
    "pink": 1,
-   "yellow": 0,
+   "yellow": 2,
    "purple": 0
   },
   "evolvesTo": "豪力",
@@ -627,7 +627,7 @@
    "blue": 2,
    "black": 0,
    "pink": 0,
-   "yellow": 0,
+   "yellow": 2,
    "purple": 0
   },
   "evolvesTo": "尼多娜",
@@ -664,7 +664,7 @@
   "tier": "stage1",
   "name": "独角虫",
   "vp": 0,
-  "bonus": "blue",
+  "bonus": "black",
   "bonusCount": 1,
   "cost": {
    "red": 1,
@@ -774,12 +774,12 @@
   "tier": "stage2",
   "name": "隆隆石",
   "vp": 2,
-  "bonus": "red",
+  "bonus": "blue",
   "bonusCount": 1,
   "cost": {
-   "red": 1,
+   "red": 0,
    "blue": 0,
-   "black": 0,
+   "black": 1,
    "pink": 4,
    "yellow": 2,
    "purple": 0
@@ -840,14 +840,14 @@
   "tier": "stage2",
   "name": "妙蛙草",
   "vp": 3,
-  "bonus": "black",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 0,
-   "blue": 6,
+   "blue": 0,
    "black": 0,
    "pink": 0,
-   "yellow": 0,
+   "yellow": 6,
    "purple": 0
   },
   "evolvesTo": "妙蛙花",
@@ -862,7 +862,7 @@
   "tier": "stage2",
   "name": "比比鸟",
   "vp": 1,
-  "bonus": "red",
+  "bonus": "blue",
   "bonusCount": 1,
   "cost": {
    "red": 3,
@@ -933,9 +933,9 @@
   "cost": {
    "red": 0,
    "blue": 2,
-   "black": 0,
+   "black": 2,
    "pink": 3,
-   "yellow": 2,
+   "yellow": 0,
    "purple": 0
   },
   "evolvesTo": "蚊香泳士",
@@ -998,10 +998,10 @@
   "bonusCount": 1,
   "cost": {
    "red": 4,
-   "blue": 4,
+   "blue": 0,
    "black": 1,
    "pink": 0,
-   "yellow": 0,
+   "yellow": 4,
    "purple": 0
   },
   "evolvesTo": "胡地",
@@ -1060,7 +1060,7 @@
   "tier": "stage2",
   "name": "比比鸟",
   "vp": 1,
-  "bonus": "red",
+  "bonus": "blue",
   "bonusCount": 1,
   "cost": {
    "red": 0,
@@ -1108,10 +1108,10 @@
   "bonusCount": 1,
   "cost": {
    "red": 4,
-   "blue": 4,
+   "blue": 1,
    "black": 0,
-   "pink": 0,
-   "yellow": 2,
+   "pink": 4,
+   "yellow": 0,
    "purple": 0
   },
   "evolvesTo": "妙蛙花",
@@ -1138,7 +1138,7 @@
   },
   "evolvesTo": "巴大蝶",
   "evoCost": {
-   "color": "pink",
+   "color": "yellow",
    "count": 3
   },
   "img": "assets/cards/s2_17.jpg"
@@ -1153,9 +1153,9 @@
   "cost": {
    "red": 2,
    "blue": 2,
-   "black": 0,
+   "black": 3,
    "pink": 0,
-   "yellow": 3,
+   "yellow": 0,
    "purple": 0
   },
   "evolvesTo": "霸王花",
@@ -1197,9 +1197,9 @@
   "cost": {
    "red": 2,
    "blue": 2,
-   "black": 0,
+   "black": 3,
    "pink": 0,
-   "yellow": 3,
+   "yellow": 0,
    "purple": 0
   },
   "evolvesTo": "蚊香泳士",
@@ -1214,7 +1214,7 @@
   "tier": "stage2",
   "name": "隆隆石",
   "vp": 2,
-  "bonus": "red",
+  "bonus": "blue",
   "bonusCount": 1,
   "cost": {
    "red": 2,
@@ -1314,7 +1314,7 @@
   },
   "evolvesTo": "快龙",
   "evoCost": {
-   "color": "black",
+   "color": "yellow",
    "count": 4
   },
   "img": "assets/cards/s2_25.jpg"
@@ -1424,7 +1424,7 @@
   },
   "evolvesTo": "快龙",
   "evoCost": {
-   "color": "blue",
+   "color": "yellow",
    "count": 4
   },
   "img": "assets/cards/s2_30.jpg"
@@ -1434,7 +1434,7 @@
   "tier": "stage3",
   "name": "耿鬼",
   "vp": 4,
-  "bonus": "black",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 0,
@@ -1472,13 +1472,13 @@
   "tier": "stage3",
   "name": "妙蛙花",
   "vp": 5,
-  "bonus": "black",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 7,
    "blue": 0,
-   "black": 3,
-   "pink": 0,
+   "black": 0,
+   "pink": 3,
    "yellow": 0,
    "purple": 0
   },
@@ -1510,14 +1510,14 @@
   "tier": "stage3",
   "name": "尼多后",
   "vp": 3,
-  "bonus": "black",
+  "bonus": "yellow",
   "bonusCount": 1,
   "cost": {
    "red": 2,
-   "blue": 5,
+   "blue": 0,
    "black": 0,
    "pink": 2,
-   "yellow": 0,
+   "yellow": 5,
    "purple": 0
   },
   "evolvesTo": null,
@@ -1705,9 +1705,9 @@
   "cost": {
    "red": 0,
    "blue": 6,
-   "black": 0,
+   "black": 4,
    "pink": 0,
-   "yellow": 4,
+   "yellow": 0,
    "purple": 0
   },
   "evolvesTo": null,
@@ -1743,8 +1743,8 @@
   "cost": {
    "red": 0,
    "blue": 2,
-   "black": 0,
-   "pink": 3,
+   "black": 3,
+   "pink": 0,
    "yellow": 0,
    "purple": 1
   },
@@ -1761,10 +1761,10 @@
   "bonusCount": 2,
   "cost": {
    "red": 2,
-   "blue": 3,
+   "blue": 0,
    "black": 0,
    "pink": 0,
-   "yellow": 0,
+   "yellow": 3,
    "purple": 1
   },
   "evolvesTo": null,
@@ -1781,9 +1781,9 @@
   "cost": {
    "red": 3,
    "blue": 0,
-   "black": 0,
+   "black": 2,
    "pink": 0,
-   "yellow": 2,
+   "yellow": 0,
    "purple": 1
   },
   "evolvesTo": null,
@@ -1894,8 +1894,8 @@
   "bonusCount": 2,
   "cost": {
    "red": 0,
-   "blue": 0,
-   "black": 3,
+   "blue": 3,
+   "black": 0,
    "pink": 2,
    "yellow": 0,
    "purple": 1
@@ -1909,7 +1909,7 @@
   "tier": "legend",
   "name": "捷拉奥拉",
   "vp": 2,
-  "bonus": "black",
+  "bonus": "yellow",
   "bonusCount": 2,
   "cost": {
    "red": 3,
@@ -2010,8 +2010,8 @@
    "red": 0,
    "blue": 3,
    "black": 3,
-   "pink": 3,
-   "yellow": 0,
+   "pink": 0,
+   "yellow": 3,
    "purple": 1
   },
   "evolvesTo": null,
@@ -2027,10 +2027,10 @@
   "bonusCount": 2,
   "cost": {
    "red": 3,
-   "blue": 0,
+   "blue": 3,
    "black": 0,
    "pink": 3,
-   "yellow": 3,
+   "yellow": 0,
    "purple": 1
   },
   "evolvesTo": null,
@@ -2085,9 +2085,9 @@
   "cost": {
    "red": 0,
    "blue": 3,
-   "black": 3,
+   "black": 0,
    "pink": 3,
-   "yellow": 0,
+   "yellow": 3,
    "purple": 1
   },
   "evolvesTo": null,
