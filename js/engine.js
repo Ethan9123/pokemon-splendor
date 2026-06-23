@@ -31,6 +31,13 @@
   const FIELD_SLOTS = { stage1: 4, stage2: 4, stage3: 4, rare: 1, legend: 1 };
   const SPECIAL_TIERS = ['rare', 'legend'];
   const SPECIAL_DECK_SIZE = 5; // 神兽/幻兽: only 5 of the 10-card pool play per game (1 revealed + 4 in deck)
+  // Canonical color-balanced sets (one bonus colour each), matching the classic
+  // 神兽/稀有 used in the strategy guides. Every game has exactly one rare & one
+  // legend per colour (red/black/yellow/blue/pink), each granting 2 same-colour bonuses.
+  const CANON_SPECIAL = {
+    rare: ['rr_06', 'rr_07', 'rr_08', 'rr_09', 'rr_10'],   // 拉普拉斯红/伊布黑/卡比兽粉/百变怪蓝/化石翼龙黄
+    legend: ['lg_06', 'lg_07', 'lg_08', 'lg_09', 'lg_10'], // 火焰鸟粉/超梦黑/梦幻蓝/急冻鸟黄/闪电鸟红
+  };
   const HAND_MAX = 3;
   const TOKEN_MAX = 10;
   const WIN_SCORE = 18;
@@ -87,9 +94,12 @@
     for (const tier of FIELD_TIERS) {
       decks[tier] = shuffle(cardDB.filter(c => c.tier === tier).map(c => c.id), rng);
     }
-    // 神兽/幻兽: draw only 5 of the 10-card pool into each special deck per game
-    const specialSize = opts.specialDeckSize || SPECIAL_DECK_SIZE;
-    for (const tier of SPECIAL_TIERS) decks[tier] = decks[tier].slice(0, specialSize);
+    // 神兽/幻兽: use the canonical colour-balanced 5 per tier (1 revealed + 4 in deck),
+    // keeping the shuffled order so which one is revealed first still varies.
+    for (const tier of SPECIAL_TIERS) {
+      const set = (opts.specialSets && opts.specialSets[tier]) || CANON_SPECIAL[tier];
+      decks[tier] = decks[tier].filter(id => set.indexOf(id) >= 0);
+    }
     const field = {};
     for (const tier of FIELD_TIERS) {
       field[tier] = [];
