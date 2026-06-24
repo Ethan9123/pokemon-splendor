@@ -170,7 +170,7 @@
   },
   "evolvesTo": "尼多娜",
   "evoCost": {
-   "color": "red",
+   "color": "blue",
    "count": 2
   },
   "img": "assets/cards/s1_08.jpg"
@@ -412,7 +412,7 @@
   },
   "evolvesTo": "尼多娜",
   "evoCost": {
-   "color": "red",
+   "color": "blue",
    "count": 2
   },
   "img": "assets/cards/s1_19.jpg"
@@ -632,7 +632,7 @@
   },
   "evolvesTo": "尼多娜",
   "evoCost": {
-   "color": "red",
+   "color": "blue",
    "count": 2
   },
   "img": "assets/cards/s1_29.jpg"
