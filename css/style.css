@@ -126,9 +126,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .deck-pile[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage3.jpg)}
 .deck-pile[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/rare.jpg)}
 .deck-pile[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/legend.jpg)}
-.deck-pile .count{font-weight:800;font-size:20px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+/* Pokémart has no TTS back → CSS-generated green "shop" back (layered gradients for depth) */
+.deck-pile[data-tier="pmL1"],.deck-pile[data-tier="pmL2"],.deck-pile[data-tier="pmL3"]{background-image:linear-gradient(135deg,rgba(46,209,122,.25),rgba(76,175,80,.15) 50%,rgba(46,209,122,.20)),radial-gradient(circle at 30% 70%,rgba(76,175,80,.10),transparent 60%),linear-gradient(160deg,#0d3a1a,#1a5c2a 40%,#0f4620)}
+/* count → small corner badge so the back art reads (min-width fits 2-digit counts like 35) */
+.deck-pile .count{position:absolute;top:6px;right:7px;font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);background:rgba(0,0,0,.5);border-radius:8px;min-width:24px;height:23px;display:flex;align-items:center;justify-content:center;padding:0 5px;z-index:2}
 .deck-pile.reservable{cursor:pointer;border-style:solid}
-.deck-pile .deck-tag{position:absolute;bottom:4px;font-size:10px;color:#fff;opacity:.92;text-shadow:0 1px 3px rgba(0,0,0,.95)}
+.deck-pile .deck-tag{position:absolute;bottom:5px;left:5px;font-size:9px;color:#fff;opacity:.9;text-shadow:0 1px 2px rgba(0,0,0,.95);background:rgba(0,0,0,.4);border-radius:4px;padding:2px 5px;line-height:1;z-index:1}
 .card-strip{display:flex;gap:8px;flex-wrap:wrap}
 
 /* card */
@@ -256,6 +259,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .mini-card{width:42px;height:56px;border-radius:5px;overflow:hidden;border:1px solid #000;box-shadow:0 1px 3px rgba(0,0,0,.5);cursor:pointer}
 .mini-card img{width:100%;height:100%;object-fit:cover}
 .mini-card.stacked{margin-top:-44px}
+/* face-down reserve backs: real tier art (base) / green CSS back (Pokémart) */
+.mini-card.card-back{background:linear-gradient(135deg,#3a2a6e,#221a4a) center/cover no-repeat}
+.mini-card.card-back[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage1.jpg)}
+.mini-card.card-back[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage2.jpg)}
+.mini-card.card-back[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage3.jpg)}
+.mini-card.card-back[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/rare.jpg)}
+.mini-card.card-back[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/legend.jpg)}
+.mini-card.card-back[data-tier="pmL1"],.mini-card.card-back[data-tier="pmL2"],.mini-card.card-back[data-tier="pmL3"]{background-image:linear-gradient(135deg,rgba(46,209,122,.3),rgba(76,175,80,.2) 50%,rgba(46,209,122,.25)),linear-gradient(160deg,#0d3a1a,#1a5c2a 40%,#0f4620)}
 .reserve-zone{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
 .reserve-zone .rz-title{font-size:11px;color:var(--muted);margin-bottom:4px}
 .buried-badge{position:absolute;top:8px;right:10px;font-size:11px;color:var(--muted)}
@@ -366,6 +377,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .fly .ball{filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
 .fly-card{width:60px;height:80px;border-radius:7px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.55);border:1px solid rgba(0,0,0,.4)}
 .fly-card img{width:100%;height:100%;object-fit:cover;display:block}
+/* blind deck-reserve flies a tier-correct back instead of a flat gradient */
+.fly-card[data-tier]{background:center/cover no-repeat}
+.fly-card[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage1.jpg)}
+.fly-card[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage2.jpg)}
+.fly-card[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage3.jpg)}
+.fly-card[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/rare.jpg)}
+.fly-card[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/legend.jpg)}
+.fly-card[data-tier="pmL1"],.fly-card[data-tier="pmL2"],.fly-card[data-tier="pmL3"]{background-image:linear-gradient(135deg,rgba(46,209,122,.28),rgba(76,175,80,.18) 50%,rgba(46,209,122,.23)),linear-gradient(160deg,#0d3a1a,#1a5c2a 40%,#0f4620)}
 @keyframes recv{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
 .player.receiving{animation:recv .5s ease}
 

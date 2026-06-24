@@ -374,7 +374,7 @@
       if (p.reserve.length) {
         const cards = p.reserve.map(id => revealReserve
           ? `<div class="mini-card${UI.selCard === id ? ' selected' : ''}" data-zoom="${byId[id].img}" data-reserve-capture="${id}"><img src="${byId[id].img}"></div>`
-          : `<div class="mini-card card-back"></div>`).join('');
+          : `<div class="mini-card card-back" data-tier="${byId[id].tier}"></div>`).join('');
         const hint = revealReserve ? '（点击可捕捉）' : '';
         rz = `<div class="reserve-zone"><div class="rz-title">保留区 (${p.reserve.length})${hint}</div><div class="pcards">${cards}</div></div>`;
       }
@@ -430,9 +430,11 @@
     const n = document.createElement('div'); n.className = 'fly'; n.innerHTML = `<div class="ball ${color}"></div>`;
     flyNode(n, rect.left + rect.width / 2 - 17, rect.top + rect.height / 2 - 17, dc[0] - 17, dc[1] - 17);
   }
-  function flyCard(img, rect, dc) {
+  function flyCard(img, rect, dc, tier) {
     const n = document.createElement('div'); n.className = 'fly fly-card';
-    if (img) n.innerHTML = `<img src="${img}">`; else n.style.background = 'linear-gradient(135deg,#3a2a6e,#221a4a)';
+    if (img) n.innerHTML = `<img src="${img}">`;
+    else if (tier) n.setAttribute('data-tier', tier);          // blind deck reserve → tier-correct back
+    else n.style.background = 'linear-gradient(135deg,#3a2a6e,#221a4a)';
     const fx = rect ? rect.left + rect.width / 2 : dc[0], fy = rect ? rect.top + rect.height / 2 : dc[1];
     flyNode(n, fx - 30, fy - 40, dc[0] - 30, dc[1] - 40);
   }
@@ -447,7 +449,7 @@
       src.push({ rect: el ? el.getBoundingClientRect() : null, img: card ? card.img : null });
     } else if (dec.type === 'reserve' && dec.deck) {
       const el = $(`.deck-pile[data-tier="${dec.deck}"]`);   // blind deck reserve: fly a face-down card from the pile
-      src.push({ rect: el ? el.getBoundingClientRect() : null, img: null });
+      src.push({ rect: el ? el.getBoundingClientRect() : null, img: null, tier: dec.deck });
     }
     return src;
   }
@@ -457,7 +459,7 @@
     panel.classList.add('receiving'); setTimeout(() => panel.classList.remove('receiving'), 520);
     const dc = centerOf(panel);
     if (dec.type === 'take') { for (const it of (src || [])) flyBall(it.color, it.rect, dc); }
-    else if (dec.type === 'capture' || dec.type === 'reserve') { const it = (src || [])[0]; if (it) flyCard(it.img, it.rect, dc); }
+    else if (dec.type === 'capture' || dec.type === 'reserve') { const it = (src || [])[0]; if (it) flyCard(it.img, it.rect, dc, it.tier); }
   }
   // capture source rects, apply mutation, render, animate ghosts to the player, then continue
   function applyAnimated(dec, pid, mutate, after) {
