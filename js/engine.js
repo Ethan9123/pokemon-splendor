@@ -42,6 +42,9 @@
   const HAND_MAX = 3;
   const TOKEN_MAX = 10;
   const WIN_SCORE = 18;
+  // --- Megas expansion (opt-in via opts.megas + opts.megaDB) ---
+  const MEGA_TOKENS = 4;          // shared pool of "Mega" tokens
+  const MEGA_WIN_SCORE = 20;      // with Megas: need 20 VP + 1 of each color + 1 Mega
 
   // ----- seedable RNG (mulberry32) so shuffles are reproducible -----
   function makeRng(seed) {
@@ -90,6 +93,10 @@
     const rng = makeRng(seed);
     const byId = buildIndex(cardDB);
 
+    // Optional Megas expansion: index mega cards; they form a face-up "mega offer".
+    const megasEnabled = !!(opts.megas && opts.megaDB && opts.megaDB.length);
+    if (megasEnabled) for (const c of opts.megaDB) byId[c.id] = c;
+
     // decks per tier (ids), shuffled
     const decks = {};
     for (const tier of FIELD_TIERS) {
@@ -116,32 +123,40 @@
         name: (opts.names && opts.names[i]) || ('训练家 ' + (i + 1)),
         isAI: !!(opts.ai && opts.ai[i]),
         tokens: emptyTokens(),
+        megaToken: 0, // Megas expansion: 0 or 1 held Mega token
         board: [],   // captured card ids currently in play (provide bonus + vp)
         buried: [],  // card ids under the tile (evolved away — no bonus/vp)
         reserve: [], // reserved card ids (in hand)
       });
     }
 
+    const supply = supplyFor(numPlayers);
+    if (megasEnabled) supply.megaToken = MEGA_TOKENS;
+
     return {
       seed,
       cardDB,
       byId,
       numPlayers,
-      supply: supplyFor(numPlayers),
+      supply,
       decks,
       field,
       players,
+      // Megas expansion state (empty/false when the expansion is off)
+      megasEnabled,
+      megaDB: megasEnabled ? opts.megaDB : [],
+      megaOffer: megasEnabled ? opts.megaDB.map(c => c.id) : [], // the 10 unique megas, removed when taken
       turn: 0,                 // index of active player
       round: 1,
       phase: 'play',           // 'play' | 'discard' | 'evolve' | 'gameover'
-      lastRound: false,        // someone hit WIN_SCORE
+      lastRound: false,        // someone hit the win trigger
       finalTurnOf: null,       // when lastRound, the player index that ends the game
       winner: null,
       log: [],
       // per-turn scratch
       acted: false,            // main action used this turn
       taken: [],               // colors taken this turn (for take-action validation)
-      evolvedThisTurn: false,  // at most one evolution per turn
+      evolvedThisTurn: false,  // at most one (mega-)evolution per turn
     };
   }
 
@@ -358,6 +373,72 @@
     return { ok: true, fromId, toId: opt.toId };
   }
 
+  // ----------------------- Megas expansion ---------------------------
+  // Main action: spend your whole turn to take one Mega token (max 1 held).
+  function actionTakeMega(s) {
+    const p = activePlayer(s);
+    if (!s.megasEnabled) return { ok: false, error: '未启用 Megas 扩展' };
+    if (s.acted) return { ok: false, error: '本回合已行动' };
+    if (p.megaToken >= 1) return { ok: false, error: '已持有 Mega 代币（上限1）' };
+    if (s.supply.megaToken < 1) return { ok: false, error: '没有可用的 Mega 代币' };
+    s.supply.megaToken--; p.megaToken++;
+    s.acted = true;
+    log(s, `${p.name} 获得了 1 个 Mega 代币`);
+    return { ok: true };
+  }
+
+  // End-of-turn Mega evolution options. Requires: you hold a Mega token, you
+  // have captured the base Pokémon (megaFrom) in play, and you can pay the Mega
+  // card's cost (balls reduced by bonuses; master ball substitutes). Counts as
+  // this turn's single evolution (shares evolvedThisTurn).
+  function megaEvolveOptions(s, player) {
+    const opts = [];
+    if (!s.megasEnabled || s.evolvedThisTurn || player.megaToken < 1) return opts;
+    for (const megaId of s.megaOffer) {
+      const mega = s.byId[megaId];
+      const fromId = player.board.find(id => s.byId[id].name === mega.megaFrom);
+      if (!fromId) continue;
+      if (!canAfford(s, player, mega)) continue;
+      opts.push({ megaId, fromId, fromName: mega.megaFrom, megaName: mega.name });
+    }
+    return opts;
+  }
+
+  function actionMegaEvolve(s, megaId, fromId) {
+    const p = activePlayer(s);
+    if (!s.megasEnabled) return { ok: false, error: '未启用 Megas 扩展' };
+    if (s.evolvedThisTurn) return { ok: false, error: '本回合已进化过' };
+    const cands = megaEvolveOptions(s, p).filter(o => o.megaId === megaId);
+    const opt = (fromId != null) ? cands.find(o => o.fromId === fromId) : cands[0];
+    if (!opt) return { ok: false, error: '不满足超级进化条件' };
+    const mega = s.byId[megaId];
+    const payment = computePayment(s, p, mega);
+    if (!payment.ok) return { ok: false, error: payment.error };
+    payTokens(s, p, payment.pay);
+    // consume the Mega token (returns to the shared pool)
+    p.megaToken--; s.supply.megaToken++;
+    // bury the base Pokémon, take the Mega card out of the offer, place it in play
+    const bi = p.board.indexOf(opt.fromId);
+    p.board.splice(bi, 1); p.buried.push(opt.fromId);
+    s.megaOffer = s.megaOffer.filter(id => id !== megaId);
+    p.board.push(megaId);
+    s.evolvedThisTurn = true;
+    log(s, `${p.name} 将 ${s.byId[opt.fromId].name} 超级进化为 ${mega.name}（${payDesc(payment.pay)}）`);
+    return { ok: true, megaId, fromId: opt.fromId };
+  }
+
+  // Win trigger. Base game: 18 VP. Megas: 20 VP AND ≥1 captured card of every
+  // color AND ≥1 Mega in play.
+  function hasMegaWin(s, p) {
+    if (scoreOf(s, p) < MEGA_WIN_SCORE) return false;
+    const b = bonuses(s, p);
+    if (!COLORS.every(c => b[c] > 0)) return false;
+    return p.board.some(id => s.byId[id].tier === 'mega');
+  }
+  function winTriggered(s, p) {
+    return s.megasEnabled ? hasMegaWin(s, p) : (scoreOf(s, p) >= WIN_SCORE);
+  }
+
   // --------------------------- discard -------------------------------
   function needsDiscard(s, player) { return tokenTotal(player) > TOKEN_MAX; }
   function actionDiscard(s, color) {
@@ -387,6 +468,7 @@
       acted: s.acted,
       mustDiscard: needsDiscard(s, p) ? (tokenTotal(p) - TOKEN_MAX) : 0,
       evolutions: evolutionOptions(s, p),
+      megaEvolutions: megaEvolveOptions(s, p),
     };
   }
 
@@ -395,9 +477,10 @@
     if (!s.acted) return { ok: false, error: '尚未行动' };
     if (needsDiscard(s, p)) return { ok: false, error: '请先归还多余精灵球（上限10）' };
     // check win trigger (someone reached the target this turn)
-    if (scoreOf(s, p) >= WIN_SCORE && !s.lastRound) {
+    if (winTriggered(s, p) && !s.lastRound) {
       s.lastRound = true;
-      log(s, `${p.name} 达到 ${WIN_SCORE} 分，进入最后一轮！`);
+      const why = s.megasEnabled ? `${MEGA_WIN_SCORE}分+集齐每色+1只Mega` : `${WIN_SCORE} 分`;
+      log(s, `${p.name} 达成胜利条件（${why}），进入最后一轮！`);
     }
     // The game ends once the LAST player of the round finishes during the
     // final round, so every Trainer has taken an equal number of turns.
@@ -461,12 +544,13 @@
     if (a.type === 'take') return actionTake(s, a.colors);
     if (a.type === 'capture') return actionCapture(s, a.cardId);
     if (a.type === 'reserve') return actionReserve(s, a.target);
+    if (a.type === 'takeMega') return actionTakeMega(s);
     return { ok: false, error: '未知行动' };
   }
 
   // --------------------------- i18n bits -----------------------------
   const BALL_ZH = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
-  const TIER_ZH = { stage1: '一阶', stage2: '二阶', stage3: '三阶', rare: '稀有', legend: '传说' };
+  const TIER_ZH = { stage1: '一阶', stage2: '二阶', stage3: '三阶', rare: '稀有', legend: '传说', mega: 'Mega' };
   function zhBall(c) { return BALL_ZH[c] || c; }
   function zhTier(t) { return TIER_ZH[t] || t; }
   function payDesc(pay) {
@@ -481,8 +565,9 @@
       field: s.field, players: s.players, turn: s.turn, round: s.round,
       phase: s.phase, lastRound: s.lastRound,
       winner: s.winner, acted: s.acted, taken: s.taken, evolvedThisTurn: s.evolvedThisTurn,
+      megasEnabled: s.megasEnabled, megaOffer: s.megaOffer,
     }));
-    c.cardDB = s.cardDB; c.byId = s.byId; c.log = []; // share static refs, drop log
+    c.cardDB = s.cardDB; c.byId = s.byId; c.megaDB = s.megaDB; c.log = []; // share static refs, drop log
     return c;
   }
 
@@ -493,6 +578,7 @@
     createGame, activePlayer, bonusOf, bonuses, tokenTotal, scoreOf, locateCard, refill,
     computePayment, canAfford,
     actionTake, actionReserve, actionCapture, actionEvolve, actionDiscard, actionPass,
+    actionTakeMega, megaEvolveOptions, actionMegaEvolve, MEGA_TOKENS, MEGA_WIN_SCORE,
     evolutionOptions, needsDiscard, turnState, endTurn, determineWinner,
     legalActions, applyAction, clone,
     zhBall, zhTier, payDesc,

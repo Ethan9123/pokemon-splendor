@@ -102,6 +102,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .ball.red{--c:var(--red)} .ball.blue{--c:var(--blue)} .ball.black{--c:var(--black)}
 .ball.pink{--c:var(--pink)} .ball.yellow{--c:var(--yellow)} .ball.purple{--c:var(--purple)}
 .ball.purple::before{content:"M";position:absolute;top:1px;left:0;right:0;text-align:center;font-size:10px;font-weight:800;color:#fff;z-index:2}
+/* Megas expansion bits */
+.ball.mega-token{background:conic-gradient(from 0deg,#e3350d,#f4c025,#46d17a,#2f6fd6,#7a4fc0,#e3350d);box-shadow:inset 0 -3px 6px rgba(0,0,0,.3),0 0 8px rgba(255,213,74,.5)}
+.ball.mega-token::before{content:"\26A1";position:absolute;top:0;left:0;right:0;text-align:center;font-size:14px;z-index:2}
+.supply-row.mega-row{margin-top:6px;border-top:1px dashed var(--line);padding-top:8px}
+.tier-mega{background:linear-gradient(90deg,rgba(122,79,192,.18),rgba(244,192,37,.10))}
+.evo-option.mega-evo{border-color:var(--gold);background:linear-gradient(90deg,rgba(122,79,192,.25),var(--panel2))}
+.exp-toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);line-height:1.4;cursor:pointer}
+.exp-toggle input{width:16px;height:16px;flex:none}
 .ball.sm{width:22px;height:22px}
 .ball.lg{width:42px;height:42px}
 
