@@ -221,3 +221,18 @@ button:disabled{opacity:.45;cursor:not-allowed}
 #undo-btn{position:fixed;bottom:14px;left:18px;z-index:40;background:linear-gradient(180deg,#3a4290,#2a3170);color:#fff;border:1px solid var(--line);box-shadow:var(--shadow);font-weight:700;padding:10px 16px;border-radius:12px}
 #undo-btn:hover{filter:brightness(1.1)}
 #undo-btn .ti,#undo-btn i{margin-right:4px}
+
+/* ===== Pokémart expansion ===== */
+.tier-pokemart{background:linear-gradient(90deg,rgba(46,209,122,.16),rgba(47,111,214,.10))}
+.tier-pokemart .tier-label{color:#46d17a}
+.eff-tag{color:var(--gold);font-size:12px;font-weight:700}
+.choice-title{font-size:18px;font-weight:800;color:var(--gold);margin-bottom:4px}
+.choice-hint{color:var(--muted);font-size:13px;margin-bottom:14px}
+.choice-cards{display:flex;flex-wrap:wrap;gap:10px;max-height:60vh;overflow:auto;justify-content:center}
+.choice-card{width:96px;border:2px solid transparent;border-radius:10px;cursor:pointer;padding:4px;background:rgba(255,255,255,.04);transition:border-color .12s,transform .12s;text-align:center}
+.choice-card img{width:100%;border-radius:7px;display:block}
+.choice-card span{display:block;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.choice-card:hover{transform:translateY(-2px)}
+.choice-card.sel{border-color:var(--gold);box-shadow:0 0 10px rgba(244,192,37,.5)}
+.choice-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.choice-confirm:disabled,#choice-confirm:disabled{opacity:.4;cursor:not-allowed}

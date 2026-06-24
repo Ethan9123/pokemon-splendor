@@ -32,6 +32,22 @@
   const FIELD_SLOTS = { stage1: 4, stage2: 4, stage3: 4, rare: 1, legend: 1 };
   const SPECIAL_TIERS = ['rare', 'legend'];
   const SPECIAL_DECK_SIZE = 5; // 神兽/幻兽: only 5 of the 10-card pool play per game (1 revealed + 4 in deck)
+  // --- Pokémart expansion (opt-in via opts.pokemart + opts.pokemartDB) ---
+  // 3 extra decks (one per base level); each shows 2 face-up cards to the right
+  // of its level row. Cards capture/reserve like base cards (special effects are
+  // resolved separately). Empty/absent when the expansion is off.
+  const PM_TIERS = ['pmL1', 'pmL2', 'pmL3'];
+  const PM_SLOTS = 2;
+  const PM_BASE_TIER = { pmL1: 'stage1', pmL2: 'stage2', pmL3: 'stage3' }; // reserve eligibility mirrors its level
+  // Pokémart effects whose engine logic is live. Capturing a Pokémart card whose
+  // effect is not yet implemented is rejected (so gameplay never silently misfires).
+  // double  : POTION — 2 bonuses (bonusCount already drives bonuses()).
+  // copy    : EVOLVE STONE — on capture, associate with an owned card's bonus.
+  // colorless_master : POKÉDEX — no bonus; later discardable as 2 virtual master balls.
+  // discard_buy : REPEL — no token cost; discard 2 owned cards of a color instead.
+  // free    : TM — on capture, immediately take a free face-up Level-2 card.
+  // copy_free : RARE CANDY — associate (like copy) + take a free Level-1 card.
+  const PM_EFFECTS_LIVE = { double: true, copy: true, colorless_master: true, discard_buy: true, free: true, copy_free: true };
   // Canonical color-balanced sets (one bonus colour each), matching the classic
   // 神兽/稀有 used in the strategy guides. Every game has exactly one rare & one
   // legend per colour (red/black/yellow/blue/pink), each granting 2 same-colour bonuses.
@@ -85,6 +101,11 @@
     return byId;
   }
 
+  // Field tiers actually in play for this state (base tiers + Pokémart when on).
+  function fieldTiers(s) { return s.pokemartEnabled ? FIELD_TIERS.concat(PM_TIERS) : FIELD_TIERS; }
+  function slotCount(tier) { return FIELD_SLOTS[tier] != null ? FIELD_SLOTS[tier] : PM_SLOTS; }
+  function isPokemart(card) { return !!card && PM_TIERS.indexOf(card.tier) >= 0; }
+
   // ---------------------------- setup --------------------------------
   function createGame(cardDB, opts) {
     opts = opts || {};
@@ -97,10 +118,19 @@
     const megasEnabled = !!(opts.megas && opts.megaDB && opts.megaDB.length);
     if (megasEnabled) for (const c of opts.megaDB) byId[c.id] = c;
 
+    // Optional Pokémart expansion: index its cards; they get their own per-level decks.
+    const pokemartEnabled = !!(opts.pokemart && opts.pokemartDB && opts.pokemartDB.length);
+    if (pokemartEnabled) for (const c of opts.pokemartDB) byId[c.id] = c;
+
     // decks per tier (ids), shuffled
     const decks = {};
     for (const tier of FIELD_TIERS) {
       decks[tier] = shuffle(cardDB.filter(c => c.tier === tier).map(c => c.id), rng);
+    }
+    if (pokemartEnabled) {
+      for (const tier of PM_TIERS) {
+        decks[tier] = shuffle(opts.pokemartDB.filter(c => c.tier === tier).map(c => c.id), rng);
+      }
     }
     // 神兽/幻兽: use the canonical colour-balanced 5 per tier (1 revealed + 4 in deck),
     // keeping the shuffled order so which one is revealed first still varies.
@@ -108,10 +138,11 @@
       const set = (opts.specialSets && opts.specialSets[tier]) || CANON_SPECIAL[tier];
       decks[tier] = decks[tier].filter(id => set.indexOf(id) >= 0);
     }
+    const allFieldTiers = pokemartEnabled ? FIELD_TIERS.concat(PM_TIERS) : FIELD_TIERS;
     const field = {};
-    for (const tier of FIELD_TIERS) {
+    for (const tier of allFieldTiers) {
       field[tier] = [];
-      for (let i = 0; i < FIELD_SLOTS[tier]; i++) {
+      for (let i = 0; i < slotCount(tier); i++) {
         field[tier].push(decks[tier].length ? decks[tier].pop() : null);
       }
     }
@@ -127,6 +158,7 @@
         board: [],   // captured card ids currently in play (provide bonus + vp)
         buried: [],  // card ids under the tile (evolved away — no bonus/vp)
         reserve: [], // reserved card ids (in hand)
+        assoc: {},   // Pokémart copy cards: cardId -> associated bonus colour
       });
     }
 
@@ -146,6 +178,10 @@
       megasEnabled,
       megaDB: megasEnabled ? opts.megaDB : [],
       megaOffer: megasEnabled ? opts.megaDB.map(c => c.id) : [], // the 10 unique megas, removed when taken
+      // Pokémart expansion state (empty/false when off). Its face-up cards live in
+      // field.pmL1/pmL2/pmL3 (2 each) and use the normal capture/reserve/refill path.
+      pokemartEnabled,
+      pokemartDB: pokemartEnabled ? opts.pokemartDB : [],
       turn: 0,                 // index of active player
       round: 1,
       phase: 'play',           // 'play' | 'discard' | 'evolve' | 'gameover'
@@ -163,19 +199,27 @@
   // --------------------------- helpers -------------------------------
   function activePlayer(s) { return s.players[s.turn]; }
 
+  // A card's effective bonus colour for this player. Pokémart "copy" cards
+  // (EVOLVE STONE / RARE CANDY) take the colour of the card they were associated
+  // with at capture time (stored in player.assoc); cards with no real colour
+  // (e.g. POKÉDEX, or an unassociated copy card) contribute nothing.
+  function effBonusColor(s, player, id) {
+    const assoc = player.assoc && player.assoc[id];
+    const col = assoc || s.byId[id].bonus;
+    return COLORS.indexOf(col) >= 0 ? col : null;
+  }
   function bonusOf(s, player, color) {
     let n = 0;
     for (const id of player.board) {
-      const c = s.byId[id];
-      if (c.bonus === color) n += (c.bonusCount || 1);
+      if (effBonusColor(s, player, id) === color) n += (s.byId[id].bonusCount || 1);
     }
     return n;
   }
   function bonuses(s, player) {
     const b = emptyColors();
     for (const id of player.board) {
-      const c = s.byId[id];
-      if (c.bonus) b[c.bonus] += (c.bonusCount || 1);
+      const col = effBonusColor(s, player, id);
+      if (col) b[col] += (s.byId[id].bonusCount || 1);
     }
     return b;
   }
@@ -189,7 +233,7 @@
   }
   function locateCard(s, id) {
     // returns {where:'field'|'deck'|'reserve'|null, tier, slot, owner}
-    for (const tier of FIELD_TIERS) {
+    for (const tier of fieldTiers(s)) {
       const slot = s.field[tier].indexOf(id);
       if (slot >= 0) return { where: 'field', tier, slot };
     }
@@ -210,20 +254,23 @@
   // ----------------------- payment computation -----------------------
   // Compute how to pay for a card given current bonuses & tokens.
   // Returns {ok, pay:{tokens spent}, error}. `pay` includes purple (master).
-  function computePayment(s, player, card) {
+  function computePayment(s, player, card, extraMaster) {
+    extraMaster = extraMaster || 0; // virtual master balls from discarded POKÉDEX cards
     const b = bonuses(s, player);
     const pay = emptyTokens();
+    const purpleBudget = player.tokens.purple + extraMaster;
     let masterNeeded = card.cost.purple || 0; // mandatory master (rare/legend)
-    if (masterNeeded > player.tokens.purple) return { ok: false, error: '大师球不足' };
+    if (masterNeeded > purpleBudget) return { ok: false, error: '大师球不足' };
     for (const c of COLORS) {
       const need = Math.max(0, (card.cost[c] || 0) - b[c]);
       const useGem = Math.min(need, player.tokens[c]);
       pay[c] = useGem;
       masterNeeded += (need - useGem);
     }
-    if (masterNeeded > player.tokens.purple) return { ok: false, error: '精灵球不足（含大师球替代）' };
-    pay.purple = masterNeeded;
-    return { ok: true, pay };
+    if (masterNeeded > purpleBudget) return { ok: false, error: '精灵球不足（含大师球替代）' };
+    // Spend the virtual (POKÉDEX) masters first; any leftover virtual is wasted.
+    pay.purple = Math.max(0, masterNeeded - extraMaster);
+    return { ok: true, pay, virtualMaster: masterNeeded - pay.purple };
   }
   function canAfford(s, player, card) { return computePayment(s, player, card).ok; }
 
@@ -278,16 +325,17 @@
     if (s.acted) return { ok: false, error: '本回合已行动' };
     if (p.reserve.length >= HAND_MAX) return { ok: false, error: '保留区已满（最多3张）' };
     let cardId = null, tier = null, slot = -1, fromDeck = false;
+    const reservable = (t) => NORMAL_TIERS.includes(t) || (s.pokemartEnabled && PM_TIERS.includes(t));
     if (target.fromDeck) {
       tier = target.fromDeck;
-      if (!NORMAL_TIERS.includes(tier)) return { ok: false, error: '稀有/传说不可保留' };
+      if (!reservable(tier)) return { ok: false, error: '稀有/传说不可保留' };
       if (!s.decks[tier].length) return { ok: false, error: '牌堆已空' };
       cardId = s.decks[tier].pop(); fromDeck = true;
     } else {
       cardId = target.fromField;
       const loc = locateCard(s, cardId);
       if (loc.where !== 'field') return { ok: false, error: '该卡不在场上' };
-      if (!NORMAL_TIERS.includes(loc.tier)) return { ok: false, error: '稀有/传说不可保留' };
+      if (!reservable(loc.tier)) return { ok: false, error: '稀有/传说不可保留' };
       tier = loc.tier; slot = loc.slot;
     }
     p.reserve.push(cardId);
@@ -300,22 +348,162 @@
     return { ok: true, cardId };
   }
 
-  function actionCapture(s, cardId) {
+  // remove a just-captured card from wherever it sat (field or own reserve)
+  function takeFromSource(s, p, loc, fromReserve, cardId) {
+    if (fromReserve) { const i = p.reserve.indexOf(cardId); if (i >= 0) p.reserve.splice(i, 1); }
+    else { s.field[loc.tier][loc.slot] = null; refill(s, loc.tier); }
+  }
+  // remove a board card out of the game (Pokémart "discard … returned to the box")
+  function discardFromBoard(s, p, id) {
+    const i = p.board.indexOf(id);
+    if (i >= 0) p.board.splice(i, 1);
+    if (p.assoc) delete p.assoc[id];
+  }
+  // EVOLVE STONE / RARE CANDY: pick an owned card with a real bonus to copy.
+  function resolveCopyTarget(s, p, targetId) {
+    const cands = p.board.filter(id => effBonusColor(s, p, id));
+    if (!cands.length) return { ok: false, error: '进化石需要你已有一张带奖励的卡' };
+    if (targetId == null) targetId = cands[0];
+    if (cands.indexOf(targetId) < 0) return { ok: false, error: '关联目标必须是你已有的带奖励的卡' };
+    return { ok: true, color: effBonusColor(s, p, targetId) };
+  }
+  // REPEL: choose `discardCount` owned cards of `discardColor` to discard.
+  function resolveDiscardBuy(s, p, card, chosen) {
+    const color = card.effectParam.discardColor, need = card.effectParam.discardCount;
+    const owned = p.board.filter(id => effBonusColor(s, p, id) === color);
+    if (owned.length < need) return { ok: false, error: `需要弃掉${need}张${zhBall(color)}卡，但你只有${owned.length}张` };
+    let discarded;
+    if (chosen && chosen.length) {
+      if (chosen.length !== need) return { ok: false, error: `必须弃掉${need}张` };
+      for (const id of chosen) if (owned.indexOf(id) < 0) return { ok: false, error: '所选弃牌颜色不符或不属于你' };
+      discarded = chosen.slice();
+    } else {
+      discarded = owned.slice(0, need);
+    }
+    return { ok: true, discarded };
+  }
+
+  // "Take a free card" effects (TM / RARE CANDY). The free card comes from the
+  // level below: RARE CANDY (pmL2) -> Level 1 (stage1/pmL1); TM (pmL3) -> Level 2.
+  function freeTiers(parentCard) {
+    if (parentCard.tier === 'pmL2') return ['stage1', 'pmL1'];
+    if (parentCard.tier === 'pmL3') return ['stage2', 'pmL2'];
+    return [];
+  }
+  // Is `fc` a free card the player could legally take right now (effect live + any
+  // required sub-choice is satisfiable)? Used to decide if the take is mandatory.
+  function freeTakeable(s, p, fc) {
+    if (isPokemart(fc) && fc.effect && !PM_EFFECTS_LIVE[fc.effect]) return false;
+    if (isPokemart(fc) && (fc.effect === 'copy' || fc.effect === 'copy_free'))
+      return p.board.some(b => effBonusColor(s, p, b)); // needs a bonus card to copy
+    return true;
+  }
+  // Validate (no mutation) the chain of free takes; returns {ok, steps:[{freeId,assoc}]}.
+  function planFree(s, p, parentCard, opts, depth, seen) {
+    depth = depth || 0; seen = seen || {};
+    if (depth > 4) return { ok: false, error: '免费取卡层级过深' };
+    const tiers = freeTiers(parentCard);
+    const freeId = opts.freeTakeId;
+    if (freeId == null) {
+      let any = false;
+      for (const t of tiers) for (const id of (s.field[t] || [])) if (id && freeTakeable(s, p, s.byId[id])) any = true;
+      return any ? { ok: false, error: '请选择要免费获得的卡（freeTakeId）' } : { ok: true, steps: [] };
+    }
+    if (seen[freeId]) return { ok: false, error: '免费取卡重复' };
+    const loc = locateCard(s, freeId);
+    if (loc.where !== 'field' || tiers.indexOf(loc.tier) < 0) return { ok: false, error: '免费卡必须是可选等级中的面朝上卡' };
+    const fc = s.byId[freeId];
+    if (isPokemart(fc) && fc.effect && !PM_EFFECTS_LIVE[fc.effect]) return { ok: false, error: `免费卡「${fc.name}」效果待实现` };
+    const sub = opts.freeOpts || {};
+    let assoc = null;
+    if (isPokemart(fc) && (fc.effect === 'copy' || fc.effect === 'copy_free')) {
+      const r = resolveCopyTarget(s, p, sub.copyTargetId); if (!r.ok) return r; assoc = r.color;
+    }
+    let steps = [{ freeId, assoc }];
+    if (isPokemart(fc) && (fc.effect === 'free' || fc.effect === 'copy_free')) {
+      const ns = Object.assign({}, seen); ns[freeId] = true;
+      const rec = planFree(s, p, fc, sub, depth + 1, ns);
+      if (!rec.ok) return rec;
+      steps = steps.concat(rec.steps);
+    }
+    return { ok: true, steps };
+  }
+  function execFree(s, p, steps) {
+    for (const st of steps) {
+      const loc = locateCard(s, st.freeId);
+      if (loc.where === 'field') { s.field[loc.tier][loc.slot] = null; refill(s, loc.tier); }
+      p.board.push(st.freeId);
+      if (st.assoc) { p.assoc = p.assoc || {}; p.assoc[st.freeId] = st.assoc; }
+      log(s, `${p.name} 免费获得 ${s.byId[st.freeId].name}${st.assoc ? `（关联${zhBall(st.assoc)}）` : ''}`);
+    }
+  }
+
+  // opts (all optional, used by Pokémart effects):
+  //   copyTargetId  — board card id to copy a bonus from (EVOLVE STONE / RARE CANDY)
+  //   spendPokedex  — board POKÉDEX ids to discard, each worth 2 virtual master balls
+  //   discardCards  — board card ids to discard to pay for a REPEL (discard_buy)
+  //   freeTakeId + freeOpts — the free card to take (TM / RARE CANDY), and its own choices
+  function actionCapture(s, cardId, opts) {
+    opts = opts || {};
     const p = activePlayer(s);
     if (s.acted) return { ok: false, error: '本回合已行动' };
     const card = s.byId[cardId];
     if (!card) return { ok: false, error: '无此卡' };
+    if (isPokemart(card) && card.effect && !PM_EFFECTS_LIVE[card.effect]) {
+      return { ok: false, error: `Pokémart「${card.name}」效果待实现（后续阶段）` };
+    }
     const loc = locateCard(s, cardId);
     const fromReserve = loc.where === 'reserve' && loc.owner === p.id;
     if (loc.where !== 'field' && !fromReserve) return { ok: false, error: '只能捕捉场上或自己保留区的宝可梦' };
-    const payment = computePayment(s, p, card);
+
+    // --- REPEL (discard_buy): no token cost; discard owned cards of a colour ---
+    if (isPokemart(card) && card.effect === 'discard_buy') {
+      const r = resolveDiscardBuy(s, p, card, opts.discardCards);
+      if (!r.ok) return r;
+      takeFromSource(s, p, loc, fromReserve, cardId);
+      for (const did of r.discarded) discardFromBoard(s, p, did);
+      p.board.push(cardId);
+      s.acted = true;
+      log(s, `${p.name} 用${card.name}获得（弃掉${r.discarded.length}张${zhBall(card.effectParam.discardColor)}卡）`);
+      return { ok: true };
+    }
+
+    // --- optional: discard POKÉDEX cards as 2 virtual master balls each ---
+    const spend = opts.spendPokedex || [];
+    for (const pid of spend) {
+      const pc = s.byId[pid];
+      if (p.board.indexOf(pid) < 0 || !(isPokemart(pc) && pc.effect === 'colorless_master')) {
+        return { ok: false, error: '无效的图鉴消耗' };
+      }
+    }
+    const payment = computePayment(s, p, card, spend.length * 2);
     if (!payment.ok) return { ok: false, error: payment.error };
+
+    // --- EVOLVE STONE / RARE CANDY (copy): associate with an owned bonus card ---
+    let assocColor = null;
+    if (isPokemart(card) && (card.effect === 'copy' || card.effect === 'copy_free')) {
+      const r = resolveCopyTarget(s, p, opts.copyTargetId);
+      if (!r.ok) return r;
+      assocColor = r.color;
+    }
+    // --- TM / RARE CANDY (free / copy_free): plan the free take(s) up front ---
+    let freeSteps = null;
+    if (isPokemart(card) && (card.effect === 'free' || card.effect === 'copy_free')) {
+      const fp = planFree(s, p, card, opts, 0);
+      if (!fp.ok) return fp;
+      freeSteps = fp.steps;
+    }
+
     payTokens(s, p, payment.pay);
-    if (fromReserve) p.reserve.splice(loc.slot, 1);
-    else { s.field[loc.tier][loc.slot] = null; refill(s, loc.tier); }
+    for (const pid of spend) discardFromBoard(s, p, pid); // virtual masters consumed
+    takeFromSource(s, p, loc, fromReserve, cardId);
     p.board.push(cardId);
+    if (assocColor) { p.assoc = p.assoc || {}; p.assoc[cardId] = assocColor; }
     s.acted = true;
-    log(s, `${p.name} 捕捉了 ${card.name}（${payDesc(payment.pay)}）`);
+    const extra = spend.length ? `，弃${spend.length}图鉴抵${spend.length * 2}万能` : '';
+    const asc = assocColor ? `，关联${zhBall(assocColor)}` : '';
+    log(s, `${p.name} 捕捉了 ${card.name}（${payDesc(payment.pay)}${extra}${asc}）`);
+    if (freeSteps && freeSteps.length) execFree(s, p, freeSteps);
     return { ok: true };
   }
 
@@ -525,14 +713,38 @@
     if (avail.length === 1) acts.push({ type: 'take', colors: [avail[0]] });
     // 2 same
     for (const c of COLORS) if (s.supply[c] >= 4) acts.push({ type: 'take', colors: [c, c] });
-    // captures (field + own reserve)
+    // captures (field + own reserve). Pokémart cards with not-yet-live effects
+    // are excluded so the AI never picks a capture the engine will reject.
     const capIds = [];
-    for (const tier of FIELD_TIERS) for (const id of s.field[tier]) if (id) capIds.push(id);
+    for (const tier of fieldTiers(s)) for (const id of s.field[tier]) if (id) capIds.push(id);
     for (const id of p.reserve) capIds.push(id);
-    for (const id of capIds) if (canAfford(s, p, s.byId[id])) acts.push({ type: 'capture', cardId: id });
-    // reserves
+    for (const id of capIds) {
+      const card = s.byId[id];
+      if (isPokemart(card) && card.effect) {
+        if (!PM_EFFECTS_LIVE[card.effect]) continue;
+        if (card.effect === 'discard_buy') {
+          const col = card.effectParam.discardColor, need = card.effectParam.discardCount;
+          const owned = p.board.filter(bid => effBonusColor(s, p, bid) === col).length;
+          if (owned >= need) acts.push({ type: 'capture', cardId: id });
+          continue;
+        }
+        if (card.effect === 'copy') { // needs an owned bonus card to copy
+          if (p.board.some(bid => effBonusColor(s, p, bid)) && canAfford(s, p, card))
+            acts.push({ type: 'capture', cardId: id });
+          continue;
+        }
+        // double / colorless_master capture like a normal card. free / copy_free
+        // require a free-card choice and are driven by the UI (added with AI in 4b).
+        if ((card.effect === 'double' || card.effect === 'colorless_master') && canAfford(s, p, card))
+          acts.push({ type: 'capture', cardId: id });
+        continue;
+      }
+      if (canAfford(s, p, card)) acts.push({ type: 'capture', cardId: id });
+    }
+    // reserves (base levels + Pokémart levels)
     if (p.reserve.length < HAND_MAX) {
-      for (const tier of NORMAL_TIERS) {
+      const reserveTiers = s.pokemartEnabled ? NORMAL_TIERS.concat(PM_TIERS) : NORMAL_TIERS;
+      for (const tier of reserveTiers) {
         for (const id of s.field[tier]) if (id) acts.push({ type: 'reserve', target: { fromField: id } });
         if (s.decks[tier].length) acts.push({ type: 'reserve', target: { fromDeck: tier } });
       }
@@ -542,7 +754,7 @@
 
   function applyAction(s, a) {
     if (a.type === 'take') return actionTake(s, a.colors);
-    if (a.type === 'capture') return actionCapture(s, a.cardId);
+    if (a.type === 'capture') return actionCapture(s, a.cardId, a.opts);
     if (a.type === 'reserve') return actionReserve(s, a.target);
     if (a.type === 'takeMega') return actionTakeMega(s);
     return { ok: false, error: '未知行动' };
@@ -550,7 +762,7 @@
 
   // --------------------------- i18n bits -----------------------------
   const BALL_ZH = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
-  const TIER_ZH = { stage1: '一阶', stage2: '二阶', stage3: '三阶', rare: '稀有', legend: '传说', mega: 'Mega' };
+  const TIER_ZH = { stage1: '一阶', stage2: '二阶', stage3: '三阶', rare: '稀有', legend: '传说', mega: 'Mega', pmL1: 'Pokémart一级', pmL2: 'Pokémart二级', pmL3: 'Pokémart三级' };
   function zhBall(c) { return BALL_ZH[c] || c; }
   function zhTier(t) { return TIER_ZH[t] || t; }
   function payDesc(pay) {
@@ -566,8 +778,9 @@
       phase: s.phase, lastRound: s.lastRound,
       winner: s.winner, acted: s.acted, taken: s.taken, evolvedThisTurn: s.evolvedThisTurn,
       megasEnabled: s.megasEnabled, megaOffer: s.megaOffer,
+      pokemartEnabled: s.pokemartEnabled,
     }));
-    c.cardDB = s.cardDB; c.byId = s.byId; c.megaDB = s.megaDB; c.log = []; // share static refs, drop log
+    c.cardDB = s.cardDB; c.byId = s.byId; c.megaDB = s.megaDB; c.pokemartDB = s.pokemartDB; c.log = []; // share static refs, drop log
     return c;
   }
 
@@ -579,6 +792,7 @@
     computePayment, canAfford,
     actionTake, actionReserve, actionCapture, actionEvolve, actionDiscard, actionPass,
     actionTakeMega, megaEvolveOptions, actionMegaEvolve, MEGA_TOKENS, MEGA_WIN_SCORE,
+    PM_TIERS, PM_SLOTS, fieldTiers, isPokemart, effBonusColor, freeTiers, freeTakeable,
     evolutionOptions, needsDiscard, turnState, endTurn, determineWinner,
     legalActions, applyAction, clone,
     zhBall, zhTier, payDesc,
