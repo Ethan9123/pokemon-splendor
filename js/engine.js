@@ -32,6 +32,17 @@
   const FIELD_SLOTS = { stage1: 4, stage2: 4, stage3: 4, rare: 1, legend: 1 };
   const SPECIAL_TIERS = ['rare', 'legend'];
   const SPECIAL_DECK_SIZE = 5; // 神兽/幻兽: only 5 of the 10-card pool play per game (1 revealed + 4 in deck)
+  // --- Pokémart expansion (opt-in via opts.pokemart + opts.pokemartDB) ---
+  // 3 extra decks (one per base level); each shows 2 face-up cards to the right
+  // of its level row. Cards capture/reserve like base cards (special effects are
+  // resolved separately). Empty/absent when the expansion is off.
+  const PM_TIERS = ['pmL1', 'pmL2', 'pmL3'];
+  const PM_SLOTS = 2;
+  const PM_BASE_TIER = { pmL1: 'stage1', pmL2: 'stage2', pmL3: 'stage3' }; // reserve eligibility mirrors its level
+  // Pokémart effects whose engine logic is live. Capturing a Pokémart card whose
+  // effect is not yet implemented is rejected (so gameplay never silently misfires).
+  // POTION ('double') needs no new logic — bonusCount already drives bonuses().
+  const PM_EFFECTS_LIVE = { double: true };
   // Canonical color-balanced sets (one bonus colour each), matching the classic
   // 神兽/稀有 used in the strategy guides. Every game has exactly one rare & one
   // legend per colour (red/black/yellow/blue/pink), each granting 2 same-colour bonuses.
@@ -85,6 +96,11 @@
     return byId;
   }
 
+  // Field tiers actually in play for this state (base tiers + Pokémart when on).
+  function fieldTiers(s) { return s.pokemartEnabled ? FIELD_TIERS.concat(PM_TIERS) : FIELD_TIERS; }
+  function slotCount(tier) { return FIELD_SLOTS[tier] != null ? FIELD_SLOTS[tier] : PM_SLOTS; }
+  function isPokemart(card) { return !!card && PM_TIERS.indexOf(card.tier) >= 0; }
+
   // ---------------------------- setup --------------------------------
   function createGame(cardDB, opts) {
     opts = opts || {};
@@ -97,10 +113,19 @@
     const megasEnabled = !!(opts.megas && opts.megaDB && opts.megaDB.length);
     if (megasEnabled) for (const c of opts.megaDB) byId[c.id] = c;
 
+    // Optional Pokémart expansion: index its cards; they get their own per-level decks.
+    const pokemartEnabled = !!(opts.pokemart && opts.pokemartDB && opts.pokemartDB.length);
+    if (pokemartEnabled) for (const c of opts.pokemartDB) byId[c.id] = c;
+
     // decks per tier (ids), shuffled
     const decks = {};
     for (const tier of FIELD_TIERS) {
       decks[tier] = shuffle(cardDB.filter(c => c.tier === tier).map(c => c.id), rng);
+    }
+    if (pokemartEnabled) {
+      for (const tier of PM_TIERS) {
+        decks[tier] = shuffle(opts.pokemartDB.filter(c => c.tier === tier).map(c => c.id), rng);
+      }
     }
     // 神兽/幻兽: use the canonical colour-balanced 5 per tier (1 revealed + 4 in deck),
     // keeping the shuffled order so which one is revealed first still varies.
@@ -108,10 +133,11 @@
       const set = (opts.specialSets && opts.specialSets[tier]) || CANON_SPECIAL[tier];
       decks[tier] = decks[tier].filter(id => set.indexOf(id) >= 0);
     }
+    const allFieldTiers = pokemartEnabled ? FIELD_TIERS.concat(PM_TIERS) : FIELD_TIERS;
     const field = {};
-    for (const tier of FIELD_TIERS) {
+    for (const tier of allFieldTiers) {
       field[tier] = [];
-      for (let i = 0; i < FIELD_SLOTS[tier]; i++) {
+      for (let i = 0; i < slotCount(tier); i++) {
         field[tier].push(decks[tier].length ? decks[tier].pop() : null);
       }
     }
@@ -146,6 +172,10 @@
       megasEnabled,
       megaDB: megasEnabled ? opts.megaDB : [],
       megaOffer: megasEnabled ? opts.megaDB.map(c => c.id) : [], // the 10 unique megas, removed when taken
+      // Pokémart expansion state (empty/false when off). Its face-up cards live in
+      // field.pmL1/pmL2/pmL3 (2 each) and use the normal capture/reserve/refill path.
+      pokemartEnabled,
+      pokemartDB: pokemartEnabled ? opts.pokemartDB : [],
       turn: 0,                 // index of active player
       round: 1,
       phase: 'play',           // 'play' | 'discard' | 'evolve' | 'gameover'
@@ -189,7 +219,7 @@
   }
   function locateCard(s, id) {
     // returns {where:'field'|'deck'|'reserve'|null, tier, slot, owner}
-    for (const tier of FIELD_TIERS) {
+    for (const tier of fieldTiers(s)) {
       const slot = s.field[tier].indexOf(id);
       if (slot >= 0) return { where: 'field', tier, slot };
     }
@@ -278,16 +308,17 @@
     if (s.acted) return { ok: false, error: '本回合已行动' };
     if (p.reserve.length >= HAND_MAX) return { ok: false, error: '保留区已满（最多3张）' };
     let cardId = null, tier = null, slot = -1, fromDeck = false;
+    const reservable = (t) => NORMAL_TIERS.includes(t) || (s.pokemartEnabled && PM_TIERS.includes(t));
     if (target.fromDeck) {
       tier = target.fromDeck;
-      if (!NORMAL_TIERS.includes(tier)) return { ok: false, error: '稀有/传说不可保留' };
+      if (!reservable(tier)) return { ok: false, error: '稀有/传说不可保留' };
       if (!s.decks[tier].length) return { ok: false, error: '牌堆已空' };
       cardId = s.decks[tier].pop(); fromDeck = true;
     } else {
       cardId = target.fromField;
       const loc = locateCard(s, cardId);
       if (loc.where !== 'field') return { ok: false, error: '该卡不在场上' };
-      if (!NORMAL_TIERS.includes(loc.tier)) return { ok: false, error: '稀有/传说不可保留' };
+      if (!reservable(loc.tier)) return { ok: false, error: '稀有/传说不可保留' };
       tier = loc.tier; slot = loc.slot;
     }
     p.reserve.push(cardId);
@@ -305,6 +336,12 @@
     if (s.acted) return { ok: false, error: '本回合已行动' };
     const card = s.byId[cardId];
     if (!card) return { ok: false, error: '无此卡' };
+    // Pokémart cards with an effect not yet implemented are not capturable yet
+    // (their special payment/effect would otherwise misfire). POTION ('double')
+    // captures normally; the rest land in later phases.
+    if (isPokemart(card) && card.effect && !PM_EFFECTS_LIVE[card.effect]) {
+      return { ok: false, error: `Pokémart「${card.name}」效果待实现（后续阶段）` };
+    }
     const loc = locateCard(s, cardId);
     const fromReserve = loc.where === 'reserve' && loc.owner === p.id;
     if (loc.where !== 'field' && !fromReserve) return { ok: false, error: '只能捕捉场上或自己保留区的宝可梦' };
@@ -525,14 +562,20 @@
     if (avail.length === 1) acts.push({ type: 'take', colors: [avail[0]] });
     // 2 same
     for (const c of COLORS) if (s.supply[c] >= 4) acts.push({ type: 'take', colors: [c, c] });
-    // captures (field + own reserve)
+    // captures (field + own reserve). Pokémart cards with not-yet-live effects
+    // are excluded so the AI never picks a capture the engine will reject.
     const capIds = [];
-    for (const tier of FIELD_TIERS) for (const id of s.field[tier]) if (id) capIds.push(id);
+    for (const tier of fieldTiers(s)) for (const id of s.field[tier]) if (id) capIds.push(id);
     for (const id of p.reserve) capIds.push(id);
-    for (const id of capIds) if (canAfford(s, p, s.byId[id])) acts.push({ type: 'capture', cardId: id });
-    // reserves
+    for (const id of capIds) {
+      const card = s.byId[id];
+      if (isPokemart(card) && card.effect && !PM_EFFECTS_LIVE[card.effect]) continue;
+      if (canAfford(s, p, card)) acts.push({ type: 'capture', cardId: id });
+    }
+    // reserves (base levels + Pokémart levels)
     if (p.reserve.length < HAND_MAX) {
-      for (const tier of NORMAL_TIERS) {
+      const reserveTiers = s.pokemartEnabled ? NORMAL_TIERS.concat(PM_TIERS) : NORMAL_TIERS;
+      for (const tier of reserveTiers) {
         for (const id of s.field[tier]) if (id) acts.push({ type: 'reserve', target: { fromField: id } });
         if (s.decks[tier].length) acts.push({ type: 'reserve', target: { fromDeck: tier } });
       }
@@ -550,7 +593,7 @@
 
   // --------------------------- i18n bits -----------------------------
   const BALL_ZH = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
-  const TIER_ZH = { stage1: '一阶', stage2: '二阶', stage3: '三阶', rare: '稀有', legend: '传说', mega: 'Mega' };
+  const TIER_ZH = { stage1: '一阶', stage2: '二阶', stage3: '三阶', rare: '稀有', legend: '传说', mega: 'Mega', pmL1: 'Pokémart一级', pmL2: 'Pokémart二级', pmL3: 'Pokémart三级' };
   function zhBall(c) { return BALL_ZH[c] || c; }
   function zhTier(t) { return TIER_ZH[t] || t; }
   function payDesc(pay) {
@@ -566,8 +609,9 @@
       phase: s.phase, lastRound: s.lastRound,
       winner: s.winner, acted: s.acted, taken: s.taken, evolvedThisTurn: s.evolvedThisTurn,
       megasEnabled: s.megasEnabled, megaOffer: s.megaOffer,
+      pokemartEnabled: s.pokemartEnabled,
     }));
-    c.cardDB = s.cardDB; c.byId = s.byId; c.megaDB = s.megaDB; c.log = []; // share static refs, drop log
+    c.cardDB = s.cardDB; c.byId = s.byId; c.megaDB = s.megaDB; c.pokemartDB = s.pokemartDB; c.log = []; // share static refs, drop log
     return c;
   }
 
@@ -579,6 +623,7 @@
     computePayment, canAfford,
     actionTake, actionReserve, actionCapture, actionEvolve, actionDiscard, actionPass,
     actionTakeMega, megaEvolveOptions, actionMegaEvolve, MEGA_TOKENS, MEGA_WIN_SCORE,
+    PM_TIERS, PM_SLOTS, fieldTiers, isPokemart,
     evolutionOptions, needsDiscard, turnState, endTurn, determineWinner,
     legalActions, applyAction, clone,
     zhBall, zhTier, payDesc,

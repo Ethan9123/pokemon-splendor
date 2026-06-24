@@ -49,8 +49,10 @@
 ## AI
 - 启发式：把 POTION（双奖励）/进化石（补色）计入价值；REPEL/免费取卡作为机会性增益。AlphaZero 席位不支持。
 
-## 分阶段
-- **阶段1（本提交）**：catalog + 规格（本文件）。
-- **阶段2**：`data/pokemart.json` + `js/pokemart.js`（30 张，精确提取）+ 卡面资源；引擎里**非交互**部分（POTION 双奖励、setup/补牌、捕捉接入）+ 测试。
-- **阶段3**：交互效果引擎（copy / colorless_master / discard_buy）+ UI 子选择 + 测试。
-- **阶段4**：免费取卡（copy_free / free，含递归结算）+ UI + 测试；AI 适配；联调。
+## 分阶段（进度）
+- **阶段1 ✅**：catalog + 规格（本文件）。
+- **阶段2 ✅**：`data/pokemart.json`+`js/pokemart.js`（30 张，成本暂定待核对）；引擎基座——
+  动态牌行（`field.pmL1/2/3` 各 2 张）+ setup/补牌 + 捕捉/保留接入 + POTION 双奖励（沿用 `bonusCount`）；
+  未实现效果的卡在捕捉时被明确拒绝（不静默误触）；8/8 headless 测试，基础+Megas 回归全过。
+- **阶段3（下一步）**：交互效果引擎逻辑（copy / colorless_master / discard_buy；以选择参数传入，可 headless 测试）+ 测试。
+- **阶段4**：免费取卡（copy_free / free，含递归结算）+ **UI 子选择**（设置开关、Pokémart 列、选关联/免费/弃牌流程）+ AI 适配 + 联调。
