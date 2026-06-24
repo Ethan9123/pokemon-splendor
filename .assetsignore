@@ -1,0 +1,10 @@
+# Files/dirs NOT to upload as static assets (gitignore syntax, relative to assets directory).
+.git
+.claude
+node_modules
+wrangler.jsonc
+.assetsignore
+train
+test
+assets/cards/_qc
+*.log

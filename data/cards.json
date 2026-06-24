@@ -201,7 +201,7 @@
   "id": "s1_10",
   "tier": "stage1",
   "name": "喇叭芽",
-  "vp": 1,
+  "vp": 0,
   "bonus": "red",
   "bonusCount": 1,
   "cost": {
@@ -454,7 +454,7 @@
    "yellow": 0,
    "purple": 0
   },
-  "evolvesTo": "蚊香蛙",
+  "evolvesTo": "蚊香君",
   "evoCost": {
    "color": "black",
    "count": 2
@@ -498,7 +498,7 @@
    "yellow": 0,
    "purple": 0
   },
-  "evolvesTo": "蚊香蛙",
+  "evolvesTo": "蚊香君",
   "evoCost": {
    "color": "black",
    "count": 2
@@ -652,7 +652,7 @@
    "yellow": 1,
    "purple": 0
   },
-  "evolvesTo": "蚊香蛙",
+  "evolvesTo": "蚊香君",
   "evoCost": {
    "color": "black",
    "count": 2
@@ -926,16 +926,16 @@
  {
   "id": "s2_08",
   "tier": "stage2",
-  "name": "蚊香蛙",
+  "name": "蚊香君",
   "vp": 1,
   "bonus": "pink",
   "bonusCount": 1,
   "cost": {
    "red": 0,
    "blue": 2,
-   "black": 2,
+   "black": 0,
    "pink": 3,
-   "yellow": 0,
+   "yellow": 2,
    "purple": 0
   },
   "evolvesTo": "蚊香泳士",
@@ -1190,7 +1190,7 @@
  {
   "id": "s2_20",
   "tier": "stage2",
-  "name": "蚊香蛙",
+  "name": "蚊香君",
   "vp": 1,
   "bonus": "pink",
   "bonusCount": 1,
@@ -1571,10 +1571,10 @@
   "bonusCount": 1,
   "cost": {
    "red": 3,
-   "blue": 7,
+   "blue": 0,
    "black": 0,
    "pink": 0,
-   "yellow": 0,
+   "yellow": 7,
    "purple": 0
   },
   "evolvesTo": null,
