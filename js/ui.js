@@ -55,21 +55,33 @@
     return { numPlayers: n, names, ai, diff };
   }
 
-  function startGame() {
-    const cfg = readConfig();
-    const megas = !!($('#opt-megas') && $('#opt-megas').checked) && MEGA_DB.length > 0;
-    const pokemart = !!($('#opt-pokemart') && $('#opt-pokemart').checked) && POKEMART_DB.length > 0;
-    G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai, megas, megaDB: MEGA_DB, pokemart, pokemartDB: POKEMART_DB });
-    gameEpoch++;                                        // invalidate any timers from a prior game
-    G.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
-    if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
-    UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: cfg.ai.filter(x => !x).length, hasAI: cfg.ai.some(x => x) };
+  // shared entry: drop into the game screen for a prebuilt game state `g`.
+  function enterGame(g, opts) {
+    opts = opts || {};
+    G = g; gameEpoch++;                                 // invalidate any timers from a prior game
+    UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: (opts.humans != null ? opts.humans : 1), hasAI: !!opts.hasAI };
     undoStack = [];
     $('#setup').classList.add('hidden');
+    if ($('#rules-modal')) $('#rules-modal').classList.add('hidden');
     $('#game').classList.remove('hidden');
     $('#win-modal').classList.add('hidden');
     render();
     beginTurn();
+  }
+  function backToSetup() {
+    gameEpoch++; UI.busy = false;
+    $('#game').classList.add('hidden');
+    $('#win-modal').classList.add('hidden');
+    $('#setup').classList.remove('hidden');
+  }
+  function startGame() {
+    const cfg = readConfig();
+    const megas = !!($('#opt-megas') && $('#opt-megas').checked) && MEGA_DB.length > 0;
+    const pokemart = !!($('#opt-pokemart') && $('#opt-pokemart').checked) && POKEMART_DB.length > 0;
+    const g = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai, megas, megaDB: MEGA_DB, pokemart, pokemartDB: POKEMART_DB });
+    g.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
+    if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
+    enterGame(g, { humans: cfg.ai.filter(x => !x).length, hasAI: cfg.ai.some(x => x) });
   }
 
   // ---------------------------------------------------------------- helpers
@@ -92,8 +104,28 @@
 
   // ---------------------------------------------------------------- render
   function render() {
-    renderBanner(); renderField(); renderSupply(); renderActionBar(); renderPlayers(); renderLog();
+    renderBanner(); renderField(); renderMyResources(); renderSupply(); renderActionBar(); renderPlayers(); renderLog();
     updateUndoBtn();   // keep 悔棋 button consistent with phase/turn on every state change
+    evalRotateHint();  // show/hide the portrait "rotate" hint
+    syncDockH();       // keep mobile bottom-dock clearance in sync with its current height
+    if (window.Tutorial && Tutorial.onRender) { try { Tutorial.onRender(G, UI); } catch (e) { } } // drive the tutorial coach
+  }
+
+  // active player's held tokens + permanent bonus discounts, pinned in the dock so you
+  // never have to scroll to your own panel to plan a purchase.
+  function renderMyResources() {
+    const host = $('#my-resources'); if (!host) return;
+    const p = me();
+    if (!p || p.isAI || G.phase === 'gameover') { host.innerHTML = ''; host.style.display = 'none'; return; }
+    host.style.display = '';
+    const b = E.bonuses(G, p);
+    let chips = '';
+    for (const c of E.COLORS) {
+      chips += `<div class="mychip"><div class="ball ${c} sm"></div><span class="mc-tok">${p.tokens[c]}</span><span class="mc-bon">+${b[c]}</span></div>`;
+    }
+    chips += `<div class="mychip"><div class="ball purple sm"></div><span class="mc-tok">${p.tokens.purple}</span></div>`;
+    if (G.megasEnabled) chips += `<div class="mychip"><div class="ball mega-token sm"></div><span class="mc-tok">${p.megaToken}</span></div>`;
+    host.innerHTML = `<span class="mc-label">我的资源 · ${p.name}</span><div class="mychips">${chips}</div>`;
   }
 
   function renderBanner() {
@@ -283,7 +315,7 @@
       const reserveTier = (loc.where === 'field') && (E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier));
       const canReserve = reserveTier && p.reserve.length < E.HAND_MAX;
       const eff = E.isPokemart(c) && c.effect ? ` · <span class="eff-tag">${EFFECT_NAMES[c.effect] || ''}</span>` : '';
-      let html = `<div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}${aff ? '' : ' · 无法支付'}</div><div class="act-buttons">`;
+      let html = `<img class="sel-preview" src="${c.img}" alt="${c.name}"><div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}${aff ? '' : ' · 无法支付'}<br><span style="font-size:12px;opacity:.75">点卡面可放大查看</span></div><div class="act-buttons">`;
       if (aff) html += `<button class="primary" data-act="capture">捕捉</button>`;
       if (canReserve) html += `<button class="ghost" data-act="reserve-card">保留</button>`;
       html += `<button class="ghost" data-act="clear-sel">取消</button></div>`;
@@ -751,6 +783,60 @@
     });
   }
 
+  // ------------------------------------------------------- tap-to-inspect (touch)
+  // On touch there is no hover; tapping a card opens a large, readable overlay.
+  function openInspect(src, actionsHtml) {
+    const ov = $('#inspect'); if (!ov || !src) return;
+    $('#inspect-img').src = src;
+    $('#inspect-actions').innerHTML = (actionsHtml || '') + `<button class="ghost" data-inspect-close>关闭</button>`;
+    ov.classList.remove('hidden');
+  }
+  function closeInspect() { const ov = $('#inspect'); if (ov) ov.classList.add('hidden'); }
+  // build capture/reserve buttons for the inspect overlay, if the card is actionable now
+  function inspectActionsFor(id) {
+    if (!interactable()) return '';
+    const p = me(), c = byId[id]; if (!c) return '';
+    const loc = E.locateCard(G, id);
+    const canReserve = loc && loc.where === 'field' && E.NORMAL_TIERS.includes(loc.tier) && p.reserve.length < E.HAND_MAX;
+    let h = '';
+    if (E.canAfford(G, p, c)) h += `<button class="primary" data-inspect-act="capture">捕捉</button>`;
+    if (canReserve) h += `<button class="ghost" data-inspect-act="reserve-card">保留</button>`;
+    return h;
+  }
+
+  // keep --dock-h in sync with the fixed mobile control dock so scroll content clears it
+  function syncDockH() {
+    const dock = $('#controls'); if (!dock) return;
+    const onMobile = matchMedia('(max-width:860px)').matches;
+    document.documentElement.style.setProperty('--dock-h', onMobile ? dock.offsetHeight + 'px' : '0px');
+  }
+  function trackDock() {
+    const dock = $('#controls'); if (!dock) return;
+    if (window.ResizeObserver) new ResizeObserver(syncDockH).observe(dock);
+    const mq = matchMedia('(max-width:860px)');
+    (mq.addEventListener ? mq.addEventListener('change', syncDockH) : mq.addListener && mq.addListener(syncDockH));
+    window.addEventListener('resize', syncDockH, { passive: true });
+    window.addEventListener('orientationchange', syncDockH);
+    syncDockH();
+  }
+
+  // gentle, dismissible "rotate to landscape" hint for phones in portrait (never forced)
+  let rotateDismissed = false;
+  function evalRotateHint() {
+    const hint = $('#rotate-hint'); if (!hint) return;
+    const gameOn = !$('#game').classList.contains('hidden');
+    const narrowPortrait = matchMedia('(max-width:640px) and (orientation:portrait)').matches;
+    hint.classList.toggle('hidden', !(gameOn && narrowPortrait && !rotateDismissed));
+  }
+  function setupRotateHint() {
+    try { rotateDismissed = sessionStorage.getItem('ps-rotate-dismissed') === '1'; } catch (e) { }
+    const dz = $('#rotate-dismiss');
+    if (dz) dz.addEventListener('click', () => { rotateDismissed = true; try { sessionStorage.setItem('ps-rotate-dismissed', '1'); } catch (e) { } evalRotateHint(); });
+    window.addEventListener('resize', evalRotateHint, { passive: true });
+    window.addEventListener('orientationchange', evalRotateHint);
+    evalRotateHint();
+  }
+
   // ---------------------------------------------------------------- events
   function bind() {
     // setup
@@ -760,11 +846,19 @@
       b.classList.add('active'); buildSeats(+b.dataset.n);
     });
     $('#start-btn').addEventListener('click', startGame);
+    if ($('#tutorial-btn')) $('#tutorial-btn').addEventListener('click', () => { if (window.Tutorial) Tutorial.start('base'); });
+    if ($('#tutorial-mega-btn')) $('#tutorial-mega-btn').addEventListener('click', () => { if (window.Tutorial) Tutorial.start('megas'); });
     $('#undo-btn').addEventListener('click', doUndo);
     $('#rules-btn').addEventListener('click', () => $('#rules-modal').classList.remove('hidden'));
     $('#rules-modal').addEventListener('click', (e) => { if (e.target.id === 'rules-modal' || e.target.classList.contains('close-rules')) $('#rules-modal').classList.add('hidden'); });
-    $('#menu-btn').addEventListener('click', () => { if (confirm('返回主菜单？当前对局将丢失。')) { gameEpoch++; UI.busy = false; $('#game').classList.add('hidden'); $('#setup').classList.remove('hidden'); } });
-    $('#play-again').addEventListener('click', () => { gameEpoch++; $('#win-modal').classList.add('hidden'); $('#game').classList.add('hidden'); $('#setup').classList.remove('hidden'); });
+    $('#menu-btn').addEventListener('click', () => {
+      const inTut = window.Tutorial && Tutorial.active && Tutorial.active();
+      if (confirm(inTut ? '退出教程，返回主菜单？' : '返回主菜单？当前对局将丢失。')) {
+        if (window.Tutorial && Tutorial.stop) Tutorial.stop();
+        backToSetup();
+      }
+    });
+    $('#play-again').addEventListener('click', () => { if (window.Tutorial && Tutorial.stop) Tutorial.stop(); backToSetup(); });
 
     // delegated game clicks
     $('#supply').addEventListener('click', (e) => {
@@ -774,9 +868,28 @@
     $('#field').addEventListener('click', (e) => {
       const rb = e.target.closest('[data-reserve-card]'); if (rb) { onCardClick(rb.dataset.reserveCard); doReserveCard(); return; }
       const dk = e.target.closest('[data-deck]'); if (dk) { onDeckClick(dk.dataset.deck); return; }
-      const cd = e.target.closest('[data-card]'); if (cd) { onCardClick(cd.dataset.card); return; }
+      const cd = e.target.closest('[data-card]');
+      if (cd) {
+        const id = cd.dataset.card;
+        const isMega = byId[id] && byId[id].tier === 'mega';
+        // Mega cards (zoom-only) and any tap when it's not your turn → just enlarge for reading.
+        if (isMega || !interactable() || UI.pick.length) { openInspect(cd.dataset.zoom || (byId[id] && byId[id].img)); return; }
+        onCardClick(id);
+      }
+    });
+    // tap the enlarged card thumbnail in the dock to open the full-screen reader (+ act)
+    $('#inspect').addEventListener('click', (e) => {
+      const ia = e.target.closest('[data-inspect-act]');
+      if (ia) { const a = ia.dataset.inspectAct; closeInspect(); if (a === 'capture') doCapture(); else if (a === 'reserve-card') doReserveCard(); return; }
+      if (e.target.id === 'inspect' || e.target.closest('[data-inspect-close]')) closeInspect();
+    });
+    $('#log-toggle') && $('#log-toggle').addEventListener('click', (e) => {
+      const collapsed = $('#log').classList.toggle('collapsed');
+      e.target.textContent = collapsed ? '展开' : '收起';
+      e.target.setAttribute('aria-expanded', String(!collapsed));
     });
     $('#action-bar').addEventListener('click', (e) => {
+      if (e.target.closest('.sel-preview')) { if (UI.selCard) openInspect(byId[UI.selCard].img, inspectActionsFor(UI.selCard)); return; }
       const b = e.target.closest('[data-act],[data-discard],[data-evo-from],[data-mega]'); if (!b) return;
       if (b.dataset.act === 'confirm-take') doTake();
       else if (b.dataset.act === 'clear-take') { UI.pick = []; render(); }
@@ -792,17 +905,32 @@
     // own-reserve capture: clicking a revealed reserve mini-card selects it
     $('#players').addEventListener('click', (e) => {
       const mc = e.target.closest('[data-reserve-capture]');
-      if (mc && interactable()) { UI.selCard = mc.dataset.reserveCapture; UI.selDeck = null; UI.pick = []; render(); }
+      if (mc && interactable()) { UI.selCard = mc.dataset.reserveCapture; UI.selDeck = null; UI.pick = []; render(); return; }
+      // any other captured/opponent card: tap to enlarge & read
+      const z = e.target.closest('[data-zoom]');
+      if (z && z.dataset.zoom) openInspect(z.dataset.zoom);
     });
   }
 
   buildSeats(2);
   bind();
   setupZoom();
+  trackDock();
+  setupRotateHint();
 
   // lightweight debug hook (harmless in production): inspect/drive from console
   window.PSDebug = {
     get G() { return G; }, get UI() { return UI; }, E, AI, byId, render,
     afterMainAction, beginTurn, endTurn, showWin,
+  };
+
+  // public surface used by the tutorial (js/tutorial.js)
+  window.PSGame = {
+    E, AI, byId, MEGA_DB,
+    get DB() { return DB; },
+    get G() { return G; },
+    get UI() { return UI; },
+    render, enterGame, backToSetup, endTurn,
+    setPhase(ph) { UI.phase = ph; },
   };
 })();

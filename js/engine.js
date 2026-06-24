@@ -111,6 +111,7 @@
     opts = opts || {};
     const numPlayers = opts.numPlayers || 2;
     const seed = (opts.seed != null) ? opts.seed : Math.floor(Math.random() * 2 ** 31);
+    const winScore = (opts.winScore != null) ? opts.winScore : WIN_SCORE; // tutorial may lower this
     const rng = makeRng(seed);
     const byId = buildIndex(cardDB);
 
@@ -167,6 +168,7 @@
 
     return {
       seed,
+      winScore,
       cardDB,
       byId,
       numPlayers,
@@ -624,7 +626,7 @@
     return p.board.some(id => s.byId[id].tier === 'mega');
   }
   function winTriggered(s, p) {
-    return s.megasEnabled ? hasMegaWin(s, p) : (scoreOf(s, p) >= WIN_SCORE);
+    return s.megasEnabled ? hasMegaWin(s, p) : (scoreOf(s, p) >= (s.winScore || WIN_SCORE));
   }
 
   // --------------------------- discard -------------------------------
@@ -667,7 +669,7 @@
     // check win trigger (someone reached the target this turn)
     if (winTriggered(s, p) && !s.lastRound) {
       s.lastRound = true;
-      const why = s.megasEnabled ? `${MEGA_WIN_SCORE}分+集齐每色+1只Mega` : `${WIN_SCORE} 分`;
+      const why = s.megasEnabled ? `${MEGA_WIN_SCORE}分+集齐每色+1只Mega` : `${s.winScore || WIN_SCORE} 分`;
       log(s, `${p.name} 达成胜利条件（${why}），进入最后一轮！`);
     }
     // The game ends once the LAST player of the round finishes during the
@@ -773,7 +775,7 @@
   // ----- deep clone for AI search -----
   function clone(s) {
     const c = JSON.parse(JSON.stringify({
-      seed: s.seed, numPlayers: s.numPlayers, supply: s.supply, decks: s.decks,
+      seed: s.seed, winScore: s.winScore, numPlayers: s.numPlayers, supply: s.supply, decks: s.decks,
       field: s.field, players: s.players, turn: s.turn, round: s.round,
       phase: s.phase, lastRound: s.lastRound,
       winner: s.winner, acted: s.acted, taken: s.taken, evolvedThisTurn: s.evolvedThisTurn,

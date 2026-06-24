@@ -2,8 +2,16 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0e1230" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="宝石宝可梦" />
 <title>璀璨宝石 · 宝可梦</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -34,6 +42,10 @@
       <div class="setup-actions">
         <button id="start-btn" class="primary">开始游戏</button>
         <button id="rules-btn" class="ghost">规则说明</button>
+      </div>
+      <div class="setup-actions setup-tutorials">
+        <button id="tutorial-btn" class="ghost">🎓 新手教程（零基础）</button>
+        <button id="tutorial-mega-btn" class="ghost">⚡ 超级进化教程</button>
       </div>
       <div class="credit">素材源自 TTS 模组「璀璨宝石：宝可梦」 · 卡牌数据由原始卡面提取</div>
     </div>
@@ -72,19 +84,32 @@
       </div>
     </header>
 
-    <div id="layout">
-      <main id="board">
-        <section id="field"></section>
-      </main>
-      <aside id="side">
-        <div id="supply" class="panel"></div>
-        <div id="action-bar" class="panel"></div>
-        <div id="log" class="panel"><div class="panel-title">游戏记录</div><div id="log-lines"></div></div>
-      </aside>
-    </div>
+    <main id="board">
+      <section id="field"></section>
+    </main>
 
     <footer id="players"></footer>
+
+    <div id="log" class="panel">
+      <div class="panel-title">游戏记录 <button id="log-toggle" class="ghost small" aria-expanded="true">收起</button></div>
+      <div id="log-lines"></div>
+    </div>
+
+    <div id="controls">
+      <div id="my-resources" class="panel"></div>
+      <div id="supply" class="panel"></div>
+      <div id="action-bar" class="panel"></div>
+    </div>
+
     <button id="undo-btn" class="hidden"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>悔棋</button>
+  </div>
+
+  <!-- card inspect overlay (tap to enlarge on touch) -->
+  <div id="inspect" class="hidden" role="dialog" aria-modal="true" aria-label="卡牌详情">
+    <div id="inspect-inner">
+      <img id="inspect-img" alt="" />
+      <div id="inspect-actions"></div>
+    </div>
   </div>
 
   <!-- ===== Win modal ===== -->
@@ -110,6 +135,8 @@
       </div>
     </div>
   </div>
+  <!-- gentle "rotate for a better view" hint (phones in portrait; dismissible) -->
+  <div id="rotate-hint" class="hidden"><i class="ti ti-device-mobile-rotated" aria-hidden="true"></i> 横屏游玩体验更佳<button id="rotate-dismiss" aria-label="关闭提示">✕</button></div>
 
   <script src="js/cards.js"></script>
   <script src="js/megas.js"></script>
@@ -118,5 +145,11 @@
   <script src="js/ai.js"></script>
   <script src="js/azai.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/tutorial.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+      addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+    }
+  </script>
 </body>
 </html>
