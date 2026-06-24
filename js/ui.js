@@ -183,7 +183,7 @@
       for (const o of opts) {
         const from = byId[o.fromId], to = byId[o.toId];
         html += `<button class="evo-option" data-evo-from="${o.fromId}" data-evo-to="${o.toId}">
-                   <b>${from.name}</b> → <b>${to.name}</b>（+${to.vp - from.vp}分，花费 ${o.count} ${BALL_NAMES[o.color]}${o.payMaster ? '，含'+o.payMaster+'大师球' : ''}）
+                   <b>${from.name}</b> → <b>${to.name}</b>（+${to.vp - from.vp}分，需 ${o.count} 个${BALL_NAMES[o.color]}折扣）
                  </button>`;
       }
       html += `<div class="act-buttons"><button class="primary" data-act="end-turn">不进化，结束回合</button></div>`;

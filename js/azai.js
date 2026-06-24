@@ -148,7 +148,7 @@
     const opts = E.evolutionOptions(s, p).map(o => ({ o, gain: s.byId[o.toId].vp - s.byId[o.fromId].vp }));
     const good = opts.filter(x => x.gain > 0);
     if (!good.length) return;
-    good.sort((x, y) => (y.gain - x.gain) || ((x.o.payColor + x.o.payMaster) - (y.o.payColor + y.o.payMaster)));
+    good.sort((x, y) => (y.gain - x.gain) || (x.o.count - y.o.count));
     E.actionEvolve(s, good[0].o.fromId, good[0].o.toId);
   }
   function stepAuto(s, a) { applyIdx(s, a); autoDiscard(s); autoEvolve(s); E.endTurn(s); }
