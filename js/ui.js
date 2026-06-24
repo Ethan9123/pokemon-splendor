@@ -2,12 +2,13 @@
 (function () {
   'use strict';
   const E = window.Engine, AI = window.AI, DB = window.CARD_DB;
+  const MEGA_DB = window.MEGA_DB || [];
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const BALL_NAMES = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
-  const TIER_NAMES = { legend: '传说', rare: '稀有', stage3: '三阶', stage2: '二阶', stage1: '一阶' };
+  const TIER_NAMES = { legend: '传说', rare: '稀有', stage3: '三阶', stage2: '二阶', stage1: '一阶', mega: 'Mega' };
   const SEAT_COLORS = ['#e3350d', '#2f6fd6', '#46d17a', '#f4c025'];
-  const byId = {}; DB.forEach(c => byId[c.id] = c);
+  const byId = {}; DB.forEach(c => byId[c.id] = c); MEGA_DB.forEach(c => byId[c.id] = c);
 
   let G = null;
   let UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: 0 };
@@ -54,7 +55,8 @@
 
   function startGame() {
     const cfg = readConfig();
-    G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai });
+    const megas = !!($('#opt-megas') && $('#opt-megas').checked) && MEGA_DB.length > 0;
+    G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai, megas, megaDB: MEGA_DB });
     gameEpoch++;                                        // invalidate any timers from a prior game
     G.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
     if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
@@ -103,11 +105,26 @@
   function renderField() {
     const wrap = $('#field');
     wrap.innerHTML = '';
+    const human = isHuman(G.turn) && G.phase === 'play';
+    // Megas expansion: a face-up "Mega 卡" row (zoom only; you mega-evolve at end of turn)
+    if (G.megasEnabled && G.megaOffer.length) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'tier-row tier-special tier-mega';
+      let inner = `<div class="tier-label">Mega</div><div class="card-strip">`;
+      const canMega = human && UI.phase === 'main' && me().megaToken >= 1;
+      for (const id of G.megaOffer) {
+        const c = byId[id];
+        const ok = canMega && me().board.some(b => byId[b].name === c.megaFrom) && E.canAfford(G, me(), c);
+        inner += `<div class="card${ok ? ' affordable' : ''}" data-card="${id}" data-zoom="${c.img}"><img src="${c.img}" alt="${c.name}" loading="lazy"></div>`;
+      }
+      inner += '</div>';
+      rowEl.innerHTML = inner;
+      wrap.appendChild(rowEl);
+    }
     const rows = [
       { tiers: ['legend', 'rare'], special: true },
       { tiers: ['stage3'] }, { tiers: ['stage2'] }, { tiers: ['stage1'] },
     ];
-    const human = isHuman(G.turn) && G.phase === 'play';
     for (const row of rows) {
       const rowEl = document.createElement('div');
       rowEl.className = 'tier-row' + (row.special ? ' tier-special' : '');
@@ -148,6 +165,15 @@
                  <span class="cnt">${G.supply[color]}</span>
                </div>`;
     }
+    if (G.megasEnabled) {
+      const canTake = human && me().megaToken < 1 && G.supply.megaToken > 0;
+      const held = me().megaToken;
+      html += `<div class="supply-row mega-row${canTake ? '' : ' disabled'}" ${canTake ? 'data-take-mega="1"' : ''} title="花费整个回合获得1个 Mega 代币">
+                 <div class="ball mega-token"></div>
+                 <span class="name">Mega 代币${held ? '（已持有）' : ''}</span>
+                 <span class="cnt">${G.supply.megaToken}</span>
+               </div>`;
+    }
     $('#supply').innerHTML = html;
   }
 
@@ -179,11 +205,19 @@
     }
     if (UI.phase === 'evolve') {
       const opts = dedupeEvo(E.evolutionOptions(G, p));
-      let html = '<div class="act-hint">回合结束 · 可进化一只宝可梦（可选）：</div>';
+      let html = '<div class="act-hint">回合结束 · 可进化一只宝可梦（可选，每回合至多1次）：</div>';
       for (const o of opts) {
         const from = byId[o.fromId], to = byId[o.toId];
         html += `<button class="evo-option" data-evo-from="${o.fromId}" data-evo-to="${o.toId}">
                    <b>${from.name}</b> → <b>${to.name}</b>（+${to.vp - from.vp}分，需 ${o.count} 个${BALL_NAMES[o.color]}折扣）
+                 </button>`;
+      }
+      const mopts = G.megasEnabled ? E.megaEvolveOptions(G, p) : [];
+      for (const o of mopts) {
+        const from = byId[o.fromId], mega = byId[o.megaId];
+        const costStr = E.ALL_TOKENS.filter(k => mega.cost[k] > 0).map(k => `${mega.cost[k]}${BALL_NAMES[k]}`).join('+');
+        html += `<button class="evo-option mega-evo" data-mega="${o.megaId}" data-mega-from="${o.fromId}">
+                   ⚡<b>${from.name}</b> → <b>${mega.name}</b>（+${mega.vp - from.vp}分，付 ${costStr}，耗1 Mega代币）
                  </button>`;
       }
       html += `<div class="act-buttons"><button class="primary" data-act="end-turn">不进化，结束回合</button></div>`;
@@ -267,7 +301,7 @@
         `<div class="player-head">
            <div class="pavatar" style="background:${SEAT_COLORS[i]}"></div>
            <div class="pname">${p.name}</div>
-           <div class="pscore">${E.scoreOf(G, p)}<small>/18</small></div>
+           <div class="pscore">${E.scoreOf(G, p)}<small>/${G.megasEnabled ? E.MEGA_WIN_SCORE : E.WIN_SCORE}</small></div>
          </div>
          ${p.buried.length ? `<div class="buried-badge">已进化 ${p.buried.length}</div>` : ''}
          <div class="pstats">${chips}</div>
@@ -289,6 +323,7 @@
   }
   function onCardClick(id) {
     if (!interactable() || UI.pick.length) return;
+    if (byId[id] && byId[id].tier === 'mega') return; // Mega cards: zoom only; evolve at end of turn
     UI.selCard = id; UI.selDeck = null; renderField(); renderActionBar();
   }
   function onDeckClick(tier) {
@@ -407,6 +442,17 @@
     if (!r.ok) { flashHint(r.error); return; }
     endTurn();
   }
+  function doMegaEvolve(megaId, fromId) {
+    const r = E.actionMegaEvolve(G, megaId, fromId);
+    if (!r.ok) { flashHint(r.error); return; }
+    endTurn();
+  }
+  function doTakeMega() {
+    if (!interactable()) return;
+    const r = E.actionTakeMega(G);
+    if (!r.ok) { flashHint(r.error); return; }
+    afterMainAction();
+  }
 
   function afterMainAction() {
     UI.selCard = UI.selDeck = null; UI.pick = [];
@@ -415,7 +461,8 @@
   }
   function toEvolveOrEnd() {
     const opts = E.evolutionOptions(G, me());
-    if (opts.length && !me().isAI) { UI.phase = 'evolve'; render(); return; }
+    const mopts = G.megasEnabled ? E.megaEvolveOptions(G, me()) : [];
+    if ((opts.length || mopts.length) && !me().isAI) { UI.phase = 'evolve'; render(); return; }
     endTurn();
   }
   function endTurn() {
@@ -476,11 +523,15 @@
       }
       if (!applyFn) {                                  // heuristic (default seat, or AZ fallback)
         const plan = AI.chooseTurn(G, { difficulty: p.diff === 'alphazero' ? 'hard' : (p.diff || 'hard') });
-        dec = decodePlan(plan);
+        const takeMega = G.megasEnabled && aiShouldTakeMega(G, pid);
+        dec = takeMega ? { type: 'pass' } : decodePlan(plan);
         applyFn = () => {
-          if (plan.action) E.applyAction(G, plan.action); else E.actionPass(G);
+          if (takeMega) E.actionTakeMega(G);
+          else if (plan.action) E.applyAction(G, plan.action); else E.actionPass(G);
           for (const c of plan.discards) E.actionDiscard(G, c);
-          if (plan.evolution) E.actionEvolve(G, plan.evolution.fromId, plan.evolution.toId);
+          // Megas: a mega-evolution (if possible) takes priority over a normal one.
+          if (G.megasEnabled && !G.evolvedThisTurn) aiTryMegaEvolve(G, pid);
+          if (!G.evolvedThisTurn && plan.evolution) E.actionEvolve(G, plan.evolution.fromId, plan.evolution.toId);
           E.endTurn(G);
         };
       }
@@ -491,6 +542,29 @@
       if (G.phase === 'gameover') { setTimeout(showWin, ANIM_MS); return; }
       setTimeout(() => { if (epoch === gameEpoch) beginTurn(); }, ANIM_MS);
     }, think);
+  }
+
+  // ---- simple AI behaviour for the Megas expansion (heuristic seat) ----
+  function aiShouldTakeMega(G, pid) {
+    const p = G.players[pid];
+    if (p.megaToken >= 1 || G.supply.megaToken < 1) return false;
+    // pursue a mega if we own a base species whose available mega we can already afford
+    for (const id of G.megaOffer) {
+      const m = byId[id];
+      if (p.board.some(b => byId[b].name === m.megaFrom) && E.canAfford(G, p, m)) return true;
+    }
+    return false;
+  }
+  function aiTryMegaEvolve(G, pid) {
+    const p = G.players[pid];
+    const opts = E.megaEvolveOptions(G, p);
+    if (!opts.length) return;
+    let best = null, bestGain = -1e9;
+    for (const o of opts) {
+      const gain = (byId[o.megaId].vp - byId[o.fromId].vp) + (byId[o.megaId].bonusCount - 1); // VP + extra bonuses
+      if (gain > bestGain) { bestGain = gain; best = o; }
+    }
+    if (best) E.actionMegaEvolve(G, best.megaId, best.fromId);
   }
 
   // ---------------------------------------------------------------- win
@@ -542,14 +616,17 @@
     $('#play-again').addEventListener('click', () => { gameEpoch++; $('#win-modal').classList.add('hidden'); $('#game').classList.add('hidden'); $('#setup').classList.remove('hidden'); });
 
     // delegated game clicks
-    $('#supply').addEventListener('click', (e) => { const r = e.target.closest('[data-color]'); if (r) onSupplyClick(r.dataset.color); });
+    $('#supply').addEventListener('click', (e) => {
+      if (e.target.closest('[data-take-mega]')) { doTakeMega(); return; }
+      const r = e.target.closest('[data-color]'); if (r) onSupplyClick(r.dataset.color);
+    });
     $('#field').addEventListener('click', (e) => {
       const rb = e.target.closest('[data-reserve-card]'); if (rb) { onCardClick(rb.dataset.reserveCard); doReserveCard(); return; }
       const dk = e.target.closest('[data-deck]'); if (dk) { onDeckClick(dk.dataset.deck); return; }
       const cd = e.target.closest('[data-card]'); if (cd) { onCardClick(cd.dataset.card); return; }
     });
     $('#action-bar').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-act],[data-discard],[data-evo-from]'); if (!b) return;
+      const b = e.target.closest('[data-act],[data-discard],[data-evo-from],[data-mega]'); if (!b) return;
       if (b.dataset.act === 'confirm-take') doTake();
       else if (b.dataset.act === 'clear-take') { UI.pick = []; render(); }
       else if (b.dataset.act === 'clear-sel') { UI.selCard = UI.selDeck = null; render(); }
@@ -558,6 +635,7 @@
       else if (b.dataset.act === 'reserve-deck') doReserveDeck();
       else if (b.dataset.act === 'end-turn') endTurn();
       else if (b.dataset.discard) doDiscard(b.dataset.discard);
+      else if (b.dataset.mega) doMegaEvolve(b.dataset.mega, b.dataset.megaFrom);
       else if (b.dataset.evoFrom) doEvolve(b.dataset.evoFrom, b.dataset.evoTo);
     });
     // own-reserve capture: clicking a revealed reserve mini-card selects it
