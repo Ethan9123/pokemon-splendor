@@ -1,9 +1,12 @@
 /* Pokémon Splendor — service worker (offline app shell + runtime card-image cache) */
-const VER = 'ps-cache-v3';
+const VER = 'ps-cache-v4';
+const BALLS = ['red', 'blue', 'black', 'pink', 'yellow', 'purple'].map(c => `./assets/balls/${c}.png`);
+const BACKS = ['stage1', 'stage2', 'stage3', 'rare', 'legend'].map(t => `./assets/backs/${t}.jpg`);
 const SHELL = [
   './', './index.html', './css/style.css',
   './js/cards.js', './js/megas.js', './js/pokemart.js', './js/engine.js', './js/ai.js', './js/azai.js', './js/ui.js', './js/tutorial.js',
-  './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'
+  './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
+  ...BALLS, ...BACKS,
 ];
 
 self.addEventListener('install', (e) => {
