@@ -7,8 +7,9 @@
  *   - 3 normal stages + Rare + Legendary. Rare/Legendary need Master Balls
  *     and grant 2 bonus balls each.
  *   - Actions: take balls / reserve+master / capture.
- *   - Evolution at end of turn (not an action): bonuses count toward the
- *     evolution cost, you pay the remainder in balls, the old card goes
+ *   - Evolution at end of turn (not an action): paid ONLY by the discount
+ *     balls on your captured cards (bonuses) — never by held tokens; you must
+ *     already own enough discounts of the required color. The old card goes
  *     "under the tile" (no longer scores or grants a bonus).
  *   - 18 VP triggers the final round; tiebreak = most cards under tile,
  *     then most Pokémon in play.
@@ -312,17 +313,16 @@
     for (const id of player.board) {
       const c = s.byId[id];
       if (!c.evolvesTo || !c.evoCost) continue;
-      // affordability: bonuses reduce; pay remainder in balls (master substitutes)
-      const need = Math.max(0, c.evoCost.count - b[c.evoCost.color]);
-      const haveColor = player.tokens[c.evoCost.color];
-      const masterShort = Math.max(0, need - haveColor);
-      if (masterShort > player.tokens.purple) continue;
+      // Affordability: evolution is paid ONLY by the discount balls on your
+      // captured cards (bonuses) — never by the balls you hold (tokens). You
+      // must already own enough discounts of the required color to cover the
+      // full evolution cost; nothing is spent.
+      if (b[c.evoCost.color] < c.evoCost.count) continue;
       for (const a of avail) {
         if (s.byId[a.id].name !== c.evolvesTo) continue;
         opts.push({
           fromId: id, toId: a.id,
           color: c.evoCost.color, count: c.evoCost.count,
-          payColor: Math.min(need, haveColor), payMaster: masterShort,
           targetWhere: a.where,
         });
       }
@@ -336,9 +336,8 @@
     const cands = evolutionOptions(s, p).filter(o => o.fromId === fromId);
     const opt = (toId != null) ? cands.find(o => o.toId === toId) : cands[0];
     if (!opt) return { ok: false, error: '不满足进化条件' };
-    // pay
-    p.tokens[opt.color] -= opt.payColor; s.supply[opt.color] += opt.payColor;
-    p.tokens.purple -= opt.payMaster; s.supply.purple += opt.payMaster;
+    // No tokens are spent: evolution is paid entirely by the discounts on your
+    // captured cards (affordability already verified in evolutionOptions).
     // move target out of field/reserve
     const loc = locateCard(s, opt.toId);
     if (loc.where === 'field') { s.field[loc.tier][loc.slot] = null; refill(s, loc.tier); }

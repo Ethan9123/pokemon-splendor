@@ -95,10 +95,12 @@
       for (const tier of FIELD_TIERS) for (const fid of s.field[tier]) if (fid && s.byId[fid].name === card.evolvesTo) avail = true;
       for (const rid of p.reserve) if (s.byId[rid].name === card.evolvesTo) avail = true;
       if (!avail) continue;
+      // Evolution is paid only by discounts (bonuses), not tokens: reward chains
+      // whose evo color is already (nearly) covered by owned discounts.
       const need = Math.max(0, card.evoCost.count - b[card.evoCost.color]);
       const tgt = DBfind(s, card.evolvesTo);
       const gain = tgt ? Math.max(0, tgt.vp - card.vp) : 1;
-      score += (gain * 6) / (1 + Math.max(0, need - p.tokens[card.evoCost.color]));
+      score += (gain * 6) / (1 + need);
     }
 
     if (cfg && cfg.noise) score += (E._noise ? E._noise() : 0) * cfg.noise;

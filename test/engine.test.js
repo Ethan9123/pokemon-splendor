@@ -139,24 +139,37 @@ test('reserve grants a master and respects hand limit', () => {
   assert.ok(!E.actionReserve(g2, { fromField: g2.field.rare[0] }).ok);
 });
 
-// ---- evolution ----
-test('evolution: species-based, buries old card, once per turn, bonuses apply', () => {
+// ---- evolution: paid ONLY by card discounts (bonuses), never by held tokens ----
+test('evolution: paid by card discounts only, not held tokens; buries old card; once per turn', () => {
   const g = E.createGame(DB, { numPlayers: 2, seed: 9 });
   const p = g.players[0];
-  const s1 = DB.find(c => c.tier === 'stage1');           // e.g. has evolvesTo + evoCost
+  const s1 = DB.find(c => c.tier === 'stage1');           // has evolvesTo + evoCost
   const s2 = DB.find(c => c.tier === 'stage2' && c.name === s1.evolvesTo);
   assert.ok(s2, 'found evolution target species');
+  const evoColor = s1.evoCost.color, evoCount = s1.evoCost.count;
+
+  // (a) Holding tokens of the evo color must NOT enable evolution.
   p.board = [s1.id];
   g.field.stage2[0] = s2.id;
-  // give exactly enough tokens of the evo color (no bonus of that color yet)
   for (const k of E.ALL_TOKENS) p.tokens[k] = 0;
-  p.tokens[s1.evoCost.color] = s1.evoCost.count;
+  p.tokens[evoColor] = evoCount; p.tokens.purple = 5; // plenty of tokens, no discounts
+  assert.strictEqual(E.evolutionOptions(g, p).length, 0, 'held tokens alone cannot pay for evolution');
+
+  // (b) Enough discount bonuses (balls on captured cards) of the evo color DO enable it.
+  for (const k of E.ALL_TOKENS) p.tokens[k] = 0; // no tokens at all
+  const bonusCards = DB.filter(c => c.bonus === evoColor && c.id !== s1.id && c.id !== s2.id).slice(0, evoCount);
+  assert.strictEqual(bonusCards.length, evoCount, 'enough bonus cards available for test');
+  for (const c of bonusCards) p.board.push(c.id);
+  const supplyBefore = JSON.stringify(g.supply);
   const opts = E.evolutionOptions(g, p);
-  assert.ok(opts.some(o => o.fromId === s1.id && o.toId === s2.id), 'evolution option present');
+  assert.ok(opts.some(o => o.fromId === s1.id && o.toId === s2.id), 'evolution option present via discounts');
   const r = E.actionEvolve(g, s1.id, s2.id);
   assert.ok(r.ok, r.error);
   assert.ok(p.board.includes(s2.id) && !p.board.includes(s1.id), 'replaced on board');
   assert.ok(p.buried.includes(s1.id), 'old card buried');
+  // nothing spent: tokens still zero and supply unchanged
+  assert.strictEqual(E.ALL_TOKENS.reduce((n, k) => n + p.tokens[k], 0), 0, 'no tokens spent on evolution');
+  assert.strictEqual(JSON.stringify(g.supply), supplyBefore, 'supply unchanged by evolution');
   assert.strictEqual(E.evolutionOptions(g, p).length, 0, 'no second evolution this turn');
 });
 
