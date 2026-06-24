@@ -71,6 +71,22 @@ test('take 2 same requires pile >= 4', () => {
   assert.ok(!E.actionTake(g2, ['blue', 'blue']).ok);
 });
 
+test('different-color take must be 3 when 3+ colors available; fewer only when constrained', () => {
+  const g = E.createGame(DB, { numPlayers: 2, seed: 4 }); // all 5 colors stocked
+  // under-taking different colors is illegal while 3+ colors are available
+  assert.ok(!E.actionTake(g, ['red', 'blue']).ok, 'cannot take only 2 different');
+  assert.ok(!E.actionTake(g, ['red']).ok, 'cannot take only 1 different');
+  assert.ok(E.actionTake(g, ['red', 'blue', 'black']).ok, 'taking 3 different is fine');
+  // when only 2 colors remain in the supply, taking those 2 is allowed
+  const g2 = E.createGame(DB, { numPlayers: 2, seed: 5 });
+  for (const c of ['black', 'pink', 'yellow']) g2.supply[c] = 0; // only red, blue left
+  assert.ok(E.actionTake(g2, ['red', 'blue']).ok, 'take the 2 remaining colors');
+  // when only 1 color remains, taking the single token is allowed
+  const g3 = E.createGame(DB, { numPlayers: 2, seed: 6 });
+  for (const c of ['blue', 'black', 'pink', 'yellow']) g3.supply[c] = 0; // only red left
+  assert.ok(E.actionTake(g3, ['red']).ok, 'take the 1 remaining color');
+});
+
 // ---- capture / payment ----
 test('capture pays cost, applies bonuses & master substitution', () => {
   const g = E.createGame(DB, { numPlayers: 2, seed: 5 });

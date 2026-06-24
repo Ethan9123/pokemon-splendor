@@ -239,6 +239,12 @@
       if (s.supply[c] < 4) return { ok: false, error: '该颜色少于4个，不能拿两个' };
     } else if (uniq.size === colors.length && colors.length <= 3) {
       mode = 'distinct';
+      // Official rule: when 3+ colors still have tokens you MUST take 3 of
+      // different colors; taking fewer is allowed only when fewer than 3
+      // colors remain available in the supply.
+      const availDistinct = COLORS.filter(col => s.supply[col] > 0).length;
+      const required = Math.min(3, availDistinct);
+      if (colors.length < required) return { ok: false, error: `必须拿取 ${required} 种不同颜色的精灵球` };
     } else {
       return { ok: false, error: '只能拿3种不同 或 2个同色' };
     }
