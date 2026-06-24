@@ -42,6 +42,10 @@
         <button id="start-btn" class="primary">开始游戏</button>
         <button id="rules-btn" class="ghost">规则说明</button>
       </div>
+      <div class="setup-actions setup-tutorials">
+        <button id="tutorial-btn" class="ghost">🎓 新手教程（零基础）</button>
+        <button id="tutorial-mega-btn" class="ghost">⚡ 超级进化教程</button>
+      </div>
       <div class="credit">素材源自 TTS 模组「璀璨宝石：宝可梦」 · 卡牌数据由原始卡面提取</div>
     </div>
   </div>
@@ -127,6 +131,7 @@
   <script src="js/ai.js"></script>
   <script src="js/azai.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/tutorial.js"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });

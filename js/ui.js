@@ -53,20 +53,32 @@
     return { numPlayers: n, names, ai, diff };
   }
 
-  function startGame() {
-    const cfg = readConfig();
-    const megas = !!($('#opt-megas') && $('#opt-megas').checked) && MEGA_DB.length > 0;
-    G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai, megas, megaDB: MEGA_DB });
-    gameEpoch++;                                        // invalidate any timers from a prior game
-    G.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
-    if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
-    UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: cfg.ai.filter(x => !x).length, hasAI: cfg.ai.some(x => x) };
+  // shared entry: drop into the game screen for a prebuilt game state `g`.
+  function enterGame(g, opts) {
+    opts = opts || {};
+    G = g; gameEpoch++;                                 // invalidate any timers from a prior game
+    UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: (opts.humans != null ? opts.humans : 1), hasAI: !!opts.hasAI };
     undoStack = [];
     $('#setup').classList.add('hidden');
+    if ($('#rules-modal')) $('#rules-modal').classList.add('hidden');
     $('#game').classList.remove('hidden');
     $('#win-modal').classList.add('hidden');
     render();
     beginTurn();
+  }
+  function backToSetup() {
+    gameEpoch++; UI.busy = false;
+    $('#game').classList.add('hidden');
+    $('#win-modal').classList.add('hidden');
+    $('#setup').classList.remove('hidden');
+  }
+  function startGame() {
+    const cfg = readConfig();
+    const megas = !!($('#opt-megas') && $('#opt-megas').checked) && MEGA_DB.length > 0;
+    const g = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai, megas, megaDB: MEGA_DB });
+    g.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
+    if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
+    enterGame(g, { humans: cfg.ai.filter(x => !x).length, hasAI: cfg.ai.some(x => x) });
   }
 
   // ---------------------------------------------------------------- helpers
@@ -93,6 +105,7 @@
     updateUndoBtn();   // keep 悔棋 button consistent with phase/turn on every state change
     evalRotateHint();  // show/hide the portrait "rotate" hint
     syncDockH();       // keep mobile bottom-dock clearance in sync with its current height
+    if (window.Tutorial && Tutorial.onRender) { try { Tutorial.onRender(G, UI); } catch (e) { } } // drive the tutorial coach
   }
 
   // active player's held tokens + permanent bonus discounts, pinned in the dock so you
@@ -682,11 +695,19 @@
       b.classList.add('active'); buildSeats(+b.dataset.n);
     });
     $('#start-btn').addEventListener('click', startGame);
+    if ($('#tutorial-btn')) $('#tutorial-btn').addEventListener('click', () => { if (window.Tutorial) Tutorial.start('base'); });
+    if ($('#tutorial-mega-btn')) $('#tutorial-mega-btn').addEventListener('click', () => { if (window.Tutorial) Tutorial.start('megas'); });
     $('#undo-btn').addEventListener('click', doUndo);
     $('#rules-btn').addEventListener('click', () => $('#rules-modal').classList.remove('hidden'));
     $('#rules-modal').addEventListener('click', (e) => { if (e.target.id === 'rules-modal' || e.target.classList.contains('close-rules')) $('#rules-modal').classList.add('hidden'); });
-    $('#menu-btn').addEventListener('click', () => { if (confirm('返回主菜单？当前对局将丢失。')) { gameEpoch++; UI.busy = false; $('#game').classList.add('hidden'); $('#setup').classList.remove('hidden'); } });
-    $('#play-again').addEventListener('click', () => { gameEpoch++; $('#win-modal').classList.add('hidden'); $('#game').classList.add('hidden'); $('#setup').classList.remove('hidden'); });
+    $('#menu-btn').addEventListener('click', () => {
+      const inTut = window.Tutorial && Tutorial.active && Tutorial.active();
+      if (confirm(inTut ? '退出教程，返回主菜单？' : '返回主菜单？当前对局将丢失。')) {
+        if (window.Tutorial && Tutorial.stop) Tutorial.stop();
+        backToSetup();
+      }
+    });
+    $('#play-again').addEventListener('click', () => { if (window.Tutorial && Tutorial.stop) Tutorial.stop(); backToSetup(); });
 
     // delegated game clicks
     $('#supply').addEventListener('click', (e) => {
@@ -750,5 +771,15 @@
   window.PSDebug = {
     get G() { return G; }, get UI() { return UI; }, E, AI, byId, render,
     afterMainAction, beginTurn, endTurn, showWin,
+  };
+
+  // public surface used by the tutorial (js/tutorial.js)
+  window.PSGame = {
+    E, AI, byId, MEGA_DB,
+    get DB() { return DB; },
+    get G() { return G; },
+    get UI() { return UI; },
+    render, enterGame, backToSetup, endTurn,
+    setPhase(ph) { UI.phase = ph; },
   };
 })();
