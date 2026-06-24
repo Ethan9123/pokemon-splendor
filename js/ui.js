@@ -10,6 +10,9 @@
   const TIER_NAMES = { legend: '传说', rare: '稀有', stage3: '三阶', stage2: '二阶', stage1: '一阶', mega: 'Mega', pmL1: '商店Ⅰ', pmL2: '商店Ⅱ', pmL3: '商店Ⅲ' };
   const EFFECT_NAMES = { copy: '进化石·关联', colorless_master: '图鉴·可抵2万能', double: '药水·双奖励', copy_free: '神奇糖果·关联+免费取卡', free: '技能机·免费取卡', discard_buy: '驱虫·弃2张同色购买' };
   const SEAT_COLORS = ['#e3350d', '#2f6fd6', '#46d17a', '#f4c025'];
+  // per-seat trainer avatars (head/bust crops of the TTS trainer figurines)
+  const SEAT_AVATARS = ['ash', 'misty', 'brock', 'rocket'];
+  const seatAvatar = (i) => `assets/avatars/${SEAT_AVATARS[i % 4]}.png`;
   const byId = {}; DB.forEach(c => byId[c.id] = c); MEGA_DB.forEach(c => byId[c.id] = c); POKEMART_DB.forEach(c => byId[c.id] = c);
 
   let G = null;
@@ -24,7 +27,7 @@
       const div = document.createElement('div');
       div.className = 'seat';
       div.innerHTML =
-        `<div class="pid" style="background:${SEAT_COLORS[i]}">${i + 1}</div>
+        `<div class="pid" style="background-color:${SEAT_COLORS[i]};background-image:url(${seatAvatar(i)})" title="${SEAT_AVATARS[i]}"></div>
          <input type="text" value="训练家 ${i + 1}" maxlength="10" data-name="${i}">
          <select data-kind="${i}">
            <option value="human">真人</option>
@@ -380,7 +383,7 @@
       }
       el.innerHTML =
         `<div class="player-head">
-           <div class="pavatar" style="background:${SEAT_COLORS[i]}"></div>
+           <div class="pavatar" style="background-color:${SEAT_COLORS[i]};background-image:url(${seatAvatar(i)});box-shadow:0 0 0 2px ${SEAT_COLORS[i]}"></div>
            <div class="pname">${p.name}</div>
            <div class="pscore">${E.scoreOf(G, p)}<small>/${G.megasEnabled ? E.MEGA_WIN_SCORE : E.WIN_SCORE}</small></div>
          </div>
@@ -673,7 +676,7 @@
   function showPassOverlay(p) {
     let ov = $('#pass-overlay');
     if (!ov) { ov = document.createElement('div'); ov.id = 'pass-overlay'; document.body.appendChild(ov); }
-    ov.innerHTML = `<div class="po-inner"><div class="pavatar" style="margin:0 auto 14px;width:40px;height:40px"></div>
+    ov.innerHTML = `<div class="po-inner"><div class="pavatar" style="margin:0 auto 14px;width:56px;height:56px;background-color:${SEAT_COLORS[G.turn]};background-image:url(${seatAvatar(G.turn)});box-shadow:0 0 0 3px ${SEAT_COLORS[G.turn]}"></div>
       <h2>请将设备交给<br>${p.name}</h2><p>（其他玩家的保留区将被隐藏）</p>
       <button class="primary" id="ready-btn" style="margin-top:16px;padding:12px 30px">我准备好了</button></div>`;
     ov.classList.remove('hidden');
