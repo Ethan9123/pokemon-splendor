@@ -1,0 +1,11 @@
+{
+  // Static-site deployment for Cloudflare Workers (Static Assets).
+  // The game is a pure static site served from the repo root (index.html + css/js/data/assets).
+  // The Workers Build runs `npx wrangler versions upload`, which needs this config to know
+  // what to upload. There is no server-side Worker script — only static assets.
+  "name": "pokemon-splendor",
+  "compatibility_date": "2026-06-24",
+  "assets": {
+    "directory": "./"
+  }
+}
