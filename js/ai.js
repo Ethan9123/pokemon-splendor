@@ -248,5 +248,5 @@
     return { plan, endTurn: r };
   }
 
-  return { chooseTurn, playTurn, evalState, bestEvolution, DIFF };
+  return { chooseTurn, playTurn, evalState, bestEvolution, manage, DIFF };
 });

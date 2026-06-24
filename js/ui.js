@@ -4,6 +4,8 @@
   const E = window.Engine, AI = window.AI, DB = window.CARD_DB;
   const MEGA_DB = window.MEGA_DB || [];
   const POKEMART_DB = window.POKEMART_DB || [];
+  // 究极 difficulty: determinized MCTS budget (validated ~57.5% vs 高手 at sims=200/dets=3 over 200 games).
+  const ULTRA_CFG = { sims: 200, dets: 3 };
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const BALL_NAMES = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
@@ -35,6 +37,7 @@
          </select>
          <select data-diff="${i}">
            <option value="hard">高手</option>
+           <option value="ultra">究极(最强·搜索)</option>
            <option value="normal">普通</option>
            <option value="easy">新手</option>
            <option value="alphazero">AlphaZero(实验)</option>
@@ -696,7 +699,10 @@
     if (G.phase === 'gameover') return;
     const p = me(), pid = G.turn, epoch = gameEpoch;
     UI.busy = true; updateUndoBtn();
-    const think = 1700 + Math.random() * 1500;        // ~1.7–3.2s, human-like pacing
+    // 究极 runs a real determinized MCTS (validated ~57.5% vs 高手); the search itself IS the
+    // "thinking" time, so use a short artificial pacing for it instead of the full 1.7–3.2s.
+    const isUltra = p.diff === 'ultra' && window.VSearch;
+    const think = isUltra ? (250 + Math.random() * 250) : (1700 + Math.random() * 1500);
     setTimeout(() => {
       if (epoch !== gameEpoch) return;                // game was replaced/undone mid-think — drop this timer
       if (!G || G.phase === 'gameover') { UI.busy = false; return; }
@@ -709,8 +715,10 @@
           applyFn = () => { try { AZAI.stepAuto(G, a); } catch (e) { } };
         }
       }
-      if (!applyFn) {                                  // heuristic (default seat, or AZ fallback)
-        const plan = AI.chooseTurn(G, { difficulty: p.diff === 'alphazero' ? 'hard' : (p.diff || 'hard') });
+      if (!applyFn) {                                  // heuristic / 究极-search (default seat, or AZ fallback)
+        const plan = isUltra
+          ? VSearch.chooseTurn(G, ULTRA_CFG)            // determinized MCTS, heuristic prior+leaf
+          : AI.chooseTurn(G, { difficulty: p.diff === 'alphazero' ? 'hard' : (p.diff || 'hard') });
         const takeMega = G.megasEnabled && aiShouldTakeMega(G, pid);
         dec = takeMega ? { type: 'pass' } : decodePlan(plan);
         applyFn = () => {
