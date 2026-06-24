@@ -59,4 +59,8 @@
   · colorless_master（图鉴）：无奖励；可在任意捕捉时弃掉，每张抵 2 个万能（`computePayment` 的 `extraMaster`）；
   · discard_buy（驱虫喷雾）：不付球，改弃 2 张该色卡。
   捕捉接口 `actionCapture(s, id, {copyTargetId, spendPokedex, discardCards})`；14/14 测试，回归全过。
-- **阶段4（下一步）**：免费取卡（copy_free / free，含递归结算）+ **UI 子选择**（设置开关、Pokémart 列、选关联/免费/弃牌/弃图鉴抵款流程）+ AI 适配 + 联调。
+- **阶段4a ✅（引擎收尾）**：免费取卡 free（技能机→免费取二级卡）/ copy_free（神奇糖果→关联+免费取一级卡），
+  含**递归结算**（免费取到的卡若也是 free/copy_free 会继续，带 `freeOpts` 嵌套选择、深度与重复保护）。
+  至此 **6 种效果引擎逻辑全部完成**，`actionCapture(s, id, {copyTargetId, spendPokedex, discardCards, freeTakeId, freeOpts})`；
+  17/17 测试，回归全过。
+- **阶段4b（下一步）**：前端——设置开关、Pokémart 牌列渲染、交互子选择 UI（关联/免费取/弃牌/弃图鉴抵款）+ AI 启发式适配 + 联调。

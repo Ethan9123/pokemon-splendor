@@ -45,8 +45,9 @@
   // copy    : EVOLVE STONE — on capture, associate with an owned card's bonus.
   // colorless_master : POKÉDEX — no bonus; later discardable as 2 virtual master balls.
   // discard_buy : REPEL — no token cost; discard 2 owned cards of a color instead.
-  // (copy_free / free — "take a free card" — land in Phase 4 with the UI.)
-  const PM_EFFECTS_LIVE = { double: true, copy: true, colorless_master: true, discard_buy: true };
+  // free    : TM — on capture, immediately take a free face-up Level-2 card.
+  // copy_free : RARE CANDY — associate (like copy) + take a free Level-1 card.
+  const PM_EFFECTS_LIVE = { double: true, copy: true, colorless_master: true, discard_buy: true, free: true, copy_free: true };
   // Canonical color-balanced sets (one bonus colour each), matching the classic
   // 神兽/稀有 used in the strategy guides. Every game has exactly one rare & one
   // legend per colour (red/black/yellow/blue/pink), each granting 2 same-colour bonuses.
@@ -382,10 +383,66 @@
     return { ok: true, discarded };
   }
 
+  // "Take a free card" effects (TM / RARE CANDY). The free card comes from the
+  // level below: RARE CANDY (pmL2) -> Level 1 (stage1/pmL1); TM (pmL3) -> Level 2.
+  function freeTiers(parentCard) {
+    if (parentCard.tier === 'pmL2') return ['stage1', 'pmL1'];
+    if (parentCard.tier === 'pmL3') return ['stage2', 'pmL2'];
+    return [];
+  }
+  // Is `fc` a free card the player could legally take right now (effect live + any
+  // required sub-choice is satisfiable)? Used to decide if the take is mandatory.
+  function freeTakeable(s, p, fc) {
+    if (isPokemart(fc) && fc.effect && !PM_EFFECTS_LIVE[fc.effect]) return false;
+    if (isPokemart(fc) && (fc.effect === 'copy' || fc.effect === 'copy_free'))
+      return p.board.some(b => effBonusColor(s, p, b)); // needs a bonus card to copy
+    return true;
+  }
+  // Validate (no mutation) the chain of free takes; returns {ok, steps:[{freeId,assoc}]}.
+  function planFree(s, p, parentCard, opts, depth, seen) {
+    depth = depth || 0; seen = seen || {};
+    if (depth > 4) return { ok: false, error: '免费取卡层级过深' };
+    const tiers = freeTiers(parentCard);
+    const freeId = opts.freeTakeId;
+    if (freeId == null) {
+      let any = false;
+      for (const t of tiers) for (const id of (s.field[t] || [])) if (id && freeTakeable(s, p, s.byId[id])) any = true;
+      return any ? { ok: false, error: '请选择要免费获得的卡（freeTakeId）' } : { ok: true, steps: [] };
+    }
+    if (seen[freeId]) return { ok: false, error: '免费取卡重复' };
+    const loc = locateCard(s, freeId);
+    if (loc.where !== 'field' || tiers.indexOf(loc.tier) < 0) return { ok: false, error: '免费卡必须是可选等级中的面朝上卡' };
+    const fc = s.byId[freeId];
+    if (isPokemart(fc) && fc.effect && !PM_EFFECTS_LIVE[fc.effect]) return { ok: false, error: `免费卡「${fc.name}」效果待实现` };
+    const sub = opts.freeOpts || {};
+    let assoc = null;
+    if (isPokemart(fc) && (fc.effect === 'copy' || fc.effect === 'copy_free')) {
+      const r = resolveCopyTarget(s, p, sub.copyTargetId); if (!r.ok) return r; assoc = r.color;
+    }
+    let steps = [{ freeId, assoc }];
+    if (isPokemart(fc) && (fc.effect === 'free' || fc.effect === 'copy_free')) {
+      const ns = Object.assign({}, seen); ns[freeId] = true;
+      const rec = planFree(s, p, fc, sub, depth + 1, ns);
+      if (!rec.ok) return rec;
+      steps = steps.concat(rec.steps);
+    }
+    return { ok: true, steps };
+  }
+  function execFree(s, p, steps) {
+    for (const st of steps) {
+      const loc = locateCard(s, st.freeId);
+      if (loc.where === 'field') { s.field[loc.tier][loc.slot] = null; refill(s, loc.tier); }
+      p.board.push(st.freeId);
+      if (st.assoc) { p.assoc = p.assoc || {}; p.assoc[st.freeId] = st.assoc; }
+      log(s, `${p.name} 免费获得 ${s.byId[st.freeId].name}${st.assoc ? `（关联${zhBall(st.assoc)}）` : ''}`);
+    }
+  }
+
   // opts (all optional, used by Pokémart effects):
-  //   copyTargetId  — board card id to copy a bonus from (EVOLVE STONE)
+  //   copyTargetId  — board card id to copy a bonus from (EVOLVE STONE / RARE CANDY)
   //   spendPokedex  — board POKÉDEX ids to discard, each worth 2 virtual master balls
   //   discardCards  — board card ids to discard to pay for a REPEL (discard_buy)
+  //   freeTakeId + freeOpts — the free card to take (TM / RARE CANDY), and its own choices
   function actionCapture(s, cardId, opts) {
     opts = opts || {};
     const p = activePlayer(s);
@@ -422,12 +479,19 @@
     const payment = computePayment(s, p, card, spend.length * 2);
     if (!payment.ok) return { ok: false, error: payment.error };
 
-    // --- EVOLVE STONE (copy): associate with an owned bonus card ---
+    // --- EVOLVE STONE / RARE CANDY (copy): associate with an owned bonus card ---
     let assocColor = null;
-    if (isPokemart(card) && card.effect === 'copy') {
+    if (isPokemart(card) && (card.effect === 'copy' || card.effect === 'copy_free')) {
       const r = resolveCopyTarget(s, p, opts.copyTargetId);
       if (!r.ok) return r;
       assocColor = r.color;
+    }
+    // --- TM / RARE CANDY (free / copy_free): plan the free take(s) up front ---
+    let freeSteps = null;
+    if (isPokemart(card) && (card.effect === 'free' || card.effect === 'copy_free')) {
+      const fp = planFree(s, p, card, opts, 0);
+      if (!fp.ok) return fp;
+      freeSteps = fp.steps;
     }
 
     payTokens(s, p, payment.pay);
@@ -439,6 +503,7 @@
     const extra = spend.length ? `，弃${spend.length}图鉴抵${spend.length * 2}万能` : '';
     const asc = assocColor ? `，关联${zhBall(assocColor)}` : '';
     log(s, `${p.name} 捕捉了 ${card.name}（${payDesc(payment.pay)}${extra}${asc}）`);
+    if (freeSteps && freeSteps.length) execFree(s, p, freeSteps);
     return { ok: true };
   }
 
@@ -668,8 +733,10 @@
             acts.push({ type: 'capture', cardId: id });
           continue;
         }
-        // double / colorless_master capture like a normal card
-        if (canAfford(s, p, card)) acts.push({ type: 'capture', cardId: id });
+        // double / colorless_master capture like a normal card. free / copy_free
+        // require a free-card choice and are driven by the UI (added with AI in 4b).
+        if ((card.effect === 'double' || card.effect === 'colorless_master') && canAfford(s, p, card))
+          acts.push({ type: 'capture', cardId: id });
         continue;
       }
       if (canAfford(s, p, card)) acts.push({ type: 'capture', cardId: id });
@@ -725,7 +792,7 @@
     computePayment, canAfford,
     actionTake, actionReserve, actionCapture, actionEvolve, actionDiscard, actionPass,
     actionTakeMega, megaEvolveOptions, actionMegaEvolve, MEGA_TOKENS, MEGA_WIN_SCORE,
-    PM_TIERS, PM_SLOTS, fieldTiers, isPokemart, effBonusColor,
+    PM_TIERS, PM_SLOTS, fieldTiers, isPokemart, effBonusColor, freeTiers, freeTakeable,
     evolutionOptions, needsDiscard, turnState, endTurn, determineWinner,
     legalActions, applyAction, clone,
     zhBall, zhTier, payDesc,

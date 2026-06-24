@@ -91,17 +91,24 @@ test('reserve a Pokémart card: moves to hand, grants a master ball, refills', (
 });
 
 // ---- not-yet-implemented effects are rejected, not silently mishandled ----
-test('capturing a not-yet-live effect (copy_free) is rejected, not silently mishandled', () => {
-  const g = newGame();
-  const p = E.activePlayer(g);
-  loadTokens(p, 10); p.tokens.purple = 5;
-  const id = PM.find(c => c.effect === 'copy_free').id;
-  g.field.pmL2[0] = id;
-  const r = E.actionCapture(g, id);
-  assert.ok(!r.ok, 'should be rejected');
-  assert.ok(/待实现/.test(r.error), 'clear deferral message: ' + r.error);
-  // and legalActions must not offer it
-  assert.ok(!E.legalActions(g).some(a => a.type === 'capture' && a.cardId === id), 'not in legal moves');
+test('every Pokémart effect is implemented (none rejected as "待实现")', () => {
+  const effects = new Set(PM.map(c => c.effect));
+  for (const eff of effects) {
+    const g = newGame();
+    const p = E.activePlayer(g);
+    loadTokens(p, 10); p.tokens.purple = 5;
+    // satisfy copy/discard prerequisites: own 2 red bonus cards
+    DB.filter(c => c.bonus === 'red').slice(0, 2).forEach(c => p.board.push(c.id));
+    const card = PM.find(c => c.effect === eff);
+    g.field[card.tier][0] = card.id;
+    // provide whatever choice the effect might need; we only assert it's not "待实现"
+    const free = eff === 'free' || eff === 'copy_free'
+      ? (card.tier === 'pmL3' ? g.field.stage2[0] : g.field.stage1[0]) : undefined;
+    const r = E.actionCapture(g, card.id, {
+      copyTargetId: p.board[0], discardCards: p.board.slice(0, 2), freeTakeId: free,
+    });
+    assert.ok(!/待实现/.test(r.error || ''), eff + ' should be implemented: ' + r.error);
+  }
 });
 
 // ---- clone (AI search) keeps Pokémart state ----
@@ -191,16 +198,68 @@ test('discard_buy (REPEL): rejected without enough cards of the colour', () => {
   assert.ok(!r.ok && /需要弃掉/.test(r.error), 'needs enough cards: ' + r.error);
 });
 
-test('copy_free / free still deferred to Phase 4', () => {
+// =================== Phase 4a: take-a-free-card effects ===================
+test('free (TM): take a free Level-2 card on capture, paying nothing for it', () => {
   const g = newGame();
   const p = E.activePlayer(g);
   loadTokens(p, 10); p.tokens.purple = 5;
-  for (const eff of ['copy_free', 'free']) {
-    const id = PM.find(c => c.effect === eff).id;
-    g.field[g.byId[id].tier][0] = id;
-    const r = E.actionCapture(g, id, {});
-    assert.ok(!r.ok && /待实现/.test(r.error), eff + ' deferred: ' + r.error);
-  }
+  const tm = PM.find(c => c.effect === 'free').id; // pmL3
+  g.field.pmL3[0] = tm;
+  const freeCard = g.field.stage2[0]; // a Level-2 base card, face up
+  const tokensBefore = E.tokenTotal(p);
+  const tmCost = E.COLORS.reduce((a, c) => a + (g.byId[tm].cost[c] || 0), 0);
+  const r = E.actionCapture(g, tm, { freeTakeId: freeCard });
+  assert.ok(r.ok, r.error);
+  assert.ok(p.board.includes(tm), 'TM captured');
+  assert.ok(p.board.includes(freeCard), 'free card acquired');
+  // only the TM was paid for (free card cost nothing); spent <= tm cost
+  assert.ok(tokensBefore - E.tokenTotal(p) <= tmCost, 'free card not paid');
+  assert.strictEqual(g.field.stage2.filter(Boolean).length, 4, 'free slot refilled');
+});
+
+test('free (TM): rejected when no free card is chosen but some is available', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  loadTokens(p, 10); p.tokens.purple = 5;
+  const tm = PM.find(c => c.effect === 'free').id;
+  g.field.pmL3[0] = tm;
+  const r = E.actionCapture(g, tm, {});
+  assert.ok(!r.ok && /选择/.test(r.error), 'must choose a free card: ' + r.error);
+});
+
+test('copy_free (RARE CANDY): associate + take a free Level-1 card', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  loadTokens(p, 10); p.tokens.purple = 5;
+  give(g, p, 'blue', 1); // own a blue bonus to copy
+  const target = p.board[0];
+  const candy = PM.find(c => c.effect === 'copy_free').id; // pmL2
+  g.field.pmL2[0] = candy;
+  const freeCard = g.field.stage1[0]; // Level-1 base card
+  const r = E.actionCapture(g, candy, { copyTargetId: target, freeTakeId: freeCard });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(p.assoc[candy], 'blue', 'RARE CANDY associated to blue');
+  assert.ok(p.board.includes(freeCard), 'free Level-1 card acquired');
+});
+
+test('free recursion: TM -> free RARE CANDY -> free Level-1 card', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  loadTokens(p, 10); p.tokens.purple = 5;
+  give(g, p, 'red', 1); // bonus card so the nested RARE CANDY can associate
+  const target = p.board[0];
+  const tm = PM.find(c => c.effect === 'free').id;       // pmL3
+  const candy = PM.find(c => c.effect === 'copy_free').id; // pmL2
+  g.field.pmL3[0] = tm;
+  g.field.pmL2[0] = candy;
+  const leaf = g.field.stage1[0];
+  const r = E.actionCapture(g, tm, {
+    freeTakeId: candy,
+    freeOpts: { copyTargetId: target, freeTakeId: leaf },
+  });
+  assert.ok(r.ok, r.error);
+  assert.ok(p.board.includes(tm) && p.board.includes(candy) && p.board.includes(leaf), 'full chain acquired');
+  assert.strictEqual(p.assoc[candy], 'red', 'nested association resolved');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
