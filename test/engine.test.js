@@ -81,6 +81,10 @@ test('different-color take must be 3 when 3+ colors available; fewer only when c
   const g2 = E.createGame(DB, { numPlayers: 2, seed: 5 });
   for (const c of ['black', 'pink', 'yellow']) g2.supply[c] = 0; // only red, blue left
   assert.ok(E.actionTake(g2, ['red', 'blue']).ok, 'take the 2 remaining colors');
+  // ...and taking just 1 is also allowed when fewer than 3 colors remain ("or even one")
+  const g2b = E.createGame(DB, { numPlayers: 2, seed: 5 });
+  for (const c of ['black', 'pink', 'yellow']) g2b.supply[c] = 0; // only red, blue left
+  assert.ok(E.actionTake(g2b, ['red']).ok, 'may take only 1 when fewer than 3 colors remain');
   // when only 1 color remains, taking the single token is allowed
   const g3 = E.createGame(DB, { numPlayers: 2, seed: 6 });
   for (const c of ['blue', 'black', 'pink', 'yellow']) g3.supply[c] = 0; // only red left
