@@ -18,17 +18,17 @@
  *   AI.playTurn(state, opts)    -> applies the plan to `state` (incl. endTurn)
  * ===================================================================== */
 (function (root, factory) {
-  const api = factory(typeof require === 'function' ? require('./engine.js') : root.Engine);
+  const api = factory(typeof require === 'function' ? require('../js/engine.js') : root.Engine);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (typeof window !== 'undefined') window.AI = api;
+  if (typeof window !== 'undefined') window.AI_V1 = api;
 })(this, function (E) {
   'use strict';
   const { COLORS, ALL_TOKENS, FIELD_TIERS } = E;
 
   const DIFF = {
-    easy:   { evoBias: 0.4, noise: 6,   proximity: 0.5, deny: 0 },
-    normal: { evoBias: 0.8, noise: 1.5, proximity: 1.0, deny: 0 },
-    hard:   { evoBias: 1.0, noise: 0,   proximity: 1.0, deny: 10 },
+    easy:   { evoBias: 0.4, noise: 6,   proximity: 0.5 },
+    normal: { evoBias: 0.8, noise: 1.5, proximity: 1.0 },
+    hard:   { evoBias: 1.0, noise: 0,   proximity: 1.0 },
   };
 
   // ---- static position evaluation from player `pid`'s perspective ----
@@ -50,19 +50,12 @@
     // (+2VP for legend). Owning them is worth extra beyond a normal card.
     let rlOwned = 0;
     for (const id of p.board) { const t = s.byId[id].tier; if (t === 'rare' || t === 'legend') rlOwned++; }
-    score += rlOwned * 14;                               // specials anchor a colour flow (2 same-colour discounts, can't be blocked)
+    score += rlOwned * 10;
     let totalBonus = 0;
-    const bvals = [];
-    for (const c of COLORS) { totalBonus += b[c]; bvals.push(b[c]); }
+    const distinct = COLORS.filter(c => { totalBonus += b[c]; return b[c] > 0; }).length;
     score += totalBonus * 4;
-    // colour COHERENCE (高分流): a deep primary + a moderate secondary colour are what
-    // unlock the expensive same-colour high-VP cards. Reward concentration over a flat
-    // 1-of-each spread, but keep ≥2 colours (2-colour high cards) and lightly punish hoarding.
-    bvals.sort((x, y) => y - x);
-    score += Math.min(bvals[0], 4) * 5 + Math.min(bvals[1], 3) * 3;
-    const distinct = bvals.filter(v => v > 0).length;
-    score += Math.min(distinct, 2) * 3;
-    if (bvals[0] > 5) score -= (bvals[0] - 5) * 3;       // mild anti-overstack
+    score += distinct * 4;                               // colour diversity
+    for (const c of COLORS) if (b[c] > 4) score -= (b[c] - 4) * 3; // mild anti-overstack
 
     // tokens: concave value with a real anti-hoard penalty past 8 so the AI
     // converts tokens into cards instead of sitting at the 10 limit.
@@ -77,48 +70,21 @@
     // proximity: reward being close to capturing the single most attractive
     // scoring card (field or hand). Weighted highly so the AI takes the RIGHT
     // balls toward a high-VP target instead of grabbing 0-VP junk.
-    const early = s.round <= 6;
     const targets = [];
     for (const tier of FIELD_TIERS) for (const id of s.field[tier]) if (id) targets.push(id);
     for (const id of p.reserve) targets.push(id);
-    let bestProx = 0, prox2 = 0;
+    let bestProx = 0;
     for (const id of targets) {
       const card = s.byId[id];
-      // evolved potential: a cheap card (御五家 3-2) that evolves into VP is worth reaching for
-      let evoVP = 0;
-      if (card.evolvesTo) { const t = DBfind(s, card.evolvesTo); if (t) evoVP = Math.max(0, t.vp - (card.vp || 0)); }
-      if (!card.vp && card.tier !== 'rare' && evoVP <= 0) continue;
+      if (!card.vp && card.tier !== 'rare') continue;
       let gap = card.cost.purple || 0;
       for (const c of COLORS) gap += Math.max(0, (card.cost[c] || 0) - b[c] - p.tokens[c]);
-      let worth = (card.vp || 0) + (card.bonusCount || 1) * 1.5 + evoVP * 0.7;
-      if (card.tier === 'rare' || card.tier === 'legend') worth += early ? 6 : 3; // engine anchor, esp. early
+      let worth = (card.vp || 0) + (card.bonusCount || 1) * 1.5;
+      if (card.tier === 'rare' || card.tier === 'legend') worth += 3; // high-priority anchor
       const v = worth / (1 + gap * 1.4);
-      if (v > bestProx) { prox2 = bestProx; bestProx = v; } else if (v > prox2) prox2 = v;
+      if (v > bestProx) bestProx = v;
     }
-    score += (bestProx + prox2 * 0.4) * 11 * (cfg ? cfg.proximity : 1);  // top-2 → coherent multi-card lineup
-
-    // opponent denial: lines that cut the strongest opponent's proximity to a big card
-    // (e.g. capturing/reserving the card they were about to buy) are rewarded. Encodes the
-    // "slow other players down / reserve what they need" principle in a 1-ply eval.
-    if (cfg && cfg.deny) {
-      let oppMax = 0;
-      for (let q = 0; q < s.numPlayers; q++) {
-        if (q === pid) continue;
-        const op = s.players[q], ob = E.bonuses(s, op);
-        let oprox = 0;
-        for (const tier of FIELD_TIERS) for (const id of s.field[tier]) {
-          if (!id) continue; const card = s.byId[id];
-          const rl = card.tier === 'rare' || card.tier === 'legend';
-          if ((card.vp || 0) < 2 && !rl) continue;
-          let gap = card.cost.purple || 0;
-          for (const c of COLORS) gap += Math.max(0, (card.cost[c] || 0) - ob[c] - op.tokens[c]);
-          const v = ((card.vp || 0) + (rl ? 3 : 0)) / (1 + gap * 1.4);
-          if (v > oprox) oprox = v;
-        }
-        if (oprox > oppMax) oppMax = oprox;
-      }
-      score -= oppMax * cfg.deny;
-    }
+    score += bestProx * 11 * (cfg ? cfg.proximity : 1);
 
     // evolution potential: a caught Pokémon whose next form is available and
     // roughly affordable is nearly-free VP next turn — reward keeping such chains.
@@ -207,7 +173,7 @@
     return evalState(c, pid, cfg);
   }
 
-  // ---- choose the whole turn (1-ply eval search) ----
+  // ---- choose the whole turn ----
   function chooseTurn(s, opts) {
     opts = opts || {};
     const cfg = DIFF[opts.difficulty || 'hard'];
