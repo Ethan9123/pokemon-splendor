@@ -28,6 +28,7 @@
       <div class="setup-row">
         <label>扩展</label>
         <label class="exp-toggle"><input type="checkbox" id="opt-megas"> 超级进化 (Megas)：第4级 Mega 卡 + Mega 代币，胜利需 20分+集齐每色+1只Mega</label>
+        <label class="exp-toggle"><input type="checkbox" id="opt-pokemart"> Pokémart：每级 +2 张商店卡（药水双奖励 / 进化石关联 / 图鉴抵款 / 神奇糖果·技能机免费取卡 / 驱虫弃购）</label>
       </div>
 
       <div class="setup-actions">
@@ -97,8 +98,22 @@
   <!-- card zoom preview -->
   <div id="zoom" class="hidden"><img id="zoom-img" alt="" /></div>
 
+  <!-- ===== Pokémart effect choice modal ===== -->
+  <div id="choice-modal" class="modal hidden">
+    <div class="modal-box choice">
+      <div id="choice-title" class="choice-title"></div>
+      <div id="choice-hint" class="choice-hint"></div>
+      <div id="choice-cards" class="choice-cards"></div>
+      <div class="choice-actions">
+        <button id="choice-confirm" class="primary">确定</button>
+        <button id="choice-cancel" class="ghost">取消</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/cards.js"></script>
   <script src="js/megas.js"></script>
+  <script src="js/pokemart.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/azai.js"></script>

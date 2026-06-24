@@ -3,12 +3,14 @@
   'use strict';
   const E = window.Engine, AI = window.AI, DB = window.CARD_DB;
   const MEGA_DB = window.MEGA_DB || [];
+  const POKEMART_DB = window.POKEMART_DB || [];
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const BALL_NAMES = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
-  const TIER_NAMES = { legend: '传说', rare: '稀有', stage3: '三阶', stage2: '二阶', stage1: '一阶', mega: 'Mega' };
+  const TIER_NAMES = { legend: '传说', rare: '稀有', stage3: '三阶', stage2: '二阶', stage1: '一阶', mega: 'Mega', pmL1: '商店Ⅰ', pmL2: '商店Ⅱ', pmL3: '商店Ⅲ' };
+  const EFFECT_NAMES = { copy: '进化石·关联', colorless_master: '图鉴·可抵2万能', double: '药水·双奖励', copy_free: '神奇糖果·关联+免费取卡', free: '技能机·免费取卡', discard_buy: '驱虫·弃2张同色购买' };
   const SEAT_COLORS = ['#e3350d', '#2f6fd6', '#46d17a', '#f4c025'];
-  const byId = {}; DB.forEach(c => byId[c.id] = c); MEGA_DB.forEach(c => byId[c.id] = c);
+  const byId = {}; DB.forEach(c => byId[c.id] = c); MEGA_DB.forEach(c => byId[c.id] = c); POKEMART_DB.forEach(c => byId[c.id] = c);
 
   let G = null;
   let UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: 0 };
@@ -56,7 +58,8 @@
   function startGame() {
     const cfg = readConfig();
     const megas = !!($('#opt-megas') && $('#opt-megas').checked) && MEGA_DB.length > 0;
-    G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai, megas, megaDB: MEGA_DB });
+    const pokemart = !!($('#opt-pokemart') && $('#opt-pokemart').checked) && POKEMART_DB.length > 0;
+    G = E.createGame(DB, { numPlayers: cfg.numPlayers, names: cfg.names, ai: cfg.ai, megas, megaDB: MEGA_DB, pokemart, pokemartDB: POKEMART_DB });
     gameEpoch++;                                        // invalidate any timers from a prior game
     G.players.forEach((p, i) => { p.diff = cfg.diff[i]; });
     if (cfg.diff.indexOf('alphazero') >= 0) loadPolicy();
@@ -147,6 +150,48 @@
       rowEl.innerHTML = inner;
       wrap.appendChild(rowEl);
     }
+    // Pokémart expansion: 2 shop cards per level, shown high→low like the base rows.
+    if (G.pokemartEnabled) {
+      for (const tier of ['pmL3', 'pmL2', 'pmL1']) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'tier-row tier-pokemart';
+        const deckN = G.decks[tier].length;
+        const canReserveDeck = human && UI.phase === 'main' && deckN > 0 && me().reserve.length < E.HAND_MAX && !G.acted;
+        let inner = `<div class="tier-label">${TIER_NAMES[tier]}</div>`;
+        inner += `<div class="deck-pile ${canReserveDeck ? 'reservable' : ''}" data-tier="${tier}" ${canReserveDeck ? `data-deck="${tier}"` : ''}>
+                    <div class="count">${deckN}</div><div class="deck-tag">商店牌堆</div></div>`;
+        inner += '<div class="card-strip">';
+        for (const id of G.field[tier]) {
+          if (!id) { inner += `<div class="card"><div class="empty-slot">—</div></div>`; continue; }
+          const c = byId[id];
+          const affordable = human && UI.phase === 'main' && !G.acted && captureAffordable(c);
+          const canReserve = human && UI.phase === 'main' && !G.acted && me().reserve.length < E.HAND_MAX;
+          inner += cardHTML(id, { affordable, canReserve });
+        }
+        inner += '</div>';
+        rowEl.innerHTML = inner;
+        wrap.appendChild(rowEl);
+      }
+    }
+  }
+
+  // Can the active human acquire this card right now (effect-aware)? Used for the
+  // "affordable" highlight and to decide whether to show the 捕捉 button.
+  function captureAffordable(card) {
+    const p = me();
+    if (E.isPokemart(card) && card.effect) {
+      if (card.effect === 'discard_buy') {
+        const col = card.effectParam.discardColor, n = card.effectParam.discardCount;
+        return p.board.filter(id => E.effBonusColor(G, p, id) === col).length >= n;
+      }
+      if (card.effect === 'copy' || card.effect === 'copy_free') {
+        if (!p.board.some(id => E.effBonusColor(G, p, id))) return false; // needs a bonus card to copy
+      }
+    }
+    if (E.canAfford(G, p, card)) return true;
+    // otherwise see if discarding owned POKÉDEX (2 master each) would cover it
+    const dex = p.board.filter(id => E.isPokemart(byId[id]) && byId[id].effect === 'colorless_master').length;
+    return dex > 0 && E.computePayment(G, p, card, dex * 2).ok;
   }
 
   function renderSupply() {
@@ -233,10 +278,12 @@
     }
     if (UI.selCard) {
       const c = byId[UI.selCard];
-      const aff = E.canAfford(G, p, c);
+      const aff = captureAffordable(c);
       const loc = E.locateCard(G, UI.selCard);
-      const canReserve = (loc.where === 'field') && E.NORMAL_TIERS.includes(loc.tier) && p.reserve.length < E.HAND_MAX;
-      let html = `<div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${aff ? '' : ' · 精灵球不足'}</div><div class="act-buttons">`;
+      const reserveTier = (loc.where === 'field') && (E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier));
+      const canReserve = reserveTier && p.reserve.length < E.HAND_MAX;
+      const eff = E.isPokemart(c) && c.effect ? ` · <span class="eff-tag">${EFFECT_NAMES[c.effect] || ''}</span>` : '';
+      let html = `<div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}${aff ? '' : ' · 无法支付'}</div><div class="act-buttons">`;
       if (aff) html += `<button class="primary" data-act="capture">捕捉</button>`;
       if (canReserve) html += `<button class="ghost" data-act="reserve-card">保留</button>`;
       html += `<button class="ghost" data-act="clear-sel">取消</button></div>`;
@@ -276,13 +323,15 @@
         chips += `<div class="chip">${ball(c, 'sm')}<span class="num">${p.tokens[c]}</span><span class="bonus-n">+${b[c]}</span></div>`;
       }
       chips += `<div class="chip">${ball('purple', 'sm')}<span class="num">${p.tokens.purple}</span></div>`;
-      // captured cards grouped by bonus color
+      // captured cards grouped by effective bonus color (Pokémart copy cards take
+      // their associated colour; effect cards with no colour go in a final group).
       let stacks = '';
-      for (const c of E.COLORS) {
-        const cards = p.board.filter(id => byId[id].bonus === c);
-        if (!cards.length) continue;
+      const groups = E.COLORS.map(c => ({ key: c, ids: p.board.filter(id => E.effBonusColor(G, p, id) === c) }));
+      groups.push({ key: null, ids: p.board.filter(id => E.effBonusColor(G, p, id) === null) });
+      for (const g of groups) {
+        if (!g.ids.length) continue;
         let st = '';
-        cards.forEach((id, idx) => {
+        g.ids.forEach((id, idx) => {
           st += `<div class="mini-card${idx ? ' stacked' : ''}" data-zoom="${byId[id].img}"><img src="${byId[id].img}" alt=""></div>`;
         });
         stacks += `<div class="color-stack"><div class="ministack">${st}</div></div>`;
@@ -392,9 +441,111 @@
     const colors = UI.pick.slice(); const pid = G.turn;
     applyAnimated({ type: 'take', colors }, pid, () => { const r = E.actionTake(G, colors); if (r.ok) UI.pick = []; return r; }, afterMainAction);
   }
+  function commitCapture(cid, opts) {
+    const pid = G.turn;
+    applyAnimated({ type: 'capture', cardId: cid }, pid, () => { const r = E.actionCapture(G, cid, opts); if (r.ok) UI.selCard = null; return r; }, afterMainAction);
+  }
   function doCapture() {
-    const cid = UI.selCard, pid = G.turn;
-    applyAnimated({ type: 'capture', cardId: cid }, pid, () => { const r = E.actionCapture(G, cid); if (r.ok) UI.selCard = null; return r; }, afterMainAction);
+    const cid = UI.selCard, card = byId[cid];
+    // Cards needing player choices (Pokémart effects, or spending POKÉDEX) collect
+    // them via a modal first; everything else captures immediately.
+    UI.busy = true; updateUndoBtn();
+    gatherCaptureOpts(card).then((opts) => {
+      UI.busy = false;
+      if (opts === null) { render(); return; } // cancelled
+      commitCapture(cid, opts);
+    });
+  }
+
+  // ---- Pokémart effect choice collection (returns a Promise<opts|null>) ----
+  function pickCards(o) {
+    return new Promise((resolve) => {
+      const modal = $('#choice-modal'), confirm = $('#choice-confirm'), cancel = $('#choice-cancel');
+      $('#choice-title').textContent = o.title;
+      $('#choice-hint').textContent = o.hint || '';
+      const wrap = $('#choice-cards'); wrap.innerHTML = '';
+      const count = o.count, sel = [];
+      (o.candidates || []).forEach((id) => {
+        const c = byId[id];
+        const el = document.createElement('div');
+        el.className = 'choice-card'; el.dataset.id = id; el.dataset.zoom = c.img;
+        el.innerHTML = `<img src="${c.img}" alt="${c.name}"><span>${c.name}</span>`;
+        el.addEventListener('click', () => {
+          const i = sel.indexOf(id);
+          if (i >= 0) { sel.splice(i, 1); el.classList.remove('sel'); }
+          else {
+            if (count === 1) { sel.length = 0; wrap.querySelectorAll('.choice-card').forEach(x => x.classList.remove('sel')); }
+            else if (sel.length >= count) return;
+            sel.push(id); el.classList.add('sel');
+          }
+          confirm.disabled = sel.length !== count;
+        });
+        wrap.appendChild(el);
+      });
+      confirm.disabled = sel.length !== count;
+      const close = (val) => { modal.classList.add('hidden'); confirm.removeEventListener('click', ok); cancel.removeEventListener('click', no); resolve(val); };
+      const ok = () => { if (sel.length === count) close(sel.slice()); };
+      const no = () => close(null);
+      confirm.addEventListener('click', ok); cancel.addEventListener('click', no);
+      modal.classList.remove('hidden');
+    });
+  }
+  async function gatherCaptureOpts(card) {
+    const p = me(); const opts = {};
+    // 1) spend POKÉDEX as virtual master balls if needed to afford it (not for REPEL)
+    if (card.effect !== 'discard_buy' && !E.canAfford(G, p, card)) {
+      const dex = p.board.filter(id => E.isPokemart(byId[id]) && byId[id].effect === 'colorless_master');
+      let need = -1;
+      for (let k = 0; k <= dex.length; k++) if (E.computePayment(G, p, card, k * 2).ok) { need = k; break; }
+      if (need > 0) {
+        const sel = await pickCards({ title: '弃用图鉴抵款', hint: `弃 ${need} 张图鉴，各抵 2 个万能球以捕捉`, candidates: dex, count: need });
+        if (!sel) return null;
+        opts.spendPokedex = sel;
+      }
+    }
+    // 2) copy association (EVOLVE STONE / RARE CANDY)
+    if (card.effect === 'copy' || card.effect === 'copy_free') {
+      const cands = p.board.filter(id => E.effBonusColor(G, p, id));
+      const sel = await pickCards({ title: '关联（进化石/神奇糖果）', hint: '选择一张卡，本卡永久视同其奖励颜色', candidates: cands, count: 1 });
+      if (!sel) return null;
+      opts.copyTargetId = sel[0];
+    }
+    // 3) REPEL: discard N owned cards of its colour
+    if (card.effect === 'discard_buy') {
+      const col = card.effectParam.discardColor, n = card.effectParam.discardCount;
+      const cands = p.board.filter(id => E.effBonusColor(G, p, id) === col);
+      const sel = await pickCards({ title: '驱虫喷雾', hint: `弃掉 ${n} 张${BALL_NAMES[col]}卡以获得本卡（不付精灵球）`, candidates: cands, count: n });
+      if (!sel) return null;
+      opts.discardCards = sel;
+    }
+    // 4) take a free card (TM / RARE CANDY), possibly recursive
+    if (card.effect === 'free' || card.effect === 'copy_free') {
+      const fo = await gatherFreeTake(card);
+      if (fo === null) return null;
+      Object.assign(opts, fo);
+    }
+    return opts;
+  }
+  async function gatherFreeTake(parentCard) {
+    const p = me();
+    const cands = [];
+    for (const t of E.freeTiers(parentCard)) for (const id of (G.field[t] || [])) if (id && E.freeTakeable(G, p, byId[id])) cands.push(id);
+    if (!cands.length) return { freeTakeId: undefined }; // nothing eligible — effect fizzles
+    const sel = await pickCards({ title: '免费获得一张卡', hint: '立即免费获得（不付其成本），结算其效果', candidates: cands, count: 1 });
+    if (!sel) return null;
+    const freeId = sel[0], fc = byId[freeId], freeOpts = {};
+    if (E.isPokemart(fc) && (fc.effect === 'copy' || fc.effect === 'copy_free')) {
+      const cc = p.board.filter(id => E.effBonusColor(G, p, id));
+      const cp = await pickCards({ title: `关联「${fc.name}」`, hint: '为免费获得的卡选择复制奖励的卡', candidates: cc, count: 1 });
+      if (!cp) return null;
+      freeOpts.copyTargetId = cp[0];
+    }
+    if (E.isPokemart(fc) && (fc.effect === 'free' || fc.effect === 'copy_free')) {
+      const sub = await gatherFreeTake(fc);
+      if (sub === null) return null;
+      Object.assign(freeOpts, sub);
+    }
+    return { freeTakeId: freeId, freeOpts };
   }
   function doReserveCard() {
     const cid = UI.selCard, pid = G.turn;

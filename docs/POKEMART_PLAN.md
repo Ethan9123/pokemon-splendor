@@ -63,4 +63,13 @@
   含**递归结算**（免费取到的卡若也是 free/copy_free 会继续，带 `freeOpts` 嵌套选择、深度与重复保护）。
   至此 **6 种效果引擎逻辑全部完成**，`actionCapture(s, id, {copyTargetId, spendPokedex, discardCards, freeTakeId, freeOpts})`；
   17/17 测试，回归全过。
-- **阶段4b（下一步）**：前端——设置开关、Pokémart 牌列渲染、交互子选择 UI（关联/免费取/弃牌/弃图鉴抵款）+ AI 启发式适配 + 联调。
+- **阶段4b ✅（前端 + 联调）**：
+  · 设置加「Pokémart」开关；牌行新增 商店Ⅰ/Ⅱ/Ⅲ 三行（各 2 张，可捕捉/保留，含牌堆顶保留）；
+  · 交互子选择弹窗 `#choice-modal` + `pickCards()`：关联选卡、免费取卡（递归子选择）、弃 2 张购买、
+    弃图鉴抵款（不够球时自动提示）；`gatherCaptureOpts()` 收集 opts 后再 `actionCapture`；
+  · 玩家区按「有效奖励色」分组展示（关联卡/双奖励正确归色，无色效果卡单独成组）；
+  · AI：沿用 `legalActions`，自动会用 药水/图鉴/驱虫/进化石 四类（免费取卡类需 UI，AI 暂不取）；
+  · 验证：40 局 AI 对 AI 全部正常结束、零崩溃；4 个测试套件全过（engine13/megas7/pokemart17/ai）。
+
+**Pokémart 扩展至此功能完整（引擎 + UI + AI + 测试，opt-in，关闭时零影响）。**
+卡牌成本仍为暂定（卡面编目），与 Megas 一样建议试玩核对。
