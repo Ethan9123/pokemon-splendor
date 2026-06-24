@@ -91,17 +91,17 @@ test('reserve a Pokémart card: moves to hand, grants a master ball, refills', (
 });
 
 // ---- not-yet-implemented effects are rejected, not silently mishandled ----
-test('capturing a non-live effect (e.g. copy) is rejected in Phase 2', () => {
+test('capturing a not-yet-live effect (copy_free) is rejected, not silently mishandled', () => {
   const g = newGame();
   const p = E.activePlayer(g);
   loadTokens(p, 10); p.tokens.purple = 5;
-  const copyId = PM.find(c => c.effect === 'copy').id;
-  g.field.pmL1[0] = copyId;
-  const r = E.actionCapture(g, copyId);
+  const id = PM.find(c => c.effect === 'copy_free').id;
+  g.field.pmL2[0] = id;
+  const r = E.actionCapture(g, id);
   assert.ok(!r.ok, 'should be rejected');
   assert.ok(/待实现/.test(r.error), 'clear deferral message: ' + r.error);
   // and legalActions must not offer it
-  assert.ok(!E.legalActions(g).some(a => a.type === 'capture' && a.cardId === copyId), 'not in legal moves');
+  assert.ok(!E.legalActions(g).some(a => a.type === 'capture' && a.cardId === id), 'not in legal moves');
 });
 
 // ---- clone (AI search) keeps Pokémart state ----
@@ -111,6 +111,96 @@ test('clone preserves Pokémart field + flag', () => {
   assert.strictEqual(c.pokemartEnabled, true);
   assert.strictEqual(c.field.pmL2.length, 2);
   assert.strictEqual(c.byId[c.field.pmL2[0]].tier, 'pmL2');
+});
+
+// =================== Phase 3: interactive effects ===================
+const give = (g, p, color, n) => { // stack n real bonus cards of a color onto board
+  const ids = DB.filter(c => c.bonus === color).map(c => c.id);
+  for (let i = 0; i < n; i++) p.board.push(ids[i]);
+};
+const pmId = (effect, color) => PM.find(c => c.effect === effect && (color ? c.bonus === color : true)).id ||
+  PM.find(c => c.effect === effect).id;
+
+test('copy (EVOLVE STONE): associates with an owned bonus card and adds that bonus', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  loadTokens(p, 10); p.tokens.purple = 5;
+  give(g, p, 'red', 1); // own a red bonus card
+  const target = p.board[0];
+  const stone = PM.find(c => c.effect === 'copy').id;
+  g.field.pmL1[0] = stone;
+  const redBefore = E.bonuses(g, p).red; // 1
+  const r = E.actionCapture(g, stone, { copyTargetId: target });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(p.assoc[stone], 'red', 'association stored');
+  assert.strictEqual(E.bonuses(g, p).red, redBefore + 1, 'copy card now grants red');
+  assert.strictEqual(E.effBonusColor(g, p, stone), 'red');
+});
+
+test('copy (EVOLVE STONE): rejected when you own no bonus card', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  loadTokens(p, 10); p.tokens.purple = 5;
+  const stone = PM.find(c => c.effect === 'copy').id;
+  g.field.pmL1[0] = stone;
+  const r = E.actionCapture(g, stone, {});
+  assert.ok(!r.ok && /带奖励/.test(r.error), 'must already own a bonus card: ' + r.error);
+});
+
+test('colorless_master (POKÉDEX): discardable as 2 virtual master balls', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  // put a POKÉDEX on the board to spend, and a costly target on offer
+  const dex = PM.find(c => c.effect === 'colorless_master').id;
+  p.board.push(dex);
+  assert.strictEqual(E.effBonusColor(g, p, dex), null, 'POKÉDEX gives no bonus');
+  // target: a normal stage1 card; pay it entirely with 2 virtual + tokens
+  const target = DB.find(c => c.tier === 'stage1');
+  g.field.stage1[0] = target.id;
+  const totalCost = E.COLORS.reduce((a, c) => a + (target.cost[c] || 0), 0);
+  // give just enough non-purple tokens to cover all but 2 of the cost, 0 real master
+  loadTokens(p, 10); p.tokens.purple = 0;
+  const r = E.actionCapture(g, target.id, { spendPokedex: [dex] });
+  assert.ok(r.ok, r.error);
+  assert.ok(!p.board.includes(dex), 'POKÉDEX consumed (out of game)');
+  assert.ok(p.board.includes(target.id), 'target captured with no real master balls');
+});
+
+test('discard_buy (REPEL): no token cost, discards 2 owned cards of its colour', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  const repel = PM.find(c => c.effect === 'discard_buy').id;
+  const color = g.byId[repel].effectParam.discardColor;
+  give(g, p, color, 2); // own exactly 2 of the required colour
+  const ownedBefore = p.board.slice();
+  g.field.pmL3[0] = repel;
+  const tokensBefore = E.tokenTotal(p);
+  const r = E.actionCapture(g, repel, { discardCards: ownedBefore.slice(0, 2) });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(E.tokenTotal(p), tokensBefore, 'no tokens spent');
+  assert.ok(p.board.includes(repel), 'REPEL acquired');
+  for (const id of ownedBefore.slice(0, 2)) assert.ok(!p.board.includes(id), 'discarded ' + id);
+});
+
+test('discard_buy (REPEL): rejected without enough cards of the colour', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  const repel = PM.find(c => c.effect === 'discard_buy').id;
+  g.field.pmL3[0] = repel;
+  const r = E.actionCapture(g, repel, {});
+  assert.ok(!r.ok && /需要弃掉/.test(r.error), 'needs enough cards: ' + r.error);
+});
+
+test('copy_free / free still deferred to Phase 4', () => {
+  const g = newGame();
+  const p = E.activePlayer(g);
+  loadTokens(p, 10); p.tokens.purple = 5;
+  for (const eff of ['copy_free', 'free']) {
+    const id = PM.find(c => c.effect === eff).id;
+    g.field[g.byId[id].tier][0] = id;
+    const r = E.actionCapture(g, id, {});
+    assert.ok(!r.ok && /待实现/.test(r.error), eff + ' deferred: ' + r.error);
+  }
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

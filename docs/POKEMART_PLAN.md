@@ -54,5 +54,9 @@
 - **阶段2 ✅**：`data/pokemart.json`+`js/pokemart.js`（30 张，成本暂定待核对）；引擎基座——
   动态牌行（`field.pmL1/2/3` 各 2 张）+ setup/补牌 + 捕捉/保留接入 + POTION 双奖励（沿用 `bonusCount`）；
   未实现效果的卡在捕捉时被明确拒绝（不静默误触）；8/8 headless 测试，基础+Megas 回归全过。
-- **阶段3（下一步）**：交互效果引擎逻辑（copy / colorless_master / discard_buy；以选择参数传入，可 headless 测试）+ 测试。
-- **阶段4**：免费取卡（copy_free / free，含递归结算）+ **UI 子选择**（设置开关、Pokémart 列、选关联/免费/弃牌流程）+ AI 适配 + 联调。
+- **阶段3 ✅**：交互效果引擎逻辑（以选择参数传入，可 headless 测试）——
+  · copy（进化石）：捕捉时关联你一张带奖励的卡，永久视同其颜色（`player.assoc`，`bonuses()` 已支持）；
+  · colorless_master（图鉴）：无奖励；可在任意捕捉时弃掉，每张抵 2 个万能（`computePayment` 的 `extraMaster`）；
+  · discard_buy（驱虫喷雾）：不付球，改弃 2 张该色卡。
+  捕捉接口 `actionCapture(s, id, {copyTargetId, spendPokedex, discardCards})`；14/14 测试，回归全过。
+- **阶段4（下一步）**：免费取卡（copy_free / free，含递归结算）+ **UI 子选择**（设置开关、Pokémart 列、选关联/免费/弃牌/弃图鉴抵款流程）+ AI 适配 + 联调。
