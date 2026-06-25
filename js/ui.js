@@ -699,9 +699,11 @@
     if (G.phase === 'gameover') return;
     const p = me(), pid = G.turn, epoch = gameEpoch;
     UI.busy = true; updateUndoBtn();
-    // 究极 runs a real determinized MCTS (validated ~57.5% vs 高手); the search itself IS the
-    // "thinking" time, so use a short artificial pacing for it instead of the full 1.7–3.2s.
-    const isUltra = p.diff === 'ultra' && window.VSearch;
+    // 究极 runs a real determinized MCTS (validated ~58% vs 高手 in 2p). It only helps HEAD-TO-HEAD:
+    // measured worse than 高手 at 3-4p (multiplayer search is misled by opponent/kingmaking noise),
+    // so above 2 players 究极 falls back to the heuristic. The search itself IS the "thinking" time,
+    // so use a short artificial pacing for it instead of the full 1.7–3.2s.
+    const isUltra = p.diff === 'ultra' && window.VSearch && G.numPlayers === 2;
     const think = isUltra ? (250 + Math.random() * 250) : (1700 + Math.random() * 1500);
     setTimeout(() => {
       if (epoch !== gameEpoch) return;                // game was replaced/undone mid-think — drop this timer
@@ -716,9 +718,10 @@
         }
       }
       if (!applyFn) {                                  // heuristic / 究极-search (default seat, or AZ fallback)
+        const fallbackDiff = (p.diff === 'alphazero' || p.diff === 'ultra') ? 'hard' : (p.diff || 'hard');
         const plan = isUltra
-          ? VSearch.chooseTurn(G, ULTRA_CFG)            // determinized MCTS, heuristic prior+leaf
-          : AI.chooseTurn(G, { difficulty: p.diff === 'alphazero' ? 'hard' : (p.diff || 'hard') });
+          ? VSearch.chooseTurn(G, ULTRA_CFG)            // determinized MCTS, heuristic prior+leaf (2p only)
+          : AI.chooseTurn(G, { difficulty: fallbackDiff });
         const takeMega = G.megasEnabled && aiShouldTakeMega(G, pid);
         dec = takeMega ? { type: 'pass' } : decodePlan(plan);
         applyFn = () => {

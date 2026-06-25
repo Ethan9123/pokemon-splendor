@@ -21,7 +21,11 @@
 })(this, function (E, AI) {
   'use strict';
   const COLORS = E.COLORS, FIELD_TIERS = E.FIELD_TIERS;
-  const C_PUCT = 1.4, PRIOR_T = 90, VAL_SCALE = 650;
+  const DEFAULT_CPUCT = 1.4, PRIOR_T = 90, VAL_SCALE = 650;
+  // mutable per-search params (set by move() from its cfg) so configs can be A/B-compared in one process
+  let CPUCT = DEFAULT_CPUCT;   // exploration constant
+  let NODE_PRIOR = false;      // A/B showed it does NOT help (58.3% off vs 52.5% on @2p) — opt-in only
+  let ENDGAME = false;         // in the final round, replace the tanh leaf with a true heuristic playout result
   // Use the STRONGEST heuristic config (denial=10, full proximity) for the search's prior + leaf,
   // matching the Python validation (where eval_state has denial always-on) and the 'hard' opponent.
   // Passing cfg=null would silently disable opponent-denial → the search plans blind and ties.
@@ -60,68 +64,108 @@
     return 'p';
   }
 
-  // prior over legal actions = softmax of the heuristic eval of each action's result
-  function heuristicPrior(s) {
-    const acts = E.legalActions(s), me = s.turn;
-    if (!acts.length) return { acts: acts, P: null };
-    const ev = new Float64Array(acts.length); let mx = -1e18;
+  // prior over legal actions = softmax of the heuristic eval of each action's result, PLUS a
+  // node-prior Q-init per action = the side-to-move's static eval margin at that child, in [-1,1]
+  // (reuses the same clone+autoStep we already do for the prior; +1 opponent eval per action).
+  function priorAndQ(s) {
+    const acts = E.legalActions(s), me = s.turn, np = s.numPlayers;
+    if (!acts.length) return { acts: acts, P: null, Q0: null };
+    const ev = new Float64Array(acts.length);
+    const Q0 = new Float64Array(acts.length);
+    let mx = -1e18;
     for (let i = 0; i < acts.length; i++) {
-      const c = E.clone(s); autoStep(c, acts[i]); ev[i] = AI.evalState(c, me, HARD);
+      const c = E.clone(s); autoStep(c, acts[i]);
+      if (c.phase === 'gameover') {
+        ev[i] = AI.evalState(c, me, HARD);
+        Q0[i] = c.winner === me ? 1 : -1;
+      } else {
+        const meEv = AI.evalState(c, me, HARD);
+        ev[i] = meEv;
+        let opp = -1e18;
+        for (let q = 0; q < np; q++) if (q !== me) { const v = AI.evalState(c, q, HARD); if (v > opp) opp = v; }
+        Q0[i] = Math.tanh((meEv - opp) / VAL_SCALE);
+      }
       if (ev[i] > mx) mx = ev[i];
     }
     const P = new Float64Array(acts.length); let sum = 0;
     for (let i = 0; i < acts.length; i++) { P[i] = Math.exp((ev[i] - mx) / PRIOR_T); sum += P[i]; }
     for (let i = 0; i < acts.length; i++) P[i] /= sum;
-    return { acts: acts, P: P };
+    return { acts: acts, P: P, Q0: Q0 };
   }
 
-  // static leaf value in [-1,1] from the side-to-move's perspective
-  function leafValue(s) {
-    const me = s.turn;
-    if (s.phase === 'gameover') return s.winner === me ? 1 : -1;
-    let opp = -1e18;
-    for (let q = 0; q < s.numPlayers; q++) if (q !== me) { const v = AI.evalState(s, q, HARD); if (v > opp) opp = v; }
-    return Math.tanh((AI.evalState(s, me, HARD) - opp) / VAL_SCALE);
+  // PER-SEAT value vector v[p] ∈ [-1,1] — each player's eval margin vs their best opponent.
+  // Correct for N players (non-zero-sum); for np==2 it is exactly the old ±sign-flip.
+  function terminalVec(s) {
+    const v = new Float64Array(s.numPlayers);
+    for (let p = 0; p < s.numPlayers; p++) v[p] = (p === s.winner) ? 1 : -1;
+    return v;
+  }
+  function leafVec(s) {
+    const np = s.numPlayers, ev = new Float64Array(np), v = new Float64Array(np);
+    for (let p = 0; p < np; p++) ev[p] = AI.evalState(s, p, HARD);
+    for (let p = 0; p < np; p++) {
+      let opp = -1e18;
+      for (let q = 0; q < np; q++) if (q !== p && ev[q] > opp) opp = ev[q];
+      v[p] = Math.tanh((ev[p] - opp) / VAL_SCALE);
+    }
+    return v;
+  }
+
+  // Final-round exact-ish value: play the heuristic's best line to terminal (the final round is short
+  // and deck draws can't change who wins it), return the TRUE per-seat result vector.
+  function endgameVec(s) {
+    const c = E.clone(s); let guard = 0;
+    while (c.phase !== 'gameover' && guard++ < 16) {
+      const acts = E.legalActions(c);
+      if (!acts.length) { autoStep(c, null); continue; }
+      const meNow = c.turn; let best = acts[0], bs = -1e18;
+      for (let i = 0; i < acts.length; i++) {
+        const cc = E.clone(c); autoStep(cc, acts[i]);
+        const v = AI.evalState(cc, meNow, HARD);
+        if (v > bs) { bs = v; best = acts[i]; }
+      }
+      autoStep(c, best);
+    }
+    return terminalVec(c);
   }
 
   function mkNode(s) {
     return { s: s, turn: s.turn, over: s.phase === 'gameover', winner: s.winner,
-             acts: null, P: null, N: null, W: null, children: {}, expanded: false };
+             acts: null, P: null, Q0: null, N: null, W: null, children: {}, expanded: false };
   }
   function expand(n) {
     if (n.over) { n.expanded = true; return; }
-    const r = heuristicPrior(n.s);
-    n.acts = r.acts; n.P = r.P;
+    const r = priorAndQ(n.s);
+    n.acts = r.acts; n.P = r.P; n.Q0 = r.Q0;
     n.N = new Float64Array(r.acts.length); n.W = new Float64Array(r.acts.length); n.expanded = true;
   }
   function select(n) {
     let tot = 0; for (let i = 0; i < n.N.length; i++) tot += n.N[i];
     const sq = Math.sqrt(tot) + 1e-8; let best = -1e18, bi = 0;
     for (let i = 0; i < n.acts.length; i++) {
-      const q = n.N[i] > 0 ? n.W[i] / n.N[i] : 0;
-      const u = C_PUCT * n.P[i] * sq / (1 + n.N[i]);
+      const q = n.N[i] > 0 ? n.W[i] / n.N[i] : (NODE_PRIOR ? n.Q0[i] : 0);
+      const u = CPUCT * n.P[i] * sq / (1 + n.N[i]);
       if (q + u > best) { best = q + u; bi = i; }
     }
     return bi;
   }
   function simulate(root) {
-    const path = []; let n = root, leafPlayer, vLeaf;
+    const path = []; let n = root, vVec;
     while (true) {
-      if (n.over) { leafPlayer = n.turn; vLeaf = n.winner === n.turn ? 1 : -1; break; }
+      if (n.over) { vVec = terminalVec(n.s); break; }
       const bi = select(n); const a = n.acts[bi]; path.push([n, bi]);
       const key = actionKey(a); let ch = n.children[key];
       if (!ch) {
         const c = E.clone(n.s); autoStep(c, a); ch = mkNode(c); n.children[key] = ch;
-        if (ch.over) { leafPlayer = ch.turn; vLeaf = ch.winner === ch.turn ? 1 : -1; }
-        else { expand(ch); leafPlayer = ch.turn; vLeaf = leafValue(ch.s); }
+        if (ch.over) vVec = terminalVec(ch.s);
+        else { expand(ch); vVec = (ENDGAME && ch.s.lastRound) ? endgameVec(ch.s) : leafVec(ch.s); }
         break;
       }
       n = ch;
     }
     for (let k = 0; k < path.length; k++) {
       const nn = path[k][0], bi = path[k][1];
-      const v = nn.turn === leafPlayer ? vLeaf : -vLeaf;
-      nn.N[bi] += 1; nn.W[bi] += v;
+      nn.N[bi] += 1; nn.W[bi] += vVec[nn.turn];
     }
   }
   function determinize(s) {
@@ -131,9 +175,13 @@
     }
   }
 
-  // returns the best engine action object (or null)
-  function move(G, sims, dets) {
-    sims = sims || 96; dets = dets || 2;
+  // returns the best engine action object (or null). cfg = {sims, dets, cpuct, nodePrior}
+  function move(G, cfg) {
+    cfg = cfg || {};
+    const sims = cfg.sims || 96, dets = cfg.dets || 2;
+    CPUCT = cfg.cpuct != null ? cfg.cpuct : DEFAULT_CPUCT;
+    NODE_PRIOR = cfg.nodePrior === true;
+    ENDGAME = !!cfg.endgame;
     const agg = {}, byKey = {};
     const per = Math.max(1, (sims / dets) | 0);
     for (let d = 0; d < dets; d++) {
@@ -156,7 +204,7 @@
   // REAL state with the heuristic's own manager (so the applied plan matches what the search modeled).
   function chooseTurn(G, opts) {
     opts = opts || {};
-    const a = move(G, opts.sims, opts.dets);
+    const a = move(G, opts);
     if (!a) return { action: null, discards: [], evolution: null };
     const c = E.clone(G); E.applyAction(c, a);
     if (AI && typeof AI.manage === 'function') {
