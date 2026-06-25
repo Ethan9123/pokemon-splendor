@@ -31,6 +31,20 @@
     hard:   { evoBias: 1.0, noise: 0,   proximity: 1.0, deny: 10 },
   };
 
+  // Eval weights — SPSA-tuned via self-play (test/tune.js). The tuned set beats the original hand-set
+  // weights at EVERY player count (2p 62%, 3p 40.7% vs 33.3 fair, 4p 31.7% vs 25 fair) and still
+  // crushes greedy (88%). VP scale fixed at 100 (anchor); the rest relative. test/tune.js re-tunes vs
+  // whatever is here. (Original hand values: vpEnd45 lastRound70 cards16 rl14 bonus4 coh5/3 distinct3
+  // overstack3 tok1.0/.35/1.6 purple2 reserve.5 prox11/.4 proxBonus1.5 proxEvo.7 rlProx6/3 gapDiv1.4 evo6 deny1.)
+  const DEFAULT_W = {
+    vpEnd: 41.475, lastRound: 66.966, cards: 17.529, rl: 13.512, bonus: 4.436,
+    coh1: 5.053, coh2: 3.138, distinct: 3.225, overstack: 3.276,
+    tok1: 0.92, tok2: 0.357, tokPen: 1.514, purple: 1.969, reserve: 0.572,
+    prox: 8.617, prox2: 0.435, proxBonus: 1.418, proxEvo: 0.586, rlProxE: 5.655, rlProxL: 3.161, gapDiv: 1.417,
+    evo: 6.211, denyMul: 1.023,
+  };
+  let W = Object.assign({}, DEFAULT_W);
+
   // ---- static position evaluation from player `pid`'s perspective ----
   function evalState(s, pid, cfg) {
     const p = s.players[pid];
@@ -38,41 +52,41 @@
     const vp = E.scoreOf(s, p);
     let score = 0;
 
-    score += vp * 100;                                   // VP is king
-    if (vp >= 11) score += (vp - 11) * 45;               // endgame push
-    if (s.lastRound) score += vp * 70;                   // race hard once final round is on
+    score += vp * 100;                                   // VP is king (fixed anchor scale)
+    if (vp >= 11) score += (vp - 11) * W.vpEnd;          // endgame push
+    if (s.lastRound) score += vp * W.lastRound;          // race hard once final round is on
 
     // engine: owned bonus cards + total discount power are highly valued so
     // the AI keeps capturing rather than hoarding tokens.
     const cards = p.board.length;
-    score += cards * 16;
+    score += cards * W.cards;
     // 神兽/稀有 (rare/legend) anchor a colour high-score flow: 2 same-colour discounts
     // (+2VP for legend). Owning them is worth extra beyond a normal card.
     let rlOwned = 0;
     for (const id of p.board) { const t = s.byId[id].tier; if (t === 'rare' || t === 'legend') rlOwned++; }
-    score += rlOwned * 14;                               // specials anchor a colour flow (2 same-colour discounts, can't be blocked)
+    score += rlOwned * W.rl;                             // specials anchor a colour flow (2 same-colour discounts, can't be blocked)
     let totalBonus = 0;
     const bvals = [];
     for (const c of COLORS) { totalBonus += b[c]; bvals.push(b[c]); }
-    score += totalBonus * 4;
+    score += totalBonus * W.bonus;
     // colour COHERENCE (高分流): a deep primary + a moderate secondary colour are what
     // unlock the expensive same-colour high-VP cards. Reward concentration over a flat
     // 1-of-each spread, but keep ≥2 colours (2-colour high cards) and lightly punish hoarding.
     bvals.sort((x, y) => y - x);
-    score += Math.min(bvals[0], 4) * 5 + Math.min(bvals[1], 3) * 3;
+    score += Math.min(bvals[0], 4) * W.coh1 + Math.min(bvals[1], 3) * W.coh2;
     const distinct = bvals.filter(v => v > 0).length;
-    score += Math.min(distinct, 2) * 3;
-    if (bvals[0] > 5) score -= (bvals[0] - 5) * 3;       // mild anti-overstack
+    score += Math.min(distinct, 2) * W.distinct;
+    if (bvals[0] > 5) score -= (bvals[0] - 5) * W.overstack;   // mild anti-overstack
 
     // tokens: concave value with a real anti-hoard penalty past 8 so the AI
     // converts tokens into cards instead of sitting at the 10 limit.
     const toks = E.tokenTotal(p);
-    score += Math.min(toks, 5) * 1.0 + Math.max(0, Math.min(toks, 8) - 5) * 0.35;
-    score -= Math.max(0, toks - 8) * 1.6;
-    score += p.tokens.purple * 2.0;                      // master balls are flexible
+    score += Math.min(toks, 5) * W.tok1 + Math.max(0, Math.min(toks, 8) - 5) * W.tok2;
+    score -= Math.max(0, toks - 8) * W.tokPen;
+    score += p.tokens.purple * W.purple;                 // master balls are flexible
     // Reserving is a tempo cost: keep its value low so the AI only reserves when
     // the search proves it sets up a strong capture (or grabs a master when stuck).
-    score += p.reserve.length * 0.5;
+    score += p.reserve.length * W.reserve;
 
     // proximity: reward being close to capturing the single most attractive
     // scoring card (field or hand). Weighted highly so the AI takes the RIGHT
@@ -90,12 +104,12 @@
       if (!card.vp && card.tier !== 'rare' && evoVP <= 0) continue;
       let gap = card.cost.purple || 0;
       for (const c of COLORS) gap += Math.max(0, (card.cost[c] || 0) - b[c] - p.tokens[c]);
-      let worth = (card.vp || 0) + (card.bonusCount || 1) * 1.5 + evoVP * 0.7;
-      if (card.tier === 'rare' || card.tier === 'legend') worth += early ? 6 : 3; // engine anchor, esp. early
-      const v = worth / (1 + gap * 1.4);
+      let worth = (card.vp || 0) + (card.bonusCount || 1) * W.proxBonus + evoVP * W.proxEvo;
+      if (card.tier === 'rare' || card.tier === 'legend') worth += early ? W.rlProxE : W.rlProxL; // engine anchor, esp. early
+      const v = worth / (1 + gap * W.gapDiv);
       if (v > bestProx) { prox2 = bestProx; bestProx = v; } else if (v > prox2) prox2 = v;
     }
-    score += (bestProx + prox2 * 0.4) * 11 * (cfg ? cfg.proximity : 1);  // top-2 → coherent multi-card lineup
+    score += (bestProx + prox2 * W.prox2) * W.prox * (cfg ? cfg.proximity : 1);  // top-2 → coherent multi-card lineup
 
     // opponent denial: lines that cut the strongest opponent's proximity to a big card
     // (e.g. capturing/reserving the card they were about to buy) are rewarded. Encodes the
@@ -117,7 +131,7 @@
         }
         if (oprox > oppMax) oppMax = oprox;
       }
-      score -= oppMax * cfg.deny;
+      score -= oppMax * cfg.deny * W.denyMul;
     }
 
     // evolution potential: a caught Pokémon whose next form is available and
@@ -134,7 +148,7 @@
       const need = Math.max(0, card.evoCost.count - b[card.evoCost.color]);
       const tgt = DBfind(s, card.evolvesTo);
       const gain = tgt ? Math.max(0, tgt.vp - card.vp) : 1;
-      score += (gain * 6) / (1 + need);
+      score += (gain * W.evo) / (1 + need);
     }
 
     if (cfg && cfg.noise) score += (E._noise ? E._noise() : 0) * cfg.noise;
@@ -248,5 +262,7 @@
     return { plan, endTurn: r };
   }
 
-  return { chooseTurn, playTurn, evalState, bestEvolution, manage, DIFF };
+  return { chooseTurn, playTurn, evalState, bestEvolution, manage, DIFF,
+           DEFAULT_W, getWeights: () => Object.assign({}, W),
+           setWeights: (w) => { W = Object.assign({}, DEFAULT_W, w); } };
 });
