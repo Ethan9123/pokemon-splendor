@@ -1,607 +1,607 @@
 [
-{
-"id": "pm_01",
-"tier": "pmL1",
-"name": "进化石",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 6,
-"black": 3,
-"pink": 1,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy",
-"effectParam": null,
-"img": "assets/cards/pm_01.jpg"
-},
-{
-"id": "pm_02",
-"tier": "pmL1",
-"name": "进化石",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 6,
-"blue": 0,
-"black": 3,
-"pink": 1,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy",
-"effectParam": null,
-"img": "assets/cards/pm_02.jpg"
-},
-{
-"id": "pm_03",
-"tier": "pmL1",
-"name": "进化石",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 6,
-"blue": 3,
-"black": 0,
-"pink": 1,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy",
-"effectParam": null,
-"img": "assets/cards/pm_03.jpg"
-},
-{
-"id": "pm_04",
-"tier": "pmL1",
-"name": "进化石",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 6,
-"blue": 3,
-"black": 1,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy",
-"effectParam": null,
-"img": "assets/cards/pm_04.jpg"
-},
-{
-"id": "pm_05",
-"tier": "pmL1",
-"name": "进化石",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 6,
-"blue": 3,
-"black": 1,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy",
-"effectParam": null,
-"img": "assets/cards/pm_05.jpg"
-},
-{
-"id": "pm_06",
-"tier": "pmL1",
-"name": "图鉴",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 3,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "colorless_master",
-"effectParam": null,
-"img": "assets/cards/pm_06.jpg"
-},
-{
-"id": "pm_07",
-"tier": "pmL1",
-"name": "图鉴",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "colorless_master",
-"effectParam": null,
-"img": "assets/cards/pm_07.jpg"
-},
-{
-"id": "pm_08",
-"tier": "pmL1",
-"name": "图鉴",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "colorless_master",
-"effectParam": null,
-"img": "assets/cards/pm_08.jpg"
-},
-{
-"id": "pm_09",
-"tier": "pmL1",
-"name": "图鉴",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "colorless_master",
-"effectParam": null,
-"img": "assets/cards/pm_09.jpg"
-},
-{
-"id": "pm_10",
-"tier": "pmL1",
-"name": "图鉴",
-"vp": 0,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "colorless_master",
-"effectParam": null,
-"img": "assets/cards/pm_10.jpg"
-},
-{
-"id": "pm_11",
-"tier": "pmL2",
-"name": "药水",
-"vp": 1,
-"bonus": "red",
-"bonusCount": 2,
-"cost": {
-"red": 0,
-"blue": 4,
-"black": 3,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "double",
-"effectParam": null,
-"img": "assets/cards/pm_11.jpg"
-},
-{
-"id": "pm_12",
-"tier": "pmL2",
-"name": "药水",
-"vp": 1,
-"bonus": "blue",
-"bonusCount": 2,
-"cost": {
-"red": 4,
-"blue": 0,
-"black": 3,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "double",
-"effectParam": null,
-"img": "assets/cards/pm_12.jpg"
-},
-{
-"id": "pm_13",
-"tier": "pmL2",
-"name": "药水",
-"vp": 1,
-"bonus": "black",
-"bonusCount": 2,
-"cost": {
-"red": 4,
-"blue": 3,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "double",
-"effectParam": null,
-"img": "assets/cards/pm_13.jpg"
-},
-{
-"id": "pm_14",
-"tier": "pmL2",
-"name": "药水",
-"vp": 1,
-"bonus": "pink",
-"bonusCount": 2,
-"cost": {
-"red": 4,
-"blue": 3,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "double",
-"effectParam": null,
-"img": "assets/cards/pm_14.jpg"
-},
-{
-"id": "pm_15",
-"tier": "pmL2",
-"name": "药水",
-"vp": 1,
-"bonus": "yellow",
-"bonusCount": 2,
-"cost": {
-"red": 4,
-"blue": 3,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "double",
-"effectParam": null,
-"img": "assets/cards/pm_15.jpg"
-},
-{
-"id": "pm_16",
-"tier": "pmL2",
-"name": "神奇糖果",
-"vp": 1,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 4,
-"black": 3,
-"pink": 1,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy_free",
-"effectParam": {
-"freeFromTier": "pmL1_or_stage1"
-},
-"img": "assets/cards/pm_16.jpg"
-},
-{
-"id": "pm_17",
-"tier": "pmL2",
-"name": "神奇糖果",
-"vp": 1,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 4,
-"blue": 0,
-"black": 3,
-"pink": 1,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy_free",
-"effectParam": {
-"freeFromTier": "pmL1_or_stage1"
-},
-"img": "assets/cards/pm_17.jpg"
-},
-{
-"id": "pm_18",
-"tier": "pmL2",
-"name": "神奇糖果",
-"vp": 1,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 4,
-"blue": 3,
-"black": 0,
-"pink": 1,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy_free",
-"effectParam": {
-"freeFromTier": "pmL1_or_stage1"
-},
-"img": "assets/cards/pm_18.jpg"
-},
-{
-"id": "pm_19",
-"tier": "pmL2",
-"name": "神奇糖果",
-"vp": 1,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 4,
-"blue": 3,
-"black": 1,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy_free",
-"effectParam": {
-"freeFromTier": "pmL1_or_stage1"
-},
-"img": "assets/cards/pm_19.jpg"
-},
-{
-"id": "pm_20",
-"tier": "pmL2",
-"name": "神奇糖果",
-"vp": 1,
-"bonus": "none",
-"bonusCount": 1,
-"cost": {
-"red": 4,
-"blue": 3,
-"black": 1,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "copy_free",
-"effectParam": {
-"freeFromTier": "pmL1_or_stage1"
-},
-"img": "assets/cards/pm_20.jpg"
-},
-{
-"id": "pm_21",
-"tier": "pmL3",
-"name": "技能机",
-"vp": 1,
-"bonus": "red",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 3,
-"black": 2,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "free",
-"effectParam": {
-"freeFromTier": "pmL2_or_stage2"
-},
-"img": "assets/cards/pm_21.jpg"
-},
-{
-"id": "pm_22",
-"tier": "pmL3",
-"name": "技能机",
-"vp": 1,
-"bonus": "blue",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 0,
-"black": 2,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "free",
-"effectParam": {
-"freeFromTier": "pmL2_or_stage2"
-},
-"img": "assets/cards/pm_22.jpg"
-},
-{
-"id": "pm_23",
-"tier": "pmL3",
-"name": "技能机",
-"vp": 1,
-"bonus": "black",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 2,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "free",
-"effectParam": {
-"freeFromTier": "pmL2_or_stage2"
-},
-"img": "assets/cards/pm_23.jpg"
-},
-{
-"id": "pm_24",
-"tier": "pmL3",
-"name": "技能机",
-"vp": 1,
-"bonus": "pink",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 2,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "free",
-"effectParam": {
-"freeFromTier": "pmL2_or_stage2"
-},
-"img": "assets/cards/pm_24.jpg"
-},
-{
-"id": "pm_25",
-"tier": "pmL3",
-"name": "技能机",
-"vp": 1,
-"bonus": "yellow",
-"bonusCount": 1,
-"cost": {
-"red": 3,
-"blue": 2,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "free",
-"effectParam": {
-"freeFromTier": "pmL2_or_stage2"
-},
-"img": "assets/cards/pm_25.jpg"
-},
-{
-"id": "pm_26",
-"tier": "pmL3",
-"name": "驱虫喷雾",
-"vp": 3,
-"bonus": "red",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "discard_buy",
-"effectParam": {
-"discardColor": "red",
-"discardCount": 2
-},
-"img": "assets/cards/pm_26.jpg"
-},
-{
-"id": "pm_27",
-"tier": "pmL3",
-"name": "驱虫喷雾",
-"vp": 3,
-"bonus": "blue",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "discard_buy",
-"effectParam": {
-"discardColor": "blue",
-"discardCount": 2
-},
-"img": "assets/cards/pm_27.jpg"
-},
-{
-"id": "pm_28",
-"tier": "pmL3",
-"name": "驱虫喷雾",
-"vp": 3,
-"bonus": "black",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "discard_buy",
-"effectParam": {
-"discardColor": "black",
-"discardCount": 2
-},
-"img": "assets/cards/pm_28.jpg"
-},
-{
-"id": "pm_29",
-"tier": "pmL3",
-"name": "驱虫喷雾",
-"vp": 3,
-"bonus": "pink",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "discard_buy",
-"effectParam": {
-"discardColor": "pink",
-"discardCount": 2
-},
-"img": "assets/cards/pm_29.jpg"
-},
-{
-"id": "pm_30",
-"tier": "pmL3",
-"name": "驱虫喷雾",
-"vp": 3,
-"bonus": "yellow",
-"bonusCount": 1,
-"cost": {
-"red": 0,
-"blue": 0,
-"black": 0,
-"pink": 0,
-"yellow": 0,
-"purple": 0
-},
-"effect": "discard_buy",
-"effectParam": {
-"discardColor": "yellow",
-"discardCount": 2
-},
-"img": "assets/cards/pm_30.jpg"
-}
+ {
+  "id": "pm_01",
+  "tier": "pmL3",
+  "name": "进化石",
+  "vp": 1,
+  "bonus": "black",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 3,
+   "black": 0,
+   "pink": 6,
+   "yellow": 1,
+   "purple": 0
+  },
+  "effect": "free",
+  "effectParam": {
+   "freeFromTier": "pmL2_or_stage2"
+  },
+  "img": "assets/cards/pm_01.jpg"
+ },
+ {
+  "id": "pm_02",
+  "tier": "pmL3",
+  "name": "进化石",
+  "vp": 1,
+  "bonus": "red",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 1,
+   "black": 6,
+   "pink": 3,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "free",
+  "effectParam": {
+   "freeFromTier": "pmL2_or_stage2"
+  },
+  "img": "assets/cards/pm_02.jpg"
+ },
+ {
+  "id": "pm_03",
+  "tier": "pmL3",
+  "name": "进化石",
+  "vp": 1,
+  "bonus": "yellow",
+  "bonusCount": 1,
+  "cost": {
+   "red": 6,
+   "blue": 0,
+   "black": 3,
+   "pink": 1,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "free",
+  "effectParam": {
+   "freeFromTier": "pmL2_or_stage2"
+  },
+  "img": "assets/cards/pm_03.jpg"
+ },
+ {
+  "id": "pm_04",
+  "tier": "pmL3",
+  "name": "进化石",
+  "vp": 1,
+  "bonus": "pink",
+  "bonusCount": 1,
+  "cost": {
+   "red": 1,
+   "blue": 6,
+   "black": 0,
+   "pink": 0,
+   "yellow": 3,
+   "purple": 0
+  },
+  "effect": "free",
+  "effectParam": {
+   "freeFromTier": "pmL2_or_stage2"
+  },
+  "img": "assets/cards/pm_04.jpg"
+ },
+ {
+  "id": "pm_05",
+  "tier": "pmL3",
+  "name": "进化石",
+  "vp": 1,
+  "bonus": "blue",
+  "bonusCount": 1,
+  "cost": {
+   "red": 3,
+   "blue": 0,
+   "black": 1,
+   "pink": 0,
+   "yellow": 6,
+   "purple": 0
+  },
+  "effect": "free",
+  "effectParam": {
+   "freeFromTier": "pmL2_or_stage2"
+  },
+  "img": "assets/cards/pm_05.jpg"
+ },
+ {
+  "id": "pm_06",
+  "tier": "pmL1",
+  "name": "图鉴",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 3,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "colorless_master",
+  "effectParam": null,
+  "img": "assets/cards/pm_06.jpg"
+ },
+ {
+  "id": "pm_07",
+  "tier": "pmL1",
+  "name": "图鉴",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 0,
+   "pink": 3,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "colorless_master",
+  "effectParam": null,
+  "img": "assets/cards/pm_07.jpg"
+ },
+ {
+  "id": "pm_08",
+  "tier": "pmL1",
+  "name": "图鉴",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 3,
+   "purple": 0
+  },
+  "effect": "colorless_master",
+  "effectParam": null,
+  "img": "assets/cards/pm_08.jpg"
+ },
+ {
+  "id": "pm_09",
+  "tier": "pmL1",
+  "name": "图鉴",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 3,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "colorless_master",
+  "effectParam": null,
+  "img": "assets/cards/pm_09.jpg"
+ },
+ {
+  "id": "pm_10",
+  "tier": "pmL1",
+  "name": "图鉴",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 3,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "colorless_master",
+  "effectParam": null,
+  "img": "assets/cards/pm_10.jpg"
+ },
+ {
+  "id": "pm_11",
+  "tier": "pmL2",
+  "name": "药水",
+  "vp": 1,
+  "bonus": "black",
+  "bonusCount": 2,
+  "cost": {
+   "red": 0,
+   "blue": 3,
+   "black": 0,
+   "pink": 0,
+   "yellow": 4,
+   "purple": 0
+  },
+  "effect": "double",
+  "effectParam": null,
+  "img": "assets/cards/pm_11.jpg"
+ },
+ {
+  "id": "pm_12",
+  "tier": "pmL2",
+  "name": "药水",
+  "vp": 1,
+  "bonus": "red",
+  "bonusCount": 2,
+  "cost": {
+   "red": 0,
+   "blue": 4,
+   "black": 0,
+   "pink": 3,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "double",
+  "effectParam": null,
+  "img": "assets/cards/pm_12.jpg"
+ },
+ {
+  "id": "pm_13",
+  "tier": "pmL2",
+  "name": "药水",
+  "vp": 1,
+  "bonus": "yellow",
+  "bonusCount": 2,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 3,
+   "pink": 4,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "double",
+  "effectParam": null,
+  "img": "assets/cards/pm_13.jpg"
+ },
+ {
+  "id": "pm_14",
+  "tier": "pmL2",
+  "name": "药水",
+  "vp": 1,
+  "bonus": "blue",
+  "bonusCount": 2,
+  "cost": {
+   "red": 3,
+   "blue": 0,
+   "black": 4,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "double",
+  "effectParam": null,
+  "img": "assets/cards/pm_14.jpg"
+ },
+ {
+  "id": "pm_15",
+  "tier": "pmL2",
+  "name": "药水",
+  "vp": 1,
+  "bonus": "pink",
+  "bonusCount": 2,
+  "cost": {
+   "red": 4,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 3,
+   "purple": 0
+  },
+  "effect": "double",
+  "effectParam": null,
+  "img": "assets/cards/pm_15.jpg"
+ },
+ {
+  "id": "pm_16",
+  "tier": "pmL2",
+  "name": "神奇糖果",
+  "vp": 1,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 3,
+   "black": 1,
+   "pink": 4,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "copy_free",
+  "effectParam": {
+   "freeFromTier": "pmL1_or_stage1"
+  },
+  "img": "assets/cards/pm_16.jpg"
+ },
+ {
+  "id": "pm_17",
+  "tier": "pmL2",
+  "name": "神奇糖果",
+  "vp": 1,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 1,
+   "black": 0,
+   "pink": 3,
+   "yellow": 4,
+   "purple": 0
+  },
+  "effect": "copy_free",
+  "effectParam": {
+   "freeFromTier": "pmL1_or_stage1"
+  },
+  "img": "assets/cards/pm_17.jpg"
+ },
+ {
+  "id": "pm_18",
+  "tier": "pmL2",
+  "name": "神奇糖果",
+  "vp": 1,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 1,
+   "blue": 4,
+   "black": 3,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "copy_free",
+  "effectParam": {
+   "freeFromTier": "pmL1_or_stage1"
+  },
+  "img": "assets/cards/pm_18.jpg"
+ },
+ {
+  "id": "pm_19",
+  "tier": "pmL2",
+  "name": "神奇糖果",
+  "vp": 1,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 4,
+   "blue": 0,
+   "black": 0,
+   "pink": 1,
+   "yellow": 3,
+   "purple": 0
+  },
+  "effect": "copy_free",
+  "effectParam": {
+   "freeFromTier": "pmL1_or_stage1"
+  },
+  "img": "assets/cards/pm_19.jpg"
+ },
+ {
+  "id": "pm_20",
+  "tier": "pmL2",
+  "name": "神奇糖果",
+  "vp": 1,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 3,
+   "blue": 0,
+   "black": 4,
+   "pink": 0,
+   "yellow": 1,
+   "purple": 0
+  },
+  "effect": "copy_free",
+  "effectParam": {
+   "freeFromTier": "pmL1_or_stage1"
+  },
+  "img": "assets/cards/pm_20.jpg"
+ },
+ {
+  "id": "pm_21",
+  "tier": "pmL1",
+  "name": "技能机",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 2,
+   "pink": 0,
+   "yellow": 3,
+   "purple": 0
+  },
+  "effect": "copy",
+  "effectParam": null,
+  "img": "assets/cards/pm_21.jpg"
+ },
+ {
+  "id": "pm_22",
+  "tier": "pmL1",
+  "name": "技能机",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 3,
+   "black": 0,
+   "pink": 0,
+   "yellow": 2,
+   "purple": 0
+  },
+  "effect": "copy",
+  "effectParam": null,
+  "img": "assets/cards/pm_22.jpg"
+ },
+ {
+  "id": "pm_23",
+  "tier": "pmL1",
+  "name": "技能机",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 3,
+   "blue": 2,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "copy",
+  "effectParam": null,
+  "img": "assets/cards/pm_23.jpg"
+ },
+ {
+  "id": "pm_24",
+  "tier": "pmL1",
+  "name": "技能机",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 2,
+   "blue": 0,
+   "black": 0,
+   "pink": 3,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "copy",
+  "effectParam": null,
+  "img": "assets/cards/pm_24.jpg"
+ },
+ {
+  "id": "pm_25",
+  "tier": "pmL1",
+  "name": "技能机",
+  "vp": 0,
+  "bonus": "none",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 3,
+   "pink": 2,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "copy",
+  "effectParam": null,
+  "img": "assets/cards/pm_25.jpg"
+ },
+ {
+  "id": "pm_26",
+  "tier": "pmL3",
+  "name": "驱虫喷雾",
+  "vp": 3,
+  "bonus": "blue",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "discard_buy",
+  "effectParam": {
+   "discardColor": "red",
+   "discardCount": 2
+  },
+  "img": "assets/cards/pm_26.jpg"
+ },
+ {
+  "id": "pm_27",
+  "tier": "pmL3",
+  "name": "驱虫喷雾",
+  "vp": 3,
+  "bonus": "pink",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "discard_buy",
+  "effectParam": {
+   "discardColor": "yellow",
+   "discardCount": 2
+  },
+  "img": "assets/cards/pm_27.jpg"
+ },
+ {
+  "id": "pm_28",
+  "tier": "pmL3",
+  "name": "驱虫喷雾",
+  "vp": 3,
+  "bonus": "red",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "discard_buy",
+  "effectParam": {
+   "discardColor": "pink",
+   "discardCount": 2
+  },
+  "img": "assets/cards/pm_28.jpg"
+ },
+ {
+  "id": "pm_29",
+  "tier": "pmL3",
+  "name": "驱虫喷雾",
+  "vp": 3,
+  "bonus": "yellow",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "discard_buy",
+  "effectParam": {
+   "discardColor": "black",
+   "discardCount": 2
+  },
+  "img": "assets/cards/pm_29.jpg"
+ },
+ {
+  "id": "pm_30",
+  "tier": "pmL3",
+  "name": "驱虫喷雾",
+  "vp": 3,
+  "bonus": "black",
+  "bonusCount": 1,
+  "cost": {
+   "red": 0,
+   "blue": 0,
+   "black": 0,
+   "pink": 0,
+   "yellow": 0,
+   "purple": 0
+  },
+  "effect": "discard_buy",
+  "effectParam": {
+   "discardColor": "blue",
+   "discardCount": 2
+  },
+  "img": "assets/cards/pm_30.jpg"
+ }
 ]

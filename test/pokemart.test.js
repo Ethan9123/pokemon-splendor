@@ -128,7 +128,7 @@ const give = (g, p, color, n) => { // stack n real bonus cards of a color onto b
 const pmId = (effect, color) => PM.find(c => c.effect === effect && (color ? c.bonus === color : true)).id ||
   PM.find(c => c.effect === effect).id;
 
-test('copy (EVOLVE STONE): associates with an owned bonus card and adds that bonus', () => {
+test('copy (TM): associates with an owned bonus card and adds that bonus', () => {
   const g = newGame();
   const p = E.activePlayer(g);
   loadTokens(p, 10); p.tokens.purple = 5;
@@ -144,7 +144,7 @@ test('copy (EVOLVE STONE): associates with an owned bonus card and adds that bon
   assert.strictEqual(E.effBonusColor(g, p, stone), 'red');
 });
 
-test('copy (EVOLVE STONE): rejected when you own no bonus card', () => {
+test('copy (TM): rejected when you own no bonus card', () => {
   const g = newGame();
   const p = E.activePlayer(g);
   loadTokens(p, 10); p.tokens.purple = 5;
@@ -199,7 +199,7 @@ test('discard_buy (REPEL): rejected without enough cards of the colour', () => {
 });
 
 // =================== Phase 4a: take-a-free-card effects ===================
-test('free (TM): take a free Level-2 card on capture, paying nothing for it', () => {
+test('free (EVOLVE STONE): take a free Level-2 card on capture, paying nothing for it', () => {
   const g = newGame();
   const p = E.activePlayer(g);
   loadTokens(p, 10); p.tokens.purple = 5;
@@ -217,7 +217,7 @@ test('free (TM): take a free Level-2 card on capture, paying nothing for it', ()
   assert.strictEqual(g.field.stage2.filter(Boolean).length, 4, 'free slot refilled');
 });
 
-test('free (TM): rejected when no free card is chosen but some is available', () => {
+test('free (EVOLVE STONE): rejected when no free card is chosen but some is available', () => {
   const g = newGame();
   const p = E.activePlayer(g);
   loadTokens(p, 10); p.tokens.purple = 5;
