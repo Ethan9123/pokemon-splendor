@@ -352,6 +352,7 @@
     for (let i = 0; i < G.numPlayers; i++) {
       const p = G.players[i];
       const b = E.bonuses(G, p);
+      const tot = E.tokenTotal(p);                // total Poké Balls held (10 max at turn end)
       const active = (i === G.turn && G.phase === 'play');
       const el = document.createElement('div');
       el.className = 'player' + (active ? ' active' : '') + (p.isAI ? ' ai' : '');
@@ -388,6 +389,7 @@
         `<div class="player-head">
            <div class="pavatar" style="background-color:${SEAT_COLORS[i]};background-image:url(${seatAvatar(i)});box-shadow:0 0 0 2px ${SEAT_COLORS[i]}"></div>
            <div class="pname">${p.name}</div>
+           <div class="ptokens${tot > E.TOKEN_MAX ? ' over' : tot === E.TOKEN_MAX ? ' full' : ''}" title="持有的精灵球总数（回合结束上限 ${E.TOKEN_MAX} 个）"><span class="pt-lbl">球</span>${tot}<small>/${E.TOKEN_MAX}</small></div>
            <div class="pscore">${E.scoreOf(G, p)}<small>/${G.megasEnabled ? E.MEGA_WIN_SCORE : E.WIN_SCORE}</small></div>
          </div>
          ${p.buried.length ? `<div class="buried-badge">已进化 ${p.buried.length}</div>` : ''}

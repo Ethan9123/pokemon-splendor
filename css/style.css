@@ -249,6 +249,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .pname{font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pscore{font-size:24px;font-weight:900;color:var(--gold);line-height:1}
 .pscore small{font-size:11px;color:var(--muted);font-weight:600}
+/* running total of held Poké Balls, next to the score (10 = end-of-turn cap) */
+.ptokens{flex:none;display:flex;align-items:baseline;gap:1px;font-size:16px;font-weight:800;color:var(--ink);background:#11163a;border:1px solid var(--line);border-radius:20px;padding:3px 9px;line-height:1}
+.ptokens .pt-lbl{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px;align-self:center}
+.ptokens small{font-size:10px;color:var(--muted);font-weight:600}
+.ptokens.full{border-color:var(--gold);color:var(--gold)}
+.ptokens.full small{color:var(--gold)}
+.ptokens.over{border-color:var(--bad);color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.ptokens.over small{color:var(--bad)}
 .pstats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .chip{display:flex;align-items:center;gap:4px;background:#11163a;border:1px solid var(--line);border-radius:20px;padding:3px 9px 3px 4px;font-size:13px}
 .chip .num{font-weight:800;min-width:12px;text-align:center}
