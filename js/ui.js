@@ -177,8 +177,9 @@
     const secs = Math.max(0, Math.ceil(msLeft / 1000));
     const offline = !activeConnected();
     if (UI.net.takeoverBusy) ib.innerHTML = '<span class="idle-ai">🤖 房主AI代打中…</span>';
-    else if (myTurn()) ib.innerHTML = (msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由房主AI代打</span>` : '';
-    else ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后房主AI接管</span>` : '';
+    else if (!myTurn()) ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后房主AI接管</span>` : '';
+    else if (!UI.net.host) ib.innerHTML = (msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由房主AI代打</span>` : ''; // only non-host gets taken over
+    else ib.innerHTML = '';   // host's own turn: the host is never auto-taken-over
     // the HOST drives takeover for an idle OTHER seat (never its own turn) once the
     // timeout truly elapses (the server re-validates the timing).
     if (msLeft <= 0 && !UI.net.takeoverBusy && UI.net.host && !myTurn()) {

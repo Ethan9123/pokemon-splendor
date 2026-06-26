@@ -41,7 +41,7 @@
 
   // Idle/disconnect turn timeout: after this long with no move, the host's AI
   // may take over the active seat (enforced server-side; the host computes the move).
-  const TURN_TIMEOUT_MS = 20000; // TEMP 20s for live takeover test — restore to 180000 (3 min)
+  const TURN_TIMEOUT_MS = 180000; // 3 minutes
 
   // strip the shared static card refs so a room state is pure data we can persist
   function serializeG(s) {
