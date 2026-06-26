@@ -97,7 +97,10 @@ export class Room {
     if (msg.t === 'join') ws.serializeAttachment({ connId, token: msg.token, name: msg.name });
     try { this.authority.onMessage(connId, msg); }
     catch (e) { /* one hostile/buggy message must never escape the hibernation handler */ }
-    if (msg.t === 'start' || msg.t === 'action') await this._persist();  // only mutating messages write storage
+    // Persist on anything that mutates room state. `join` MUST persist: it adds a
+    // seat, and because the heartbeat auto-response never wakes the DO, an idle
+    // lobby evicts within ~30s — without this the un-started lobby's seats are lost.
+    if (msg.t === 'join' || msg.t === 'start' || msg.t === 'action') await this._persist();
   }
 
   async webSocketClose(ws) {
