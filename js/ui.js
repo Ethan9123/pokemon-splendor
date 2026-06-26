@@ -108,7 +108,7 @@
     Net.on('welcome', (m) => { if (UI.net) { UI.net.seat = m.seat; UI.net.host = m.host; renderLobby(); } });
     Net.on('roster', (m) => { if (UI.net) { UI.net.roster = m.players || []; UI.net.started = m.started; renderLobby(); } });
     Net.on('state', onNetState);
-    Net.on('reject', (m) => flashHint((m && m.reason) || '操作被拒绝'));
+    Net.on('reject', (m) => { if (UI.net) UI.net.takeoverBusy = false; flashHint((m && m.reason) || '操作被拒绝'); });
     Net.on('over', () => { });
   }
   function renderLobby() {
@@ -179,9 +179,11 @@
     if (UI.net.takeoverBusy) ib.innerHTML = '<span class="idle-ai">🤖 房主AI代打中…</span>';
     else if (myTurn()) ib.innerHTML = (msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由房主AI代打</span>` : '';
     else ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后房主AI接管</span>` : '';
-    // the HOST drives the takeover once the timeout truly elapses (server re-validates)
-    if (msLeft <= 0 && !UI.net.takeoverBusy && UI.net.host) {
-      UI.net.takeoverBusy = true; idleTick();
+    // the HOST drives takeover for an idle OTHER seat (never its own turn) once the
+    // timeout truly elapses (the server re-validates the timing).
+    if (msLeft <= 0 && !UI.net.takeoverBusy && UI.net.host && !myTurn()) {
+      UI.net.takeoverBusy = true;
+      setTimeout(() => { if (UI.net && UI.net.takeoverBusy) UI.net.takeoverBusy = false; }, 6000); // safety: never stick
       setTimeout(() => { try { if (window.Net) Net.send({ t: 'takeover', plan: computeTakeoverPlan() }); } catch (e) { } }, 30);
     }
   }
