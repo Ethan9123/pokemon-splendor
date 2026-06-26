@@ -199,6 +199,39 @@ button:disabled{opacity:.45;cursor:not-allowed}
 /* selected-card preview inside the action bar (read the card while you act) */
 .sel-preview{float:right;width:calc(var(--card-w) * 1.5);height:auto;aspect-ratio:3/4;border-radius:9px;border:2px solid var(--gold);margin:0 0 6px 10px;box-shadow:0 4px 12px rgba(0,0,0,.5);cursor:zoom-in}
 
+/* ---------- purchase ledger (payment breakdown when a card is selected) ---------- */
+.pay-ledger{clear:both;margin:6px 0 8px;background:#11163a;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.pay-ledger.unafford{opacity:.9;border-color:var(--bad)}
+.ball.xs{width:16px;height:16px}
+.pl-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12.5px}
+.pl-name{display:flex;align-items:center;gap:4px;min-width:72px;color:var(--muted);flex:none}
+.pl-pips{display:flex;gap:3px;flex:1;flex-wrap:wrap;min-width:0}
+.pl-calc{white-space:nowrap;color:var(--ink);flex:none}
+.pl-disc{color:var(--muted)}
+.pl-pay{color:var(--gold);font-size:14px;margin:0 1px}
+.pl-wild{color:#b79bff;font-size:11px}
+/* pips: small ball-art with a per-state symbol so the three states never rely on colour */
+.pip{width:15px;height:15px}
+.pip-bonus{opacity:.4;filter:grayscale(.65)}
+.pip-bonus::after{content:"";position:absolute;left:-1px;right:-1px;top:50%;height:2px;margin-top:-1px;background:var(--ink);transform:rotate(-45deg);box-shadow:0 0 1px 1px rgba(0,0,0,.55)}
+.pip-wild::after{content:"\2605";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gold);text-shadow:0 1px 2px #000}
+.pl-legend{font-size:10.5px;color:var(--muted);margin:7px 0 1px;line-height:1.9}
+.pl-legend .lg{display:inline-block;width:12px;height:12px;border-radius:50%;position:relative;vertical-align:-2px;margin:0 3px 0 9px;background:var(--panel2);border:1px solid var(--line)}
+.pl-legend .lg:first-child{margin-left:0}
+.lg-bonus{opacity:.55}
+.lg-bonus::after{content:"";position:absolute;left:-1px;right:-1px;top:50%;height:2px;margin-top:-1px;background:var(--ink);transform:rotate(-45deg)}
+.lg-paid{background:var(--good)}
+.lg-wild{background:var(--purple)}
+.lg-wild::after{content:"\2605";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--gold)}
+.handover{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;padding-top:7px;border-top:1px dashed var(--line)}
+.ho-label{font-weight:800;color:var(--ink);font-size:12px;background:var(--panel2);border-radius:6px;padding:3px 8px;flex:none}
+.ho-chip{display:flex;align-items:center;gap:2px;font-weight:800;font-size:12.5px;background:#0e1230;border:1px solid var(--line);border-radius:8px;padding:2px 7px}
+.ho-chip.ho-master{border-color:var(--purple);box-shadow:0 0 0 1px rgba(122,79,192,.45)}
+.ho-arrow{color:var(--muted);font-size:11px}
+.pl-vnote{color:var(--muted);font-size:10.5px}
+.pl-free{margin-top:7px;color:var(--good);font-weight:800;font-size:12.5px}
+.pl-short{margin-top:7px;color:var(--bad);font-weight:800;font-size:12.5px}
+
 /* ---------- "your resources" strip (active player's tokens + bonus discounts) ---------- */
 #my-resources{display:flex;flex-direction:column;gap:7px}
 .mc-label{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
