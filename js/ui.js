@@ -96,15 +96,22 @@
   const ball = (color, cls, label) =>
     `<div class="ball ${color} ${cls || ''}" title="${BALL_NAMES[color]}">${label != null ? '' : ''}</div>`;
 
+  // opts.aff: null | { master } from affordInfo(). master>0 => needs Master Balls
+  // (purple tier + a 大师×N count badge — colour-blind-safe redundant cue).
   function cardHTML(id, opts) {
     opts = opts || {};
     const c = byId[id];
     if (!c) return `<div class="card"><div class="empty-slot">—</div></div>`;
-    const aff = opts.affordable ? ' affordable' : '';
+    const aff = opts.aff;
+    let cls = '', badge = '';
+    if (aff) {
+      cls = aff.master > 0 ? ' affordable affordable-wild' : ' affordable';
+      if (aff.master > 0) badge = `<div class="wild-badge" title="买这张会花费 ${aff.master} 个大师球（万能球）">大师×${aff.master}</div>`;
+    }
     const sel = (UI.selCard === id) ? ' selected' : '';
     const reserveMini = opts.canReserve ? `<div class="reserve-mini" data-reserve-card="${id}">＋保留</div>` : '';
-    return `<div class="card${aff}${sel}" data-card="${id}" data-zoom="${c.img}">
-              <img src="${c.img}" alt="${c.name}" loading="lazy">${reserveMini}
+    return `<div class="card${cls}${sel}" data-card="${id}" data-zoom="${c.img}">
+              <img src="${c.img}" alt="${c.name}" loading="lazy">${reserveMini}${badge}
             </div>`;
   }
 
@@ -155,8 +162,8 @@
       const canMega = human && UI.phase === 'main' && me().megaToken >= 1;
       for (const id of G.megaOffer) {
         const c = byId[id];
-        const ok = canMega && me().board.some(b => byId[b].name === c.megaFrom) && E.canAfford(G, me(), c);
-        inner += `<div class="card${ok ? ' affordable' : ''}" data-card="${id}" data-zoom="${c.img}"><img src="${c.img}" alt="${c.name}" loading="lazy"></div>`;
+        const canBuy = canMega && me().board.some(b => byId[b].name === c.megaFrom);
+        inner += cardHTML(id, { aff: canBuy ? affordInfo(c) : null });
       }
       inner += '</div>';
       rowEl.innerHTML = inner;
@@ -179,9 +186,9 @@
         for (const id of G.field[tier]) {
           if (!id) { inner += `<div class="card"><div class="empty-slot">—</div></div>`; continue; }
           const c = byId[id];
-          const affordable = human && UI.phase === 'main' && !G.acted && E.canAfford(G, me(), c);
+          const aff = (human && UI.phase === 'main' && !G.acted) ? affordInfo(c) : null;
           const canReserve = human && UI.phase === 'main' && !G.acted && E.NORMAL_TIERS.includes(tier) && me().reserve.length < E.HAND_MAX;
-          inner += cardHTML(id, { affordable, canReserve });
+          inner += cardHTML(id, { aff, canReserve });
         }
         inner += '</div>';
       }
@@ -202,9 +209,9 @@
         for (const id of G.field[tier]) {
           if (!id) { inner += `<div class="card"><div class="empty-slot">—</div></div>`; continue; }
           const c = byId[id];
-          const affordable = human && UI.phase === 'main' && !G.acted && captureAffordable(c);
+          const aff = (human && UI.phase === 'main' && !G.acted) ? affordInfo(c) : null;
           const canReserve = human && UI.phase === 'main' && !G.acted && me().reserve.length < E.HAND_MAX;
-          inner += cardHTML(id, { affordable, canReserve });
+          inner += cardHTML(id, { aff, canReserve });
         }
         inner += '</div>';
         rowEl.innerHTML = inner;
@@ -213,24 +220,27 @@
     }
   }
 
-  // Can the active human acquire this card right now (effect-aware)? Used for the
-  // "affordable" highlight and to decide whether to show the 捕捉 button.
-  function captureAffordable(card) {
+  // Can the active human acquire this card right now (effect-aware)? Returns null if
+  // not acquirable, else { master } where master = how many Master Balls (百搭) the
+  // purchase would actually spend (0 = buyable with coloured balls alone). Drives both
+  // the 捕捉 button and the green (free) vs purple (needs-wildcard) highlight.
+  function affordInfo(card) {
     const p = me();
-    if (E.isPokemart(card) && card.effect) {
-      if (card.effect === 'discard_buy') {
-        const col = card.effectParam.discardColor, n = card.effectParam.discardCount;
-        return p.board.filter(id => E.effBonusColor(G, p, id) === col).length >= n;
-      }
-      if (card.effect === 'copy' || card.effect === 'copy_free') {
-        if (!p.board.some(id => E.effBonusColor(G, p, id))) return false; // needs a bonus card to copy
-      }
+    if (E.isPokemart(card) && card.effect === 'discard_buy') {
+      const col = card.effectParam.discardColor, n = card.effectParam.discardCount;
+      return p.board.filter(id => E.effBonusColor(G, p, id) === col).length >= n ? { master: 0 } : null;
     }
-    if (E.canAfford(G, p, card)) return true;
-    // otherwise see if discarding owned POKÉDEX (2 master each) would cover it
+    if (E.isPokemart(card) && (card.effect === 'copy' || card.effect === 'copy_free')) {
+      if (!p.board.some(id => E.effBonusColor(G, p, id))) return null; // needs a bonus card to copy
+    }
+    const pay = E.computePayment(G, p, card);
+    if (pay.ok) return { master: pay.pay.purple };
+    // otherwise see if discarding owned POKÉDEX (2 virtual master each) would cover it
     const dex = p.board.filter(id => E.isPokemart(byId[id]) && byId[id].effect === 'colorless_master').length;
-    return dex > 0 && E.computePayment(G, p, card, dex * 2).ok;
+    for (let k = 1; k <= dex; k++) { const pp = E.computePayment(G, p, card, k * 2); if (pp.ok) return { master: pp.pay.purple, pokedex: k }; }
+    return null;
   }
+  const captureAffordable = (card) => !!affordInfo(card);
 
   function renderSupply() {
     const counts = {}; UI.pick.forEach(c => counts[c] = (counts[c] || 0) + 1);
@@ -316,12 +326,14 @@
     }
     if (UI.selCard) {
       const c = byId[UI.selCard];
-      const aff = captureAffordable(c);
+      const info = affordInfo(c);
+      const aff = !!info;
       const loc = E.locateCard(G, UI.selCard);
       const reserveTier = (loc.where === 'field') && (E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier));
       const canReserve = reserveTier && p.reserve.length < E.HAND_MAX;
       const eff = E.isPokemart(c) && c.effect ? ` · <span class="eff-tag">${EFFECT_NAMES[c.effect] || ''}</span>` : '';
-      let html = `<img class="sel-preview" src="${c.img}" alt="${c.name}"><div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}${aff ? '' : ' · 无法支付'}<br><span style="font-size:12px;opacity:.75">点卡面可放大查看</span></div><div class="act-buttons">`;
+      const wildNote = info && info.master > 0 ? ` · 将花费 <b style="color:#b79bff">${info.master} 个大师球</b>` : (aff ? ' · <span style="color:var(--good)">无需大师球</span>' : '');
+      let html = `<img class="sel-preview" src="${c.img}" alt="${c.name}"><div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}${aff ? '' : ' · 无法支付'}${wildNote}<br><span style="font-size:12px;opacity:.75">点卡面可放大查看</span></div><div class="act-buttons">`;
       if (aff) html += `<button class="primary" data-act="capture">捕捉</button>`;
       if (canReserve) html += `<button class="ghost" data-act="reserve-card">保留</button>`;
       html += `<button class="ghost" data-act="clear-sel">取消</button></div>`;
