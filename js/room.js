@@ -39,6 +39,10 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (E) {
   'use strict';
 
+  // Idle/disconnect turn timeout: after this long with no move, the host's AI
+  // may take over the active seat (enforced server-side; the host computes the move).
+  const TURN_TIMEOUT_MS = 20000; // TEMP 20s for live takeover test — restore to 180000 (3 min)
+
   // strip the shared static card refs so a room state is pure data we can persist
   function serializeG(s) {
     const { cardDB, byId, megaDB, pokemartDB, ...dyn } = s;
@@ -66,6 +70,8 @@
       this.started = false;
       this.seats = [];      // seats[i] = { token, name, connId|null, connected }
       this.conns = {};      // live connId -> seat index (>=0 seated, -1 spectator)
+      this.turnStartedAt = 0; // server ms when the current turn began (idle-timeout base)
+      this.now = 0;         // current server ms, injected by the DO before each handler
     }
 
     // ----------------------------- connections -----------------------------
@@ -126,6 +132,7 @@
         case 'join':   return this.join(connId, msg.name, msg.token);
         case 'start':  return this._start(connId, msg.opts);
         case 'action': return this._action(connId, msg);
+        case 'takeover': return this._takeover(connId, msg);
         case 'sync':   return this._stateTo(connId);
       }
     }
@@ -149,6 +156,7 @@
         seed,
       });
       this.started = true;
+      this.turnStartedAt = this.now;
       this.seq++;
       this._roster();
       this._broadcastState();
@@ -159,8 +167,45 @@
       if (!this.started || seat == null || seat < 0) {
         return this.send(connId, { t: 'reject', reason: '未入座或对局未开始', seq: msg && msg.seq });
       }
+      const prevTurn = this.G.turn;
       const r = E.applyAction(this.G, msg.action, seat);        // seat = ownership guard
       if (!r.ok) return this.send(connId, { t: 'reject', reason: r.error, seq: msg.seq });
+      if (this.G.turn !== prevTurn) this.turnStartedAt = this.now; // turn advanced → reset idle clock
+      this.seq++;
+      this._broadcastState();
+      if (this.G.phase === 'gameover') this._broadcast({ t: 'over', winner: this.G.winner });
+    }
+
+    // The host's AI takes over a timed-out active seat. The host computes the move
+    // from PUBLIC info only (it never sees the timed-out player's hidden hand) and
+    // sends the plan here; the server validates host + that the 3-min timeout has
+    // truly elapsed (anti-cheat), then runs the whole turn for the active seat.
+    _takeover(connId, msg) {
+      if (this.conns[connId] !== 0) return this.send(connId, { t: 'reject', reason: '只有房主可以代打' });
+      if (!this.started || !this.G || this.G.phase !== 'play') return;
+      if (this.now - this.turnStartedAt < TURN_TIMEOUT_MS) return this.send(connId, { t: 'reject', reason: '尚未超时' });
+      const seat = this.G.turn;
+      const plan = (msg && msg.plan) || {};
+      this.G.log.push({ turn: this.G.turn, round: this.G.round, msg: `⏱️ ${this.G.players[seat].name} 超时，房主AI代打` });
+      // main action (AI's pick, else any legal action, else a legitimate pass) — always acts
+      let acted = false;
+      try { if (plan.action) acted = E.applyAction(this.G, plan.action, seat).ok; } catch (e) { }
+      if (!acted) {
+        let la = []; try { la = E.legalActions(this.G); } catch (e) { }
+        if (la.length) { try { E.applyAction(this.G, la[0], seat); acted = true; } catch (e) { } }
+        if (!acted) { try { E.actionPass(this.G); } catch (e) { } }
+      }
+      // discards (AI plan, then a forced fallback if still over the cap)
+      if (Array.isArray(plan.discards)) for (const col of plan.discards) { try { E.actionDiscard(this.G, col); } catch (e) { } }
+      let guard = 0;
+      while (E.needsDiscard(this.G, this.G.players[seat]) && guard++ < 20) {
+        const tok = E.ALL_TOKENS.find(c => this.G.players[seat].tokens[c] > 0);
+        if (!tok) break;
+        try { E.actionDiscard(this.G, tok); } catch (e) { break; }
+      }
+      if (plan.evolution) { try { E.actionEvolve(this.G, plan.evolution.fromId, plan.evolution.toId); } catch (e) { } }
+      try { E.endTurn(this.G); } catch (e) { }
+      this.turnStartedAt = this.now;
       this.seq++;
       this._broadcastState();
       if (this.G.phase === 'gameover') this._broadcast({ t: 'over', winner: this.G.winner });
@@ -172,7 +217,10 @@
       if (!this.started || !this.G) return;
       const seat = this.conns[connId];
       const view = (seat != null && seat >= 0) ? seat : -1;     // spectators: -1 matches no seat → everything stays redacted
-      this.send(connId, { t: 'state', seq: this.seq, state: E.redactFor(this.G, view) });
+      this.send(connId, {
+        t: 'state', seq: this.seq, state: E.redactFor(this.G, view),
+        turnStartedAt: this.turnStartedAt, serverNow: this.now, turnTimeoutMs: TURN_TIMEOUT_MS,
+      });
     }
     _roster() {
       const players = this.seats.map((s, i) => ({ seat: i, name: s.name, connected: s.connected }));
@@ -187,12 +235,13 @@
     // so reconnecting players reclaim their seat and hidden hand.
     snapshot() {
       const seats = this.seats.map(s => ({ token: s.token, name: s.name, connId: null, connected: false }));
-      return { seq: this.seq, started: this.started, seats, g: this.G ? serializeG(this.G) : null };
+      return { seq: this.seq, started: this.started, seats, turnStartedAt: this.turnStartedAt, g: this.G ? serializeG(this.G) : null };
     }
     restore(snap) {
       if (!snap) return;
       this.seq = snap.seq || 0;
       this.started = !!snap.started;
+      this.turnStartedAt = snap.turnStartedAt || 0;
       this.seats = (snap.seats || []).map(s => ({ token: s.token, name: s.name, connId: null, connected: false }));
       this.conns = {};
       this.G = snap.g ? reattachG(snap.g, this.DB, this.megaDB, this.pokemartDB) : null;

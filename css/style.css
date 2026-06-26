@@ -85,6 +85,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .lobby-roster .muted{color:var(--muted);font-size:13px}
 .lobby-exp{justify-content:center;flex-wrap:wrap}
 .lobby-hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
+/* idle / disconnect → AI-takeover status strip */
+.idle-bar{text-align:center;line-height:1.4;min-height:0}
+.idle-bar:empty{display:none}
+.idle-bar span{display:inline-block;margin:4px auto;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:700}
+.idle-wait{background:rgba(122,79,192,.18);border:1px solid var(--purple);color:#cbb6ff}
+.idle-warn{background:rgba(255,213,74,.16);border:1px solid var(--gold);color:var(--gold)}
+.idle-ai{background:rgba(70,209,122,.16);border:1px solid var(--good);color:var(--good)}
 .setup-row{display:flex;align-items:center;gap:14px;margin:14px 0;flex-wrap:wrap}
 .setup-row>label{width:72px;color:var(--muted);flex:none}
 .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
