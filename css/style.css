@@ -54,7 +54,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 }
 
 /* ---------- setup ---------- */
-#setup{display:grid;place-items:center;padding:max(16px,var(--sa-t)) max(16px,var(--sa-r)) max(16px,var(--sa-b)) max(16px,var(--sa-l))}
+#setup,#lobby{display:grid;place-items:center;padding:max(16px,var(--sa-t)) max(16px,var(--sa-r)) max(16px,var(--sa-b)) max(16px,var(--sa-l))}
 .setup-card{background:rgba(20,25,70,.82);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:20px;padding:clamp(20px,5vw,34px);max-width:560px;width:100%;box-shadow:var(--shadow)}
 .brand{font-size:clamp(26px,8vw,40px);margin:0 0 6px;text-align:center;letter-spacing:1px;line-height:1.1}
 .brand-splendor{color:var(--gold);text-shadow:0 2px 0 #9a6b00}
@@ -70,6 +70,21 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .resume-banner .rb-text .rb-when{opacity:.7}
 .resume-banner .rb-btns{display:flex;gap:8px;flex:0 0 auto}
 .resume-banner .rb-btns button{min-height:42px}
+/* ---------- online lobby ---------- */
+.setup-online{margin-top:8px}
+#lobby .setup-card{text-align:center}
+.lobby-code{font-size:15px;margin:6px 0 12px;color:var(--muted)}
+.lobby-code b{color:var(--gold);letter-spacing:3px;font-size:22px;font-family:ui-monospace,monospace;margin:0 6px}
+.lobby-code button{font-size:12px;padding:5px 10px;min-height:auto;vertical-align:middle}
+.lobby-status{color:var(--muted);font-size:13px;margin:8px 0}
+.lobby-roster{background:#11163a;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;min-height:46px;text-align:left}
+.lobby-roster .lr-row{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:14px;color:var(--ink)}
+.lr-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.lr-dot.on{background:var(--good);box-shadow:0 0 6px var(--good)}
+.lr-dot.off{background:var(--muted);opacity:.45}
+.lobby-roster .muted{color:var(--muted);font-size:13px}
+.lobby-exp{justify-content:center;flex-wrap:wrap}
+.lobby-hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
 .setup-row{display:flex;align-items:center;gap:14px;margin:14px 0;flex-wrap:wrap}
 .setup-row>label{width:72px;color:var(--muted);flex:none}
 .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}

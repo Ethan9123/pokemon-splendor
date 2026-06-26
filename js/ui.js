@@ -80,6 +80,87 @@
     $('#win-modal').classList.add('hidden');
     $('#setup').classList.remove('hidden');
   }
+
+  // ============================ online multiplayer ============================
+  function makeRoomCode() {
+    const ch = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s = '';
+    for (let i = 0; i < 5; i++) s += ch[Math.floor(Math.random() * ch.length)];
+    return s;
+  }
+  function openOnline(code, asHost) {
+    code = (code || '').toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32);
+    if (!code || !window.Net) return;
+    if (window.Tutorial && Tutorial.stop) Tutorial.stop();
+    const name = (($('[data-name="0"]') && $('[data-name="0"]').value.trim()) || '训练家');
+    gameEpoch++;
+    UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: 0, hasAI: false,
+           net: { code, name, seat: null, host: !!asHost, status: 'connecting', started: false, roster: [] } };
+    try { history.replaceState(null, '', location.pathname + '?room=' + code); } catch (e) { }
+    $('#setup').classList.add('hidden'); $('#game').classList.add('hidden');
+    $('#lobby').classList.remove('hidden');
+    $('#lobby-code').textContent = code;
+    bindNet();
+    Net.connect(code, name);
+    renderLobby();
+  }
+  function bindNet() {
+    Net.on('status', (s) => { if (UI.net) { UI.net.status = s; renderLobby(); } });
+    Net.on('welcome', (m) => { if (UI.net) { UI.net.seat = m.seat; UI.net.host = m.host; renderLobby(); } });
+    Net.on('roster', (m) => { if (UI.net) { UI.net.roster = m.players || []; UI.net.started = m.started; renderLobby(); } });
+    Net.on('state', onNetState);
+    Net.on('reject', (m) => flashHint((m && m.reason) || '操作被拒绝'));
+    Net.on('over', () => { });
+  }
+  function renderLobby() {
+    if (!UI.net) return;
+    const statusZh = { connecting: '连接中…', connected: '已连接', disconnected: '已断开，重连中…' };
+    const seatTxt = UI.net.seat == null ? '' : (UI.net.seat < 0 ? '（观战）' : `（你是 ${UI.net.seat + 1} 号位${UI.net.host ? ' · 房主' : ''}）`);
+    const st = $('#lobby-status'); if (st) st.textContent = '状态：' + (statusZh[UI.net.status] || UI.net.status) + ' ' + seatTxt;
+    const r = UI.net.roster || [];
+    const rr = $('#lobby-roster');
+    if (rr) rr.innerHTML = r.length
+      ? r.map(p => `<div class="lr-row"><span class="lr-dot ${p.connected ? 'on' : 'off'}"></span>${p.seat + 1}. ${p.name}${p.seat === 0 ? ' 👑' : ''}${p.seat === UI.net.seat ? '（你）' : ''}</div>`).join('')
+      : '<div class="muted">等待玩家加入…</div>';
+    const start = $('#lobby-start');
+    if (start) { start.style.display = UI.net.host ? '' : 'none'; start.disabled = !(r.length >= 2); }
+    const mb = $('#lobby-megas'), pb = $('#lobby-pokemart');
+    if (mb) mb.disabled = !UI.net.host;
+    if (pb) pb.disabled = !UI.net.host;
+  }
+  function leaveOnline() {
+    if (window.Net) Net.close();
+    UI.net = null; gameEpoch++;
+    try { history.replaceState(null, '', location.pathname); } catch (e) { }
+    $('#lobby').classList.add('hidden'); $('#game').classList.add('hidden');
+    $('#setup').classList.remove('hidden');
+  }
+  // Apply an authoritative redacted snapshot from the server (server drives turns).
+  function onNetState(m) {
+    if (!m || !m.state || !UI.net) return;
+    const st = m.state;
+    st.cardDB = DB; st.byId = byId; st.megaDB = MEGA_DB; st.pokemartDB = POKEMART_DB; // reattach static refs
+    if (!Array.isArray(st.log)) st.log = [];
+    G = st; gameEpoch++;
+    UI.net.started = true; UI.humans = G.numPlayers; UI.hasAI = false;
+    $('#setup').classList.add('hidden'); $('#lobby').classList.add('hidden');
+    $('#game').classList.remove('hidden');
+    recomputeOnlinePhase();
+    render();
+    if (G.phase === 'gameover') showWin();
+  }
+  // Derive the local UI phase from a snapshot. The board renders for everyone, but
+  // you can only act on your own turn (interactable() also gates on myTurn()).
+  function recomputeOnlinePhase() {
+    UI.busy = false; UI.pick = []; UI.selCard = UI.selDeck = null;
+    if (G.phase !== 'play' || !myTurn()) { UI.phase = 'main'; return; }
+    if (E.needsDiscard(G, me())) { UI.phase = 'discard'; return; }
+    if (!G.acted) { UI.phase = 'main'; return; }
+    const ev = E.evolutionOptions(G, me());
+    const mev = G.megasEnabled ? E.megaEvolveOptions(G, me()) : [];
+    if (ev.length || mev.length) { UI.phase = 'evolve'; return; }
+    UI.phase = 'main';
+    Net.action({ type: 'endTurn' });   // acted with nothing left to resolve → end the turn
+  }
   function startGame() {
     const cfg = readConfig();
     const megas = !!($('#opt-megas') && $('#opt-megas').checked) && MEGA_DB.length > 0;
@@ -143,7 +224,12 @@
   }
 
   // ---------------------------------------------------------------- helpers
-  const me = () => G.players[G.turn];
+  // online play: when in a network game, "me" is the local SEAT (which may not be
+  // the active player), and you can only act on your own turn. Local play unchanged.
+  function isOnline() { return !!(UI && UI.net); }
+  function onlineSeat() { return (UI && UI.net && UI.net.seat != null) ? UI.net.seat : -1; }
+  function myTurn() { return !!(G && G.turn === onlineSeat()); }
+  const me = () => G.players[(isOnline() && UI.net.seat >= 0) ? UI.net.seat : G.turn];
   const isHuman = (pid) => !G.players[pid].isAI;
   const ball = (color, cls, label) =>
     `<div class="ball ${color} ${cls || ''}" title="${BALL_NAMES[color]}">${label != null ? '' : ''}</div>`;
@@ -195,18 +281,18 @@
   }
 
   function renderBanner() {
-    const p = me();
+    const p = isOnline() ? G.players[G.turn] : me();
     let txt;
     if (G.phase === 'gameover') txt = '游戏结束';
     else if (p.isAI) txt = `${p.name} 的回合 · <span class="thinking">思考中<span class="dot"></span><span class="dot"></span><span class="dot"></span></span>`;
-    else txt = `${p.name} 的回合${G.lastRound ? ' · ⚠ 最后一轮' : ''}`;
+    else txt = `${p.name} 的回合${isOnline() && myTurn() ? '（你）' : ''}${G.lastRound ? ' · ⚠ 最后一轮' : ''}`;
     $('#turn-banner').innerHTML = txt;
   }
 
   function renderField() {
     const wrap = $('#field');
     wrap.innerHTML = '';
-    const human = isHuman(G.turn) && G.phase === 'play';
+    const human = (isOnline() ? myTurn() : isHuman(G.turn)) && G.phase === 'play';
     // Megas expansion: a face-up "Mega 卡" row (zoom only; you mega-evolve at end of turn)
     if (G.megasEnabled && G.megaOffer.length) {
       const rowEl = document.createElement('div');
@@ -375,7 +461,7 @@
 
   function renderSupply() {
     const counts = {}; UI.pick.forEach(c => counts[c] = (counts[c] || 0) + 1);
-    const human = isHuman(G.turn) && G.phase === 'play' && UI.phase === 'main' && !G.acted;
+    const human = (isOnline() ? myTurn() : isHuman(G.turn)) && G.phase === 'play' && UI.phase === 'main' && !G.acted;
     let html = '<div class="panel-title">精灵球供应</div>';
     for (const color of E.ALL_TOKENS) {
       const isMaster = color === 'purple';
@@ -419,6 +505,7 @@
     if (G.phase === 'gameover') { bar.innerHTML = '<div class="act-hint">游戏已结束。</div>'; return; }
     const p = me();
     if (p.isAI) { bar.innerHTML = '<div class="act-hint">电脑正在行动…</div>'; return; }
+    if (isOnline() && !myTurn()) { bar.innerHTML = `<div class="act-hint">等待 <b>${G.players[G.turn].name}</b> 行动…<br><span style="font-size:12px;opacity:.7">轮到你时这里会出现操作按钮</span></div>`; return; }
 
     if (UI.phase === 'discard') {
       const over = E.tokenTotal(p) - E.TOKEN_MAX;
@@ -519,13 +606,18 @@
         });
         stacks += `<div class="color-stack"><div class="ministack">${st}</div></div>`;
       }
-      // reserve (revealed only for the active human; otherwise backs)
-      const revealReserve = active && !p.isAI;
+      // reserve: revealed only for YOUR OWN hand; others show card-backs.
+      // (online, opponents' reserves arrive as {hidden,tier} stubs, never real ids.)
+      const revealReserve = !p.isAI && (isOnline() ? (i === onlineSeat()) : active);
       let rz = '';
       if (p.reserve.length) {
-        const cards = p.reserve.map(id => revealReserve
-          ? `<div class="mini-card${UI.selCard === id ? ' selected' : ''}" data-zoom="${byId[id].img}" data-reserve-capture="${id}"><img src="${byId[id].img}"></div>`
-          : `<div class="mini-card card-back" data-tier="${byId[id].tier}"></div>`).join('');
+        const cards = p.reserve.map(rid => {
+          const stub = (rid && typeof rid === 'object');
+          const realId = stub ? null : rid;
+          const tier = stub ? rid.tier : byId[realId].tier;
+          if (revealReserve && !stub) return `<div class="mini-card${UI.selCard === realId ? ' selected' : ''}" data-zoom="${byId[realId].img}" data-reserve-capture="${realId}"><img src="${byId[realId].img}"></div>`;
+          return `<div class="mini-card card-back" data-tier="${tier}"></div>`;
+        }).join('');
         const hint = revealReserve ? '（点击可捕捉）' : '';
         rz = `<div class="reserve-zone"><div class="rz-title">保留区 (${p.reserve.length})${hint}</div><div class="pcards">${cards}</div></div>`;
       }
@@ -563,7 +655,7 @@
     if (!interactable()) return;
     UI.selDeck = tier; UI.selCard = null; render();
   }
-  function interactable() { return G && G.phase === 'play' && UI.phase === 'main' && !G.acted && !me().isAI && !UI.busy; }
+  function interactable() { return G && G.phase === 'play' && UI.phase === 'main' && !G.acted && !me().isAI && !UI.busy && (!isOnline() || myTurn()); }
 
   // ---------------------------------------------------------------- animations
   const ANIM_MS = 620;
@@ -625,10 +717,12 @@
 
   function doTake() {
     const colors = UI.pick.slice(); const pid = G.turn;
+    if (isOnline()) { Net.action({ type: 'take', colors }); UI.pick = []; render(); return; }
     applyAnimated({ type: 'take', colors }, pid, () => { const r = E.actionTake(G, colors); if (r.ok) UI.pick = []; return r; }, afterMainAction);
   }
   function commitCapture(cid, opts) {
     const pid = G.turn;
+    if (isOnline()) { Net.action({ type: 'capture', cardId: cid, opts }); UI.selCard = null; render(); return; }
     applyAnimated({ type: 'capture', cardId: cid }, pid, () => { const r = E.actionCapture(G, cid, opts); if (r.ok) UI.selCard = null; return r; }, afterMainAction);
   }
   function doCapture() {
@@ -735,10 +829,12 @@
   }
   function doReserveCard() {
     const cid = UI.selCard, pid = G.turn;
+    if (isOnline()) { Net.action({ type: 'reserve', target: { fromField: cid } }); UI.selCard = null; render(); return; }
     applyAnimated({ type: 'reserve', cardId: cid }, pid, () => { const r = E.actionReserve(G, { fromField: cid }); if (r.ok) UI.selCard = null; return r; }, afterMainAction);
   }
   function doReserveDeck() {
     const tier = UI.selDeck, pid = G.turn;
+    if (isOnline()) { Net.action({ type: 'reserve', target: { fromDeck: tier } }); UI.selDeck = null; render(); return; }
     applyAnimated({ type: 'reserve', deck: tier }, pid, () => { const r = E.actionReserve(G, { fromDeck: tier }); if (r.ok) UI.selDeck = null; return r; }, afterMainAction);
   }
   function decodePlan(plan) {
@@ -770,22 +866,26 @@
   }
   function doDiscard(color) {
     if (UI.phase !== 'discard') return;
+    if (isOnline()) { Net.action({ type: 'discard', color }); return; }
     E.actionDiscard(G, color);
     if (!E.needsDiscard(G, me())) toEvolveOrEnd();
     render();
   }
   function doEvolve(fromId, toId) {
+    if (isOnline()) { Net.action({ type: 'evolve', fromId, toId }); return; }
     const r = E.actionEvolve(G, fromId, toId);
     if (!r.ok) { flashHint(r.error); return; }
     endTurn();
   }
   function doMegaEvolve(megaId, fromId) {
+    if (isOnline()) { Net.action({ type: 'megaEvolve', megaId, fromId }); return; }
     const r = E.actionMegaEvolve(G, megaId, fromId);
     if (!r.ok) { flashHint(r.error); return; }
     endTurn();
   }
   function doTakeMega() {
     if (!interactable()) return;
+    if (isOnline()) { Net.action({ type: 'takeMega' }); return; }
     const r = E.actionTakeMega(G);
     if (!r.ok) { flashHint(r.error); return; }
     afterMainAction();
@@ -803,6 +903,7 @@
     endTurn();
   }
   function endTurn() {
+    if (isOnline()) { Net.action({ type: 'endTurn' }); return; }
     const r = E.endTurn(G);
     UI.phase = 'main'; UI.pick = []; UI.selCard = UI.selDeck = null;
     if (G.phase === 'gameover') { render(); showWin(); return; }
@@ -1009,6 +1110,12 @@
       b.classList.add('active'); buildSeats(+b.dataset.n);
     });
     $('#start-btn').addEventListener('click', startGame);
+    // online lobby
+    if ($('#online-create')) $('#online-create').addEventListener('click', () => openOnline(makeRoomCode(), true));
+    if ($('#online-join')) $('#online-join').addEventListener('click', () => { const c = prompt('输入房间码：'); if (c) openOnline(c, false); });
+    if ($('#lobby-start')) $('#lobby-start').addEventListener('click', () => { if (window.Net) Net.start({ megas: !!($('#lobby-megas') && $('#lobby-megas').checked), pokemart: !!($('#lobby-pokemart') && $('#lobby-pokemart').checked) }); });
+    if ($('#lobby-leave')) $('#lobby-leave').addEventListener('click', leaveOnline);
+    if ($('#lobby-copy')) $('#lobby-copy').addEventListener('click', () => { try { navigator.clipboard.writeText(location.href); flashHint('邀请链接已复制'); } catch (e) { flashHint(location.href); } });
     if ($('#tutorial-btn')) $('#tutorial-btn').addEventListener('click', () => { if (window.Tutorial) Tutorial.start('base'); });
     if ($('#tutorial-mega-btn')) $('#tutorial-mega-btn').addEventListener('click', () => { if (window.Tutorial) Tutorial.start('megas'); });
     $('#undo-btn').addEventListener('click', doUndo);
@@ -1082,6 +1189,8 @@
   trackDock();
   setupRotateHint();
   offerResume();   // if a previous game was left unfinished, offer to continue it
+  // deep-link: ?room=CODE → jump straight into that online lobby
+  try { const rc = new URLSearchParams(location.search).get('room'); if (rc && window.Net) openOnline(rc, false); } catch (e) { }
 
   // lightweight debug hook (harmless in production): inspect/drive from console
   window.PSDebug = {
