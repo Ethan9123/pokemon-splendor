@@ -199,6 +199,51 @@ test('reserve grants a master and respects hand limit', () => {
   assert.ok(!E.actionReserve(g2, { fromField: g2.field.rare[0] }).ok);
 });
 
+// ---- networked-play readiness: total applyAction, ownership guard, redaction ----
+test('applyAction dispatches every move type + rejects unknown', () => {
+  const g = E.createGame(DB, { numPlayers: 2, seed: 11 });
+  assert.ok(E.applyAction(g, { type: 'take', colors: ['red', 'blue', 'black'] }).ok);
+  assert.strictEqual(g.players[0].tokens.red, 1);
+  assert.ok(E.applyAction(g, { type: 'endTurn' }).ok); // endTurn is dispatchable now
+  assert.strictEqual(g.turn, 1);
+  assert.ok(!E.applyAction(g, { type: 'nope' }).ok);   // unknown type rejected
+  const before = g.supply.blue; g.players[1].tokens.blue = 1;
+  assert.ok(E.applyAction(g, { type: 'discard', color: 'blue' }).ok);
+  assert.strictEqual(g.supply.blue, before + 1);
+});
+
+test('applyAction ownership guard: only the active seat may move', () => {
+  const g = E.createGame(DB, { numPlayers: 2, seed: 12 }); // turn = 0
+  assert.ok(!E.applyAction(g, { type: 'take', colors: ['red', 'blue', 'black'] }, 1).ok, 'seat 1 cannot act on seat 0 turn');
+  assert.strictEqual(g.players[0].tokens.red, 0);
+  assert.ok(E.applyAction(g, { type: 'take', colors: ['red', 'blue', 'black'] }, 0).ok, 'active seat can');
+  assert.strictEqual(g.players[0].tokens.red, 1);
+});
+
+test('redactFor hides deck order + opponents reserves, keeps own + public info', () => {
+  const g = E.createGame(DB, { numPlayers: 2, seed: 13 });
+  assert.ok(E.actionReserve(g, { fromDeck: 'stage1' }).ok); // p0 reserves blind → a secret
+  const ownId = g.players[0].reserve[0];
+  assert.ok(ownId);
+  const mine = E.redactFor(g, 0), theirs = E.redactFor(g, 1);
+  // 1) deck order hidden for everyone (same length, no real ids)
+  for (const t of Object.keys(g.decks)) {
+    assert.strictEqual(mine.decks[t].length, g.decks[t].length);
+    assert.ok(mine.decks[t].every(x => x === null), 'deck ids blanked for ' + t);
+    assert.ok(theirs.decks[t].every(x => x === null));
+  }
+  // 2) viewer sees their OWN reserve id; opponent gets a {hidden,tier} stub
+  assert.strictEqual(mine.players[0].reserve[0], ownId);
+  const stub = theirs.players[0].reserve[0];
+  assert.notStrictEqual(stub, ownId);
+  assert.strictEqual(stub.hidden, true);
+  assert.strictEqual(stub.tier, 'stage1');
+  // 3) static refs not shipped; public info intact
+  assert.ok(!('byId' in mine) && !('cardDB' in mine), 'no static card refs leaked');
+  assert.deepStrictEqual(mine.supply, g.supply);
+  assert.strictEqual(mine.viewerId, 0);
+});
+
 // ---- evolution: paid ONLY by card discounts (bonuses), never by held tokens ----
 test('evolution: paid by card discounts only, not held tokens; buries old card; once per turn', () => {
   const g = E.createGame(DB, { numPlayers: 2, seed: 9 });
