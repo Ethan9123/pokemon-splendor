@@ -138,6 +138,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .card{width:var(--card-w);height:var(--card-h);border-radius:9px;overflow:hidden;position:relative;flex:none;cursor:pointer;background:#0c1030;border:2px solid transparent;box-shadow:0 3px 8px rgba(0,0,0,.4);transition:.12s transform,.12s box-shadow}
 .card img{width:100%;height:100%;display:block;object-fit:cover}
 .card.affordable{border-color:var(--good);box-shadow:0 0 0 2px rgba(70,209,122,.5),0 6px 14px rgba(0,0,0,.4)}
+/* affordable, but the purchase would spend Master Balls (百搭): purple tier + a
+   大师×N count badge (colour-blind-safe redundant cue, never colour alone) */
+.card.affordable-wild{border-color:var(--purple);box-shadow:0 0 0 2px rgba(122,79,192,.75),0 6px 14px rgba(0,0,0,.4)}
+.wild-badge{position:absolute;top:3px;left:3px;z-index:2;background:var(--purple);color:#fff;border:1px solid #15182f;border-radius:6px;padding:1px 5px;font-size:10px;font-weight:800;line-height:1.5;box-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none;white-space:nowrap}
 .card.selected{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,213,74,.6)}
 .card .empty-slot{width:100%;height:100%;display:grid;place-items:center;color:var(--muted);background:repeating-linear-gradient(45deg,#141a40,#141a40 6px,#11163a 6px,#11163a 12px)}
 .card-back{background:linear-gradient(135deg,#3a2a6e,#221a4a)}
@@ -249,6 +253,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .pname{font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pscore{font-size:24px;font-weight:900;color:var(--gold);line-height:1}
 .pscore small{font-size:11px;color:var(--muted);font-weight:600}
+/* running total of held Poké Balls, next to the score (10 = end-of-turn cap) */
+.ptokens{flex:none;display:flex;align-items:baseline;gap:1px;font-size:16px;font-weight:800;color:var(--ink);background:#11163a;border:1px solid var(--line);border-radius:20px;padding:3px 9px;line-height:1}
+.ptokens .pt-lbl{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px;align-self:center}
+.ptokens small{font-size:10px;color:var(--muted);font-weight:600}
+.ptokens.full{border-color:var(--gold);color:var(--gold)}
+.ptokens.full small{color:var(--gold)}
+.ptokens.over{border-color:var(--bad);color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.ptokens.over small{color:var(--bad)}
 .pstats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .chip{display:flex;align-items:center;gap:4px;background:#11163a;border:1px solid var(--line);border-radius:20px;padding:3px 9px 3px 4px;font-size:13px}
 .chip .num{font-weight:800;min-width:12px;text-align:center}
