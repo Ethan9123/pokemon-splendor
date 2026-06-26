@@ -21,5 +21,10 @@
   "migrations": [
     // SQLite-backed Durable Objects are Free-plan eligible and cheaper.
     { "tag": "v1", "new_sqlite_classes": ["Room"] }
+  ],
+  // Custom domain — also present in the dashboard; declared here so it's
+  // version-controlled. The Worker serves the game + /room/:code/ws on it too.
+  "routes": [
+    { "pattern": "pokemon-splendor.try-board-game.uk", "custom_domain": true }
   ]
 }
