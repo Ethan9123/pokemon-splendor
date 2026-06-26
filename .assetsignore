@@ -4,7 +4,10 @@
 node_modules
 wrangler.jsonc
 .assetsignore
+worker
 train
 test
 assets/cards/_qc
 *.log
+*.md
+serve.py

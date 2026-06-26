@@ -1,11 +1,25 @@
 {
-  // Static-site deployment for Cloudflare Workers (Static Assets).
-  // The game is a pure static site served from the repo root (index.html + css/js/data/assets).
-  // The Workers Build runs `npx wrangler versions upload`, which needs this config to know
-  // what to upload. There is no server-side Worker script — only static assets.
+  // Pokémon Splendor — Cloudflare Worker + Static Assets.
+  // The static game is served from the repo root (index.html + css/js/data/assets)
+  // via the ASSETS binding. A Worker entry (worker/index.js) routes /room/:code/ws
+  // to a per-room Durable Object for online play; all other paths fall through to
+  // the static assets. Requests that match a static asset are served directly
+  // (the Worker only runs for non-asset paths like the WebSocket route).
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pokemon-splendor",
+  "main": "worker/index.js",
   "compatibility_date": "2026-06-24",
   "assets": {
-    "directory": "./"
-  }
+    "directory": "./",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" }
+    ]
+  },
+  "migrations": [
+    // SQLite-backed Durable Objects are Free-plan eligible and cheaper.
+    { "tag": "v1", "new_sqlite_classes": ["Room"] }
+  ]
 }
