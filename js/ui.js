@@ -332,7 +332,9 @@
       const reserveTier = (loc.where === 'field') && (E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier));
       const canReserve = reserveTier && p.reserve.length < E.HAND_MAX;
       const eff = E.isPokemart(c) && c.effect ? ` · <span class="eff-tag">${EFFECT_NAMES[c.effect] || ''}</span>` : '';
-      const wildNote = info && info.master > 0 ? ` · 将花费 <b style="color:#b79bff">${info.master} 个大师球</b>` : (aff ? ' · <span style="color:var(--good)">无需大师球</span>' : '');
+      const wildNote = !aff ? '' : (info.master > 0
+        ? ` · 将花费 <b style="color:#b79bff">${info.master} 个大师球</b>（你有 ${p.tokens.purple} 个）`
+        : ` · <span style="color:var(--good)">无需大师球</span>`);
       let html = `<img class="sel-preview" src="${c.img}" alt="${c.name}"><div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}${aff ? '' : ' · 无法支付'}${wildNote}<br><span style="font-size:12px;opacity:.75">点卡面可放大查看</span></div><div class="act-buttons">`;
       if (aff) html += `<button class="primary" data-act="capture">捕捉</button>`;
       if (canReserve) html += `<button class="ghost" data-act="reserve-card">保留</button>`;
