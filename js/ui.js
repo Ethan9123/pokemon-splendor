@@ -90,6 +90,58 @@
     enterGame(g, { humans: cfg.ai.filter(x => !x).length, hasAI: cfg.ai.some(x => x) });
   }
 
+  // ---------- local autosave: survive a refresh / re-open (single device) ----------
+  // The whole game lives in the JSON-serializable G (players carry name/isAI/diff),
+  // so we snapshot G to localStorage at each turn boundary and offer to resume it on
+  // the next load. Static card refs are dropped here and re-attached on restore.
+  // Saved at beginTurn() only (acted===false) so a resume always lands on a clean
+  // turn start, never a half-finished action. Cleared on game-over / quit-to-menu.
+  const SAVE_KEY = 'pkmn_splendor_save_v1';
+  const inTutorial = () => !!(window.Tutorial && Tutorial.active && Tutorial.active());
+  function clearSave() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    const b = document.getElementById('resume-banner'); if (b) b.remove(); // drop a now-stale banner
+  }
+  function autosave() {
+    try {
+      if (!G || inTutorial() || G.phase !== 'play') return;
+      const { cardDB, byId: _b, megaDB, pokemartDB, ...dyn } = G; // drop shared static refs
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, ts: Date.now(), g: dyn }));
+    } catch (e) { /* storage full/disabled → game still works, just no resume */ }
+  }
+  function loadSave() {
+    try { const o = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return (o && o.v === 1 && o.g) ? o : null; }
+    catch (e) { return null; }
+  }
+  function resumeSaved() {
+    const o = loadSave(); if (!o) return false;
+    const g = Object.assign({}, o.g);
+    g.cardDB = DB; g.byId = byId; g.megaDB = MEGA_DB; g.pokemartDB = POKEMART_DB; // re-attach statics
+    if (!Array.isArray(g.log)) g.log = [];
+    enterGame(g, { humans: g.players.filter(p => !p.isAI).length, hasAI: g.players.some(p => p.isAI) });
+    return true;
+  }
+  // On the setup screen, surface a "continue last game" banner when a save exists.
+  function offerResume() {
+    const o = loadSave(); if (!o) return;
+    if ($('#resume-banner')) return;
+    const g = o.g, seat = (g.players && g.players[g.turn]) ? g.players[g.turn].name : '';
+    const vp = (g.players || []).map(p => p.name + ' ' + (p.board || []).reduce((a, id) => a + ((byId[id] && byId[id].vp) || 0), 0) + '分').join(' · ');
+    const when = o.ts ? new Date(o.ts).toLocaleString('zh-CN', { hour12: false }) : '';
+    const div = document.createElement('div');
+    div.id = 'resume-banner'; div.className = 'resume-banner';
+    div.innerHTML = `<div class="rb-text">发现未完成的对局${seat ? `，轮到 <b>${seat}</b>` : ''}` +
+      `${vp ? `<br><small>${vp}</small>` : ''}${when ? `<br><small class="rb-when">${when}</small>` : ''}</div>` +
+      `<div class="rb-btns"><button id="resume-btn" class="primary">▶ 继续上一局</button>` +
+      `<button id="resume-discard" class="ghost">放弃</button></div>`;
+    const card = $('.setup-card'), tagline = card && card.querySelector('.tagline');
+    if (tagline) card.insertBefore(div, tagline.nextSibling);
+    else if (card) card.insertBefore(div, card.firstChild);
+    else $('#setup').appendChild(div);
+    $('#resume-btn').addEventListener('click', resumeSaved);
+    $('#resume-discard').addEventListener('click', () => { clearSave(); div.remove(); });
+  }
+
   // ---------------------------------------------------------------- helpers
   const me = () => G.players[G.turn];
   const isHuman = (pid) => !G.players[pid].isAI;
@@ -121,6 +173,7 @@
     updateUndoBtn();   // keep 悔棋 button consistent with phase/turn on every state change
     evalRotateHint();  // show/hide the portrait "rotate" hint
     syncDockH();       // keep mobile bottom-dock clearance in sync with its current height
+    if (G && G.phase === 'gameover') clearSave();   // finished game → nothing to resume
     if (window.Tutorial && Tutorial.onRender) { try { Tutorial.onRender(G, UI); } catch (e) { } } // drive the tutorial coach
   }
 
@@ -760,6 +813,7 @@
   // ---------------------------------------------------------------- turn control
   function beginTurn() {
     if (G.phase === 'gameover') { updateUndoBtn(); return; }
+    autosave();                               // snapshot the clean turn start (resume point)
     const p = me();
     if (p.isAI) { render(); updateUndoBtn(); const e = gameEpoch; setTimeout(() => { if (e === gameEpoch) aiPlay(); }, 120); return; }
     if (UI.hasAI) pushUndo();                 // snapshot at each human turn start (undo target)
@@ -963,6 +1017,7 @@
     $('#menu-btn').addEventListener('click', () => {
       const inTut = window.Tutorial && Tutorial.active && Tutorial.active();
       if (confirm(inTut ? '退出教程，返回主菜单？' : '返回主菜单？当前对局将丢失。')) {
+        if (!inTut) clearSave();              // explicit quit of a real game = abandon its autosave
         if (window.Tutorial && Tutorial.stop) Tutorial.stop();
         backToSetup();
       }
@@ -1026,6 +1081,7 @@
   setupZoom();
   trackDock();
   setupRotateHint();
+  offerResume();   // if a previous game was left unfinished, offer to continue it
 
   // lightweight debug hook (harmless in production): inspect/drive from console
   window.PSDebug = {
