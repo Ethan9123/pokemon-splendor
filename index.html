@@ -47,7 +47,31 @@
         <button id="tutorial-btn" class="ghost">🎓 新手教程（零基础）</button>
         <button id="tutorial-mega-btn" class="ghost">⚡ 超级进化教程</button>
       </div>
+      <div class="setup-actions setup-online">
+        <button id="online-create" class="ghost">🌐 创建联机房间</button>
+        <button id="online-join" class="ghost">🔗 加入房间</button>
+      </div>
       <div class="credit">素材源自 TTS 模组「璀璨宝石：宝可梦」 · 卡牌数据由原始卡面提取</div>
+    </div>
+  </div>
+
+  <!-- ===== Online lobby ===== -->
+  <div id="lobby" class="screen hidden">
+    <div class="setup-card">
+      <h1 class="brand" style="font-size:clamp(22px,6vw,30px)"><span class="brand-splendor">联机房间</span></h1>
+      <div class="lobby-code">房间码 <b id="lobby-code">—</b> <button id="lobby-copy" class="ghost small">复制邀请链接</button></div>
+      <div id="lobby-status" class="lobby-status"></div>
+      <div id="lobby-roster" class="lobby-roster"></div>
+      <div class="setup-row lobby-exp">
+        <label>扩展</label>
+        <label class="exp-toggle"><input type="checkbox" id="lobby-megas"> 超级进化 (Megas)</label>
+        <label class="exp-toggle"><input type="checkbox" id="lobby-pokemart"> Pokémart</label>
+      </div>
+      <div class="setup-actions">
+        <button id="lobby-start" class="primary">开始游戏</button>
+        <button id="lobby-leave" class="ghost">离开房间</button>
+      </div>
+      <div class="lobby-hint">把邀请链接发给朋友；等他们加入后，房主点「开始游戏」。刷新或断线会自动用同一座位重连。</div>
     </div>
   </div>
 
@@ -142,6 +166,7 @@
   <script src="js/megas.js"></script>
   <script src="js/pokemart.js"></script>
   <script src="js/engine.js"></script>
+  <script src="js/net.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/vsearch.js"></script>
   <script src="js/azai.js"></script>
