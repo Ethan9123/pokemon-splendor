@@ -61,6 +61,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .brand-dot{margin:0 6px;color:var(--muted)}
 .brand-pkmn{color:#ffcb05;-webkit-text-stroke:1.5px #2a75bb}
 .tagline{color:var(--muted);text-align:center;margin:0 0 22px;line-height:1.6;font-size:clamp(13px,3.4vw,16px)}
+/* "continue last game" banner on the setup screen (local autosave resume) */
+.resume-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;
+  background:linear-gradient(90deg,rgba(255,213,74,.16),rgba(122,79,192,.12));
+  border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin:0 0 18px}
+.resume-banner .rb-text{flex:1 1 180px;color:var(--ink);font-size:14px;line-height:1.5}
+.resume-banner .rb-text small{color:var(--muted);font-size:12px}
+.resume-banner .rb-text .rb-when{opacity:.7}
+.resume-banner .rb-btns{display:flex;gap:8px;flex:0 0 auto}
+.resume-banner .rb-btns button{min-height:42px}
 .setup-row{display:flex;align-items:center;gap:14px;margin:14px 0;flex-wrap:wrap}
 .setup-row>label{width:72px;color:var(--muted);flex:none}
 .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
