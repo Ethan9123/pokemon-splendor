@@ -95,6 +95,7 @@ export class Room {
     if (!msg || typeof msg.t !== 'string') return;
     // persist identity on the socket so we can rebind it after hibernation
     if (msg.t === 'join') ws.serializeAttachment({ connId, token: msg.token, name: msg.name });
+    this.authority.now = Date.now();   // inject server clock (idle-timeout / takeover)
     try { this.authority.onMessage(connId, msg); }
     catch (e) { /* one hostile/buggy message must never escape the hibernation handler */ }
     // Persist on anything that mutates room state. `join` MUST persist: it adds a

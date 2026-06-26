@@ -197,5 +197,57 @@ test('FIX3: a lobby that hibernated BEFORE start is not bricked (host can still 
   assert.ok(!(inbox2['cA'] || []).some(m => m.t === 'reject'), 'no 房主 rejection after rebind');
 });
 
+// ---- idle/disconnect takeover by the host's AI ----
+test('takeover: host-only + must wait the timeout, then plays the active seat & advances', () => {
+  const { room, last, clear } = makeRoom();
+  room.now = 0;
+  room.onMessage('cA', { t: 'join', name: 'A', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'B', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });               // turn=0, turnStartedAt=0
+  room.onMessage('cA', { t: 'action', seq: 1, action: TAKE });
+  room.onMessage('cA', { t: 'action', seq: 2, action: { type: 'endTurn' } }); // → turn=1 (B), turnStartedAt=0
+  assert.strictEqual(last('cA', 'state').state.turn, 1);
+  clear();
+
+  room.now = 1000;                                              // 1s — before timeout
+  room.onMessage('cA', { t: 'takeover', plan: { action: TAKE } });
+  assert.ok(last('cA', 'reject') && /超时/.test(last('cA', 'reject').reason), 'rejected before timeout');
+  assert.ok(!last('cA', 'state'), 'no state change before timeout');
+
+  room.now = 200000;                                            // past 3 min
+  room.onMessage('cB', { t: 'takeover', plan: { action: TAKE } });
+  assert.ok(last('cB', 'reject'), 'non-host takeover rejected even after timeout');
+
+  clear();
+  room.onMessage('cA', { t: 'takeover', plan: { action: TAKE, discards: [], evolution: null } });
+  const s = last('cA', 'state');
+  assert.ok(s, 'state broadcast after takeover');
+  assert.strictEqual(s.state.players[1].tokens.red, 1, 'AI took a token for the timed-out seat 1');
+  assert.strictEqual(s.state.turn, 0, 'turn advanced back to seat 0');
+});
+
+test('takeover with an empty/garbage plan still advances the turn (never stalls)', () => {
+  const { room, last } = makeRoom();
+  room.now = 0;
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  room.onMessage('cB', { t: 'join', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });               // turn = 0 (host A)
+  room.now = 200000;
+  room.onMessage('cA', { t: 'takeover', plan: {} });            // empty → forced legal fallback
+  assert.strictEqual(last('cA', 'state').state.turn, 1, 'turn advanced despite empty plan');
+});
+
+test('state broadcast carries turnStartedAt / serverNow / turnTimeoutMs for the idle clock', () => {
+  const { room, last } = makeRoom();
+  room.now = 5000;
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  room.onMessage('cB', { t: 'join', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });
+  const s = last('cA', 'state');
+  assert.strictEqual(s.turnStartedAt, 5000);
+  assert.strictEqual(s.serverNow, 5000);
+  assert.ok(s.turnTimeoutMs > 0, 'a turn timeout is advertised');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

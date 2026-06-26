@@ -128,6 +128,7 @@
     if (pb) pb.disabled = !UI.net.host;
   }
   function leaveOnline() {
+    stopIdleTimer();
     if (window.Net) Net.close();
     UI.net = null; gameEpoch++;
     try { history.replaceState(null, '', location.pathname); } catch (e) { }
@@ -142,11 +143,78 @@
     if (!Array.isArray(st.log)) st.log = [];
     G = st; gameEpoch++;
     UI.net.started = true; UI.humans = G.numPlayers; UI.hasAI = false;
+    // idle-timeout clock (for AI takeover): store the server's turn-start + clock
+    UI.net.turnStartedAt = m.turnStartedAt || 0;
+    UI.net.serverNow = m.serverNow || 0;
+    UI.net.turnTimeoutMs = m.turnTimeoutMs || 180000;
+    UI.net.stateAt = Date.now();
+    UI.net.takeoverBusy = false;            // new authoritative state → allow a fresh takeover
     $('#setup').classList.add('hidden'); $('#lobby').classList.add('hidden');
     $('#game').classList.remove('hidden');
     recomputeOnlinePhase();
     render();
+    startIdleTimer();
     if (G.phase === 'gameover') showWin();
+  }
+
+  // ----- idle / disconnect → host's AI takeover -----
+  let idleTimer = null;
+  function startIdleTimer() { if (!idleTimer) idleTimer = setInterval(idleTick, 1000); }
+  function stopIdleTimer() { if (idleTimer) { clearInterval(idleTimer); idleTimer = null; } const ib = $('#idle-bar'); if (ib) ib.innerHTML = ''; }
+  function idleMsLeft() {
+    if (!UI.net || !UI.net.turnTimeoutMs) return Infinity;
+    const idle = (UI.net.serverNow - UI.net.turnStartedAt) + (Date.now() - UI.net.stateAt);
+    return UI.net.turnTimeoutMs - idle;
+  }
+  function activeConnected() {
+    const r = (UI.net && UI.net.roster || []).find(p => p.seat === G.turn);
+    return r ? r.connected : true;
+  }
+  function idleTick() {
+    if (!isOnline() || !G || G.phase !== 'play') { stopIdleTimer(); return; }
+    const ib = $('#idle-bar'); if (!ib) return;
+    const msLeft = idleMsLeft();
+    const secs = Math.max(0, Math.ceil(msLeft / 1000));
+    const offline = !activeConnected();
+    if (UI.net.takeoverBusy) ib.innerHTML = '<span class="idle-ai">🤖 房主AI代打中…</span>';
+    else if (myTurn()) ib.innerHTML = (msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由房主AI代打</span>` : '';
+    else ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后房主AI接管</span>` : '';
+    // the HOST drives the takeover once the timeout truly elapses (server re-validates)
+    if (msLeft <= 0 && !UI.net.takeoverBusy && UI.net.host) {
+      UI.net.takeoverBusy = true; idleTick();
+      setTimeout(() => { try { if (window.Net) Net.send({ t: 'takeover', plan: computeTakeoverPlan() }); } catch (e) { } }, 30);
+    }
+  }
+  // Reconstruct a plausible FULL state from our redacted view so the AI can run:
+  // fill the hidden deck with unseen cards, drop the hidden (stub) reserves. The AI
+  // therefore plays from PUBLIC info only — it never sees a player's hidden hand.
+  function determinizeForAI(s) {
+    const d = E.clone(s);
+    const seen = new Set();
+    for (const t in d.field) for (const id of (d.field[t] || [])) if (id) seen.add(id);
+    for (const id of (d.megaOffer || [])) seen.add(id);
+    d.players.forEach(p => {
+      (p.board || []).forEach(id => seen.add(id));
+      (p.buried || []).forEach(id => seen.add(id));
+      p.reserve = (p.reserve || []).filter(rid => typeof rid === 'string'); // drop {hidden,tier} stubs
+      p.reserve.forEach(id => seen.add(id));
+    });
+    const pools = {};
+    [].concat(DB, MEGA_DB, POKEMART_DB).forEach(c => { if (c && !seen.has(c.id)) (pools[c.tier] = pools[c.tier] || []).push(c.id); });
+    for (const t in d.decks) {
+      const pool = pools[t] || []; let k = 0;
+      d.decks[t] = (d.decks[t] || []).map(() => pool.length ? pool[k++ % pool.length] : null).filter(x => x != null);
+    }
+    return d;
+  }
+  function computeTakeoverPlan() {
+    let plan = null;
+    try {
+      const det = determinizeForAI(G);
+      if (window.VSearch && det.numPlayers === 2) { try { plan = VSearch.chooseTurn(det, ULTRA_CFG); } catch (e) { plan = null; } }
+      if (!plan || !plan.action) plan = AI.chooseTurn(det, { difficulty: 'hard' });
+    } catch (e) { plan = null; }
+    return plan || { action: null, discards: [], evolution: null };
   }
   // Derive the local UI phase from a snapshot. The board renders for everyone, but
   // you can only act on your own turn (interactable() also gates on myTurn()).
