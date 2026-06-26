@@ -783,12 +783,45 @@
     return acts;
   }
 
-  function applyAction(s, a) {
-    if (a.type === 'take') return actionTake(s, a.colors);
-    if (a.type === 'capture') return actionCapture(s, a.cardId, a.opts);
-    if (a.type === 'reserve') return actionReserve(s, a.target);
-    if (a.type === 'takeMega') return actionTakeMega(s);
-    return { ok: false, error: '未知行动' };
+  // Total reducer: a single validate-and-apply chokepoint for EVERY move, so
+  // both local clicks and network messages flow through one path. The move's
+  // {type,...} object is the wire format. `playerId` is an optional ownership
+  // guard for networked play (reject a move submitted for a seat that isn't the
+  // active player); local/AI callers omit it. End-of-turn steps (evolve / mega
+  // / discard / endTurn) are included so a turn's whole lifecycle is serialisable.
+  function applyAction(s, a, playerId) {
+    if (playerId != null && playerId !== s.turn) return { ok: false, error: '未轮到你' };
+    switch (a.type) {
+      case 'take':       return actionTake(s, a.colors);
+      case 'capture':    return actionCapture(s, a.cardId, a.opts);
+      case 'reserve':    return actionReserve(s, a.target);
+      case 'takeMega':   return actionTakeMega(s);
+      case 'evolve':     return actionEvolve(s, a.fromId, a.toId);
+      case 'megaEvolve': return actionMegaEvolve(s, a.megaId, a.fromId);
+      case 'discard':    return actionDiscard(s, a.color);
+      case 'pass':       return actionPass(s);
+      case 'endTurn':    return endTurn(s);
+      default:           return { ok: false, error: '未知行动' };
+    }
+  }
+
+  // Public projection of the state for ONE viewer, safe to send over a network.
+  // Hides what the viewer must not see — the ordered face-down deck (every future
+  // draw) and other players' reserved-card identities (possibly drawn blind) —
+  // while preserving counts/tiers so the UI still renders pile sizes & card-backs.
+  // Static card refs are omitted (every client already has the full card DB).
+  function redactFor(s, viewerId) {
+    const { cardDB, byId: _b, megaDB, pokemartDB, ...dyn } = s;
+    const v = JSON.parse(JSON.stringify(dyn));            // deep copy of dynamic state
+    if (v.decks) for (const t in v.decks) v.decks[t] = v.decks[t].map(() => null); // hide deck order, keep length
+    v.players = v.players.map((p, i) => {
+      if (i === viewerId) return p;                       // you see your OWN reserve ids
+      return Object.assign({}, p, {                       // opponents' reserves → {hidden,tier} stubs
+        reserve: p.reserve.map(id => ({ hidden: true, tier: (s.byId[id] || {}).tier || null })),
+      });
+    });
+    v.viewerId = viewerId;
+    return v;
   }
 
   // --------------------------- i18n bits -----------------------------
@@ -825,7 +858,7 @@
     actionTakeMega, megaEvolveOptions, actionMegaEvolve, MEGA_TOKENS, MEGA_WIN_SCORE,
     PM_TIERS, PM_SLOTS, fieldTiers, isPokemart, effBonusColor, freeTiers, freeTakeable,
     evolutionOptions, needsDiscard, turnState, endTurn, determineWinner,
-    legalActions, applyAction, clone,
+    legalActions, applyAction, redactFor, clone,
     zhBall, zhTier, payDesc,
   };
 });
