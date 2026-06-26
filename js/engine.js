@@ -251,7 +251,10 @@
       if (slots[i] == null && s.decks[tier].length) slots[i] = s.decks[tier].pop();
     }
   }
-  function log(s, msg) { s.log.push({ turn: s.turn, round: s.round, msg }); }
+  function log(s, msg) {
+    s.log.push({ turn: s.turn, round: s.round, msg });
+    if (s.log.length > 200) s.log.splice(0, s.log.length - 200); // bound growth (persisted + broadcast online)
+  }
 
   // ----------------------- payment computation -----------------------
   // Compute how to pay for a card given current bonuses & tokens.
@@ -321,6 +324,7 @@
     const p = activePlayer(s);
     if (s.acted) return { ok: false, error: '本回合已行动' };
     if (!Array.isArray(colors) || colors.length === 0) return { ok: false, error: '未选择精灵球' };
+    if (colors.length > 6) return { ok: false, error: '非法的拿取' }; // bound input before allocating a Set
     for (const c of colors) {
       if (!COLORS.includes(c)) return { ok: false, error: '不能拿取大师球' };
     }
@@ -500,7 +504,7 @@
     }
 
     // --- optional: discard POKÉDEX cards as 2 virtual master balls each ---
-    const spend = opts.spendPokedex || [];
+    const spend = Array.isArray(opts.spendPokedex) ? opts.spendPokedex : []; // never iterate a non-array
     for (const pid of spend) {
       const pc = s.byId[pid];
       if (p.board.indexOf(pid) < 0 || !(isPokemart(pc) && pc.effect === 'colorless_master')) {

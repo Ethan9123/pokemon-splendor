@@ -108,6 +108,17 @@
       this._roster();
     }
 
+    // Quiet transport re-attach after the DO hibernates: restore a connId→seat
+    // mapping by token ONLY — no welcome/roster/state side-effects (those happen
+    // when the client itself re-sends join/sync on a real reconnect). Works even
+    // before the game has started, so a lobby that hibernated isn't bricked.
+    rebind(connId, token) {
+      const seat = token != null ? this.seats.findIndex(s => s.token === token) : -1;
+      if (seat >= 0) { this.seats[seat].connId = connId; this.seats[seat].connected = true; this.conns[connId] = seat; }
+      else this.conns[connId] = -1;
+      return this.conns[connId];
+    }
+
     // ------------------------------- messages ------------------------------
     onMessage(connId, msg) {
       if (!msg || typeof msg.t !== 'string') return;
@@ -125,12 +136,17 @@
       if (!this.seats.length) return this.send(connId, { t: 'reject', reason: '房间里还没有玩家' });
       opts = opts || {};
       const names = this.seats.map((s, i) => s.name || ('训练家 ' + (i + 1)));
+      // server-authoritative RNG: NEVER trust a client-supplied seed — it would let
+      // the host precompute the entire deck order. Mint it here; fall back to the
+      // engine's own random seed if Web Crypto is somehow unavailable.
+      let seed;
+      try { seed = globalThis.crypto.getRandomValues(new Uint32Array(1))[0] >>> 0; } catch (e) { seed = undefined; }
       this.G = E.createGame(this.DB, {
         numPlayers: this.seats.length, names,
         ai: this.seats.map(() => false),                        // all-human online
         megas: !!opts.megas, megaDB: this.megaDB,
         pokemart: !!opts.pokemart, pokemartDB: this.pokemartDB,
-        seed: opts.seed,
+        seed,
       });
       this.started = true;
       this.seq++;
@@ -155,7 +171,7 @@
     _stateTo(connId) {
       if (!this.started || !this.G) return;
       const seat = this.conns[connId];
-      const view = (seat != null && seat >= 0) ? seat : 0;      // spectators get seat-0's view
+      const view = (seat != null && seat >= 0) ? seat : -1;     // spectators: -1 matches no seat → everything stays redacted
       this.send(connId, { t: 'state', seq: this.seq, state: E.redactFor(this.G, view) });
     }
     _roster() {

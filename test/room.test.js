@@ -1,6 +1,7 @@
 /* Headless tests for the online Room authority — run: node test/room.test.js */
 const assert = require('assert');
 const { Room } = require('../js/room.js');
+const E = require('../js/engine.js');
 const DB = require('../data/cards.json');
 
 let passed = 0, failed = 0;
@@ -136,6 +137,64 @@ test('snapshot/restore round-trips the game (DO persistence across eviction)', (
   room2.onMessage('cB2', { t: 'action', seq: 1, action: TAKE });
   const rej = (inbox2['cB2'] || []).filter(m => m.t === 'reject').pop();
   assert.ok(rej, 'rules still enforced after restore');
+});
+
+// ---- security/robustness regressions (from the adversarial worker review) ----
+test('FIX1: a spectator (no seat) gets a fully-redacted view — no reserve leaks', () => {
+  const { room, last } = makeRoom();
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  room.onMessage('cB', { t: 'join', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });
+  room.onMessage('cA', { t: 'action', seq: 1, action: { type: 'reserve', target: { fromDeck: 'stage1' } } });
+  room.onMessage('cS', { t: 'join', token: 'tS' });               // 3rd conn after start → spectator
+  const spec = last('cS', 'state');
+  assert.ok(spec, 'spectator receives a state');
+  assert.strictEqual(spec.state.viewerId, -1);
+  const r0 = spec.state.players[0].reserve[0];
+  assert.strictEqual(typeof r0, 'object');                        // a {hidden,tier} stub, NOT a real id
+  assert.strictEqual(r0.hidden, true);
+  assert.ok(spec.state.decks.stage1.every(x => x === null), 'decks still blanked for spectator');
+});
+
+test('FIX2: a client-supplied seed is ignored (server mints its own RNG)', () => {
+  const { room, last } = makeRoom();
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  room.onMessage('cB', { t: 'join', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: { seed: 12345 } });
+  const got = last('cA', 'state').state.field.stage1.join(',');
+  const ifHonored = E.createGame(DB, { numPlayers: 2, seed: 12345 }).field.stage1.join(',');
+  assert.notStrictEqual(got, ifHonored, 'server must not honor the client seed (would leak deck order)');
+});
+
+test('FIX3: rebind silently restores a seat by token (hibernation wake, no message storm)', () => {
+  const { room } = makeRoom();
+  room.onMessage('cA', { t: 'join', name: 'A', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'B', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });
+  const snap = JSON.parse(JSON.stringify(room.snapshot()));        // DO hibernates → new isolate
+  const inbox2 = {};
+  const room2 = new Room({ cardDB: DB, send: (cid, msg) => { (inbox2[cid] = inbox2[cid] || []).push(msg); } });
+  room2.restore(snap);
+  room2.rebind('cA', 'tA'); room2.rebind('cB', 'tB');             // quiet re-attach
+  assert.strictEqual((inbox2['cA'] || []).length, 0, 'rebind emits nothing');
+  room2.onMessage('cB', { t: 'action', seq: 1, action: TAKE });
+  assert.ok((inbox2['cB'] || []).some(m => m.t === 'reject'), 'seat mapping restored: cB blocked on cA turn');
+  room2.onMessage('cA', { t: 'action', seq: 1, action: TAKE });
+  assert.ok((inbox2['cA'] || []).some(m => m.t === 'state'), 'cA can act after rebind');
+});
+
+test('FIX3: a lobby that hibernated BEFORE start is not bricked (host can still start)', () => {
+  const { room } = makeRoom();
+  room.onMessage('cA', { t: 'join', name: 'A', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'B', token: 'tB' });
+  const snap = JSON.parse(JSON.stringify(room.snapshot()));        // hibernate while NOT started
+  const inbox2 = {};
+  const room2 = new Room({ cardDB: DB, send: (cid, msg) => { (inbox2[cid] = inbox2[cid] || []).push(msg); } });
+  room2.restore(snap);
+  room2.rebind('cA', 'tA'); room2.rebind('cB', 'tB');
+  room2.onMessage('cA', { t: 'start', opts: {} });                // host = seat 0
+  assert.ok((inbox2['cA'] || []).some(m => m.t === 'state'), 'host could start after pre-start hibernation');
+  assert.ok(!(inbox2['cA'] || []).some(m => m.t === 'reject'), 'no 房主 rejection after rebind');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
