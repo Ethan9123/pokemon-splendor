@@ -242,6 +242,84 @@
   }
   const captureAffordable = (card) => !!affordInfo(card);
 
+  // --- purchase ledger: an at-a-glance payment breakdown shown when a card is
+  // selected. Per colour it shows 需(required) · 抵(covered free by bonuses, no
+  // ball spent) · 交(balls handed back to the supply), how many 大师球 (Master /
+  // wildcard) fill the shortfall, then an aggregate "你交出" strip of the exact
+  // balls leaving your stash. Colour-blind safe: every state carries a symbol
+  // (斜线=抵扣 / 实心=交出 / ★=大师) + numerals, never colour alone (WCAG 1.4.1).
+  // Derives the same split as E.paymentBreakdown but also renders a preview when
+  // the card isn't affordable yet. `info` = affordInfo(card) result (or null).
+  function purchaseLedgerHTML(card, info) {
+    // Repel (discard_buy) is bought by discarding cards, not balls → no ball ledger.
+    if (E.isPokemart(card) && card.effect === 'discard_buy') return '';
+    const p = me();
+    const b = E.bonuses(G, p);
+    const rows = [];
+    let wildNeed = 0;
+    for (const c of E.COLORS) {
+      const required = card.cost[c] || 0;
+      if (!required) continue;
+      const bonusCovered = Math.min(required, b[c]);
+      const remaining = required - bonusCovered;
+      const paidColor = Math.min(remaining, p.tokens[c]);
+      rows.push({ color: c, required, bonusCovered, paidColor, paidWild: remaining - paidColor });
+      wildNeed += remaining - paidColor;
+    }
+    const mandatory = card.cost.purple || 0;                 // rare/legend printed Master
+    const virtual = info && info.pokedex ? info.pokedex * 2 : 0; // wildcard from discarding 图鉴
+    const masterNeed = wildNeed + mandatory;
+    const masterFromStash = Math.max(0, masterNeed - virtual);
+    const affordable = !!info;
+    const masterShort = Math.max(0, masterNeed - p.tokens.purple - virtual);
+    if (!rows.length && !mandatory) return ''; // no ball cost at all
+
+    const pip = (extra) => `<span class="pip ball ${extra}"></span>`;
+    let rowsHtml = '';
+    for (const r of rows) {
+      let pips = '';
+      for (let i = 0; i < r.bonusCovered; i++) pips += pip(r.color + ' pip-bonus');
+      for (let i = 0; i < r.paidColor; i++) pips += pip(r.color + ' pip-paid');
+      for (let i = 0; i < r.paidWild; i++) pips += pip('purple pip-wild');
+      const disc = r.bonusCovered ? ` <span class="pl-disc">−抵${r.bonusCovered}</span>` : '';
+      const wild = r.paidWild ? ` <span class="pl-wild">(${r.paidWild}★)</span>` : '';
+      rowsHtml += `<div class="pl-row">
+          <span class="pl-name"><span class="ball ${r.color} xs"></span>${BALL_NAMES[r.color]}</span>
+          <span class="pl-pips">${pips}</span>
+          <span class="pl-calc">需${r.required}${disc} = 交<b class="pl-pay">${r.paidColor + r.paidWild}</b>${wild}</span>
+        </div>`;
+    }
+    if (mandatory) {
+      let pips = '';
+      for (let i = 0; i < mandatory; i++) pips += pip('purple pip-wild');
+      rowsHtml += `<div class="pl-row">
+          <span class="pl-name"><span class="ball purple xs"></span>大师球·必需</span>
+          <span class="pl-pips">${pips}</span>
+          <span class="pl-calc">需${mandatory} = 交<b class="pl-pay">${mandatory}</b></span>
+        </div>`;
+    }
+
+    let hoChips = '';
+    for (const r of rows) if (r.paidColor) hoChips += `<span class="ho-chip"><span class="ball ${r.color} sm"></span>×${r.paidColor}</span>`;
+    if (masterFromStash) hoChips += `<span class="ho-chip ho-master"><span class="ball purple sm"></span>★×${masterFromStash}</span>`;
+
+    let body;
+    if (!affordable) {
+      body = `<div class="pl-short">⚠ 还差 <b>${masterShort}</b> 个球才能购买（大师球可抵任意颜色）</div>`;
+    } else if (!hoChips) {
+      body = `<div class="pl-free">✓ 免费！奖励已全额抵扣，无需交出任何球</div>`;
+    } else {
+      const vNote = virtual ? `<span class="pl-vnote">（含弃置图鉴抵充 ${virtual}）</span>` : '';
+      body = `<div class="handover"><span class="ho-label">你交出</span>${hoChips}<span class="ho-arrow">→ 供应区</span>${vNote}</div>`;
+    }
+
+    const legend = rows.some(r => r.bonusCovered || r.paidWild)
+      ? `<div class="pl-legend"><span class="lg lg-bonus"></span>奖励抵扣·免交 <span class="lg lg-paid"></span>交出该色球 <span class="lg lg-wild"></span>大师球抵充</div>`
+      : '';
+
+    return `<div class="pay-ledger${affordable ? '' : ' unafford'}">${rowsHtml}${legend}${body}</div>`;
+  }
+
   function renderSupply() {
     const counts = {}; UI.pick.forEach(c => counts[c] = (counts[c] || 0) + 1);
     const human = isHuman(G.turn) && G.phase === 'play' && UI.phase === 'main' && !G.acted;
@@ -332,10 +410,9 @@
       const reserveTier = (loc.where === 'field') && (E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier));
       const canReserve = reserveTier && p.reserve.length < E.HAND_MAX;
       const eff = E.isPokemart(c) && c.effect ? ` · <span class="eff-tag">${EFFECT_NAMES[c.effect] || ''}</span>` : '';
-      const wildNote = !aff ? '' : (info.master > 0
-        ? ` · 将花费 <b style="color:#b79bff">${info.master} 个大师球</b>（你有 ${p.tokens.purple} 个）`
-        : ` · <span style="color:var(--good)">无需大师球</span>`);
-      let html = `<img class="sel-preview" src="${c.img}" alt="${c.name}"><div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}${aff ? '' : ' · 无法支付'}${wildNote}<br><span style="font-size:12px;opacity:.75">点卡面可放大查看</span></div><div class="act-buttons">`;
+      let ledger = purchaseLedgerHTML(c, info);
+      if (!ledger && !aff) ledger = `<div class="pay-ledger unafford"><div class="pl-short">⚠ 暂时无法购买</div></div>`;
+      let html = `<img class="sel-preview" src="${c.img}" alt="${c.name}"><div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}<br><span style="font-size:12px;opacity:.75">点卡面可放大查看</span></div>${ledger}<div class="act-buttons">`;
       if (aff) html += `<button class="primary" data-act="capture">捕捉</button>`;
       if (canReserve) html += `<button class="ghost" data-act="reserve-card">保留</button>`;
       html += `<button class="ghost" data-act="clear-sel">取消</button></div>`;

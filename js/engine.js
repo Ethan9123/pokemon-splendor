@@ -276,6 +276,35 @@
   }
   function canAfford(s, player, card) { return computePayment(s, player, card).ok; }
 
+  // Per-colour breakdown of a purchase, purely for display. Mirrors
+  // computePayment's gold-minimising logic so the UI can show, for each colour:
+  //   required     = balls printed on the card cost
+  //   bonusCovered = covered for free by permanent bonuses (no token spent)
+  //   paidColor    = matching coloured tokens you hand back to the supply
+  //   paidWild     = covered by Master Balls (wildcard) because that colour ran short
+  // Plus the card's mandatory Master cost (rare/legend). Returns null if unaffordable.
+  function paymentBreakdown(s, player, card, extraMaster) {
+    const cp = computePayment(s, player, card, extraMaster);
+    if (!cp.ok) return null;
+    const b = bonuses(s, player);
+    const rows = [];
+    for (const c of COLORS) {
+      const required = card.cost[c] || 0;
+      if (required === 0) continue;
+      const bonusCovered = Math.min(required, b[c]);
+      const remaining = required - bonusCovered;
+      const paidColor = Math.min(remaining, player.tokens[c]);
+      rows.push({ color: c, required, bonusCovered, paidColor, paidWild: remaining - paidColor });
+    }
+    const mandatoryMaster = card.cost.purple || 0; // purple pips printed on rare/legend
+    return {
+      rows,
+      mandatoryMaster,
+      master: cp.pay.purple,                // real Master Balls spent from your stash
+      virtualMaster: cp.virtualMaster || 0, // Master "balls worth" from discarded POKÉDEX
+    };
+  }
+
   function payTokens(s, player, pay) {
     for (const c of ALL_TOKENS) {
       player.tokens[c] -= pay[c];
@@ -791,7 +820,7 @@
     HAND_MAX, TOKEN_MAX, WIN_SCORE,
     makeRng, shuffle, supplyFor,
     createGame, activePlayer, bonusOf, bonuses, tokenTotal, scoreOf, locateCard, refill,
-    computePayment, canAfford,
+    computePayment, canAfford, paymentBreakdown,
     actionTake, actionReserve, actionCapture, actionEvolve, actionDiscard, actionPass,
     actionTakeMega, megaEvolveOptions, actionMegaEvolve, MEGA_TOKENS, MEGA_WIN_SCORE,
     PM_TIERS, PM_SLOTS, fieldTiers, isPokemart, effBonusColor, freeTiers, freeTakeable,

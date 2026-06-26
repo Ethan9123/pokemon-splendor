@@ -140,6 +140,46 @@ test('rare requires master balls', () => {
   assert.ok(E.actionCapture(g, rare.id).ok, 'should succeed with master');
 });
 
+// ---- payment breakdown (display decomposition) ----
+test('paymentBreakdown splits required / bonus / token / wildcard per colour', () => {
+  const g = E.createGame(DB, { numPlayers: 2, seed: 9 });
+  const p = g.players[0];
+  p.board = [];
+  const mkCard = (id, cost, bonus) => ({ id, tier: 'stage1', name: id, vp: 0, bonus: bonus || 'red', bonusCount: 1, cost: Object.assign({ red: 0, blue: 0, black: 0, pink: 0, yellow: 0, purple: 0 }, cost), evolvesTo: null, evoCost: null });
+  const target = mkCard('pbT', { red: 3, blue: 2 });
+  g.byId[target.id] = target;
+  // one red bonus card → red discount 1
+  const fakeRed = mkCard('pbB', {}, 'red'); g.byId[fakeRed.id] = fakeRed; p.board.push(fakeRed.id);
+  for (const k of E.ALL_TOKENS) p.tokens[k] = 0;
+  p.tokens.red = 1; p.tokens.purple = 5;
+
+  const bd = E.paymentBreakdown(g, p, target);
+  assert.ok(bd, 'affordable via wildcards');
+  assert.strictEqual(bd.rows.length, 2, 'only colours with required>0');
+  const red = bd.rows.find(r => r.color === 'red');
+  const blue = bd.rows.find(r => r.color === 'blue');
+  // red: need 3, −1 bonus = 2 left → 1 paid by red token, 1 by master
+  assert.deepStrictEqual(red, { color: 'red', required: 3, bonusCovered: 1, paidColor: 1, paidWild: 1 });
+  // blue: need 2, no bonus, no blue tokens → both by master
+  assert.deepStrictEqual(blue, { color: 'blue', required: 2, bonusCovered: 0, paidColor: 0, paidWild: 2 });
+  assert.strictEqual(bd.master, 3, '1+2 master balls from stash');
+  assert.strictEqual(bd.mandatoryMaster, 0);
+
+  // fully discounted → pay nothing
+  for (let i = 0; i < 2; i++) { const c = mkCard('pbR' + i, {}, 'red'); g.byId[c.id] = c; p.board.push(c.id); }
+  for (let i = 0; i < 2; i++) { const c = mkCard('pbU' + i, {}, 'blue'); g.byId[c.id] = c; p.board.push(c.id); }
+  const bd2 = E.paymentBreakdown(g, p, target);
+  assert.strictEqual(bd2.master, 0);
+  assert.ok(bd2.rows.every(r => r.paidColor === 0 && r.paidWild === 0 && r.bonusCovered === r.required));
+
+  // unaffordable → null
+  const g2 = E.createGame(DB, { numPlayers: 2, seed: 10 });
+  const p2 = g2.players[0]; p2.board = [];
+  for (const k of E.ALL_TOKENS) p2.tokens[k] = 0;
+  g2.byId[target.id] = target;
+  assert.strictEqual(E.paymentBreakdown(g2, p2, target), null);
+});
+
 // ---- reserve ----
 test('reserve grants a master and respects hand limit', () => {
   const g = E.createGame(DB, { numPlayers: 2, seed: 8 });
