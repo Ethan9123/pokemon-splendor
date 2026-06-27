@@ -932,7 +932,7 @@
   }
   function updateUndoBtn() {
     const btn = $('#undo-btn'); if (!btn) return;
-    const show = UI.hasAI && G && G.phase === 'play' && UI.phase === 'main' && !me().isAI && !UI.busy && undoStack.length >= 2;
+    const show = UI.hasAI && UI.humans === 1 && G && G.phase === 'play' && UI.phase === 'main' && !me().isAI && !UI.busy && undoStack.length >= 2;
     btn.classList.toggle('hidden', !show);
   }
   function doDiscard(color) {
@@ -988,7 +988,7 @@
     autosave();                               // snapshot the clean turn start (resume point)
     const p = me();
     if (p.isAI) { render(); updateUndoBtn(); const e = gameEpoch; setTimeout(() => { if (e === gameEpoch) aiPlay(); }, 120); return; }
-    if (UI.hasAI) pushUndo();                 // snapshot at each human turn start (undo target)
+    if (UI.hasAI && UI.humans === 1) pushUndo(); // snapshot each human turn start (undo target; 1-human-vs-AI only)
     // hotseat: hide previous player's hidden info before a human's turn
     if (UI.humans >= 2) { showPassOverlay(p); }
     else render();

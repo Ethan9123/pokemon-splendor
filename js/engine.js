@@ -722,9 +722,19 @@
 
   function determineWinner(s) {
     // most VP, then most buried (evolutions), then most board cards
-    let best = 0;
     const rank = (p) => [scoreOf(s, p), p.buried.length, p.board.length];
-    for (let i = 1; i < s.numPlayers; i++) {
+    // Eligibility: in the Megas variant only a player who actually achieves the
+    // win condition (20 VP + every colour + a Mega in play) can win — a rival with
+    // more raw points but no Mega/colour set does NOT. (Base game: everyone is
+    // eligible; the highest score already implies they crossed the threshold.)
+    let pool = [];
+    for (let i = 0; i < s.numPlayers; i++) pool.push(i);
+    if (s.megasEnabled) {
+      const q = pool.filter(i => hasMegaWin(s, s.players[i]));
+      if (q.length) pool = q;   // fall back to all only in the pathological "nobody qualifies" case
+    }
+    let best = pool[0];
+    for (const i of pool) {
       const a = rank(s.players[i]), b = rank(s.players[best]);
       if (a[0] > b[0] || (a[0] === b[0] && (a[1] > b[1] || (a[1] === b[1] && a[2] > b[2])))) best = i;
     }
