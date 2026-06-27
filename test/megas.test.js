@@ -132,5 +132,33 @@ test('win trigger with megas: needs 20 VP AND every color AND a mega', () => {
   assert.strictEqual(g.lastRound, true, '20 VP + every color + a mega => final round');
 });
 
+// ---- winner eligibility: only a player who achieves the Mega condition can win ----
+test('winner must satisfy the Mega condition — a higher-score rival without it cannot win', () => {
+  const g = newGame();                         // 2 players
+  const p0 = g.players[0], p1 = g.players[1];
+  p0.board = []; p1.board = [];
+  const vpOf = (p) => p.board.reduce((v, id) => v + (g.byId[id].vp || 0), 0);
+  const s3 = DB.filter(c => c.tier === 'stage3').map(c => c.id);
+
+  // P1 = a legitimate Mega winner: every colour + a Mega in play + >=20 VP.
+  for (const c of E.COLORS) giveBonus(g, p1, c, 1);
+  p1.board.push(MEGA[0].id);                    // tier 'mega' on the board
+  let i = 0;
+  while (vpOf(p1) < 20) p1.board.push(s3[i++]);
+
+  // P0 = MORE raw points but NO mega -> fails the Mega win condition.
+  let j = 0;
+  while (vpOf(p0) <= vpOf(p1)) p0.board.push(s3[j++]);
+
+  assert.ok(vpOf(p0) > vpOf(p1), 'sanity: P0 outscores P1 on raw VP');
+  assert.ok(!p0.board.some(id => g.byId[id].tier === 'mega'), 'sanity: P0 has no Mega');
+  // Despite P0 having more points, the Mega-qualifying P1 must be declared the winner.
+  assert.strictEqual(E.determineWinner(g), 1, 'higher-VP non-qualifier must not win a Megas game');
+
+  // And with Megas OFF, the plain highest-score player (P0) wins as before.
+  g.megasEnabled = false;
+  assert.strictEqual(E.determineWinner(g), 0, 'base game: highest score wins');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
