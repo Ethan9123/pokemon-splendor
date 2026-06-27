@@ -2,7 +2,7 @@
 
 一个可在浏览器中直接游玩的《璀璨宝石：宝可梦》网页版 —— 收集精灵球，捕捉并**进化**宝可梦，率先达到 **18 分**成为冠军训练家。
 
-支持 **2–4 人本地热座**（pass-and-play）与**电脑对手**（新手 / 普通 / 高手三档）。
+支持 **2–4 人本地热座**（pass-and-play）、**电脑对手**（新手 / 普通 / 高手 / 究极四档）与**在线联机对战**（房间码 + 邀请链接）。另含两套可选**扩展**（超级进化 Megas、Pokémart 商店）、零基础**新手教程**、移动端 / PWA 适配与**本地存档续局**。
 
 > 卡牌美术与数值均源自 Tabletop Simulator 模组「**璀璨宝石：宝可梦（自动脚本）**」。由于模组只把分值写进卡面，本项目用视觉识别从 100 张原始卡面逐张提取了：捕捉成本、折扣球、奖杯点数、进化目标与进化花费，并经二次复核 + 标签交叉校验。
 
@@ -19,6 +19,18 @@ npx serve .
 
 然后访问 http://localhost:8000 。
 
+刷新或退出后，开局界面会提供「▶ 继续上一局」——每个回合边界都会把对局快照存到 `localStorage`。
+
+## 在线联机对战
+
+点开局界面的 **🌐 创建联机房间** 生成一个房间码（可「复制邀请链接」分享），其他玩家用 **🔗 加入房间** 输入房间码即可入座；房主（第一个进房的人）点「开始游戏」发牌。
+
+- **服务器权威**：每一步都在服务端用引擎校验（座位即所有权），每个客户端只收到对自己**脱敏**后的状态（看不到牌堆顺序与对手保留牌）。
+- **断线重连**：身份用本地 token 绑定座位，刷新 / 掉线后用同一浏览器重连即可复位座位与隐藏手牌。
+- **超时代打**：某玩家超过 **3 分钟**未行动，房主的「研究级 AI」会仅凭公共信息接管该回合，避免卡局。
+
+联机依赖一个 Cloudflare Worker（见下「部署」），纯静态托管（如 GitHub Pages）只能单机热座 + AI，无法联机。
+
 ## 玩法要点
 
 - **6 种精灵球**：精灵球(红)、超级球(蓝)、高级球(黑)、治愈球(粉)、先机球(黄)，以及 **大师球(紫)**——万能球。
@@ -27,26 +39,49 @@ npx serve .
 - **进化（回合结束，非行动）**：若已捕捉宝可梦的进化形出现在场上或你的手牌中，且你**已捕捉宝可梦提供的折扣球（卡面右上角）**满足卡面顶部的进化花费，即可进化——**只看折扣球，不消耗你手中的精灵球**。用进化形替换原卡，原卡移到训练板下方（不再计分/折扣）。每回合至多 1 次。
 - **精灵球上限 10**；某玩家达 **18 分**后本轮结束，分高者胜（平局比进化数，再比场上宝可梦数）。
 
+## 可选扩展
+
+开局界面勾选即可启用（可组合）：
+
+- **超级进化（Megas）**：第 4 级 Mega 卡 + Mega 代币。胜利改为需 **20 分 + 集齐每色 + 至少 1 只 Mega**。
+- **Pokémart 商店**：商店卡带交互效果（药水双效奖励 / 进化石关联 / 图鉴抵款 / 神奇糖果·技能机免费取卡 / 驱虫弃购）。
+
 ## 项目结构
 
 ```
 index.html          入口
-css/style.css       样式（含 CSS 绘制的精灵球）
-js/engine.js        纯逻辑游戏引擎（规则 / 进化 / 计分），浏览器与 Node 通用
-js/ai.js            电脑对手（评估函数 + 进化感知的一层搜索）
+css/style.css       样式（含 CSS 绘制的精灵球 / 动画 / 联机大厅）
+js/engine.js        纯逻辑游戏引擎（规则 / 进化 / 计分 / 脱敏 / 合法动作），浏览器与 Node 通用
+js/ai.js            电脑对手（评估函数 + 进化感知的一层搜索；SPSA 自动调参权重）
+js/vsearch.js       「究极」难度：基于启发式先验的去随机化 MCTS（仅 2 人）
 js/cards.js         卡牌数据库（自动生成，勿手改）
+js/megas.js         超级进化扩展 · js/pokemart.js  Pokémart 商店扩展
+js/net.js           联机客户端传输（window.Net：WebSocket + 心跳 + token 重连）
+js/room.js          联机房间权威（纯逻辑，浏览器与 Node 通用，可 headless 单测）
+js/tutorial.js      零基础新手教程（引导式）
 js/ui.js            界面与交互
-data/cards.json     卡牌数据库（供 Node 测试）
-assets/cards/       100 张卡面 + 牌背
-test/               Node 单元测试（引擎 / AI）
+worker/index.js     Cloudflare Worker 入口 + 每房间一个 Durable Object（仅加传输，规则全在 room.js）
+data/cards.json     卡牌数据库（供 Node 测试）· data/megas.json · data/pokemart.json
+assets/cards/       100 张卡面 + 牌背（+ Pokémart pm_01..30）
+manifest.json sw.js PWA 清单与离线缓存
+test/               Node 单元测试（引擎 / AI / 扩展 / 联机房间）
+wrangler.jsonc      Cloudflare 部署配置（静态资源 + Durable Object + 自定义域名）
 ```
 
 ## 开发与测试
 
 ```bash
-node test/engine.test.js   # 引擎规则 + 100 局自走验证（含计分/进化/结束/筹码守恒）
+node test/engine.test.js   # 引擎规则 + 100 局自走验证（含计分/进化/结束/筹码守恒/脱敏）
 node test/ai.test.js       # AI 强度（对贪心基线胜率）/ 终局 / 延迟
+node test/room.test.js     # 联机房间权威（座位/脱敏/重连/持久化/超时代打）
+node test/megas.test.js    # 超级进化扩展
+node test/pokemart.test.js # Pokémart 商店扩展
 ```
+
+## 部署
+
+- **纯静态**（单机热座 + AI）：任意静态托管即可（如 GitHub Pages），双击 `index.html` 同款。
+- **含联机**：用 Cloudflare Workers 部署（`npx wrangler deploy`）。`wrangler.jsonc` 已配置 ASSETS 静态资源绑定、`Room` Durable Object 与自定义域名；Worker 把 `/room/:code/ws` 路由到对应房间的 DO，其余路径回退静态资源。
 
 ## 致谢
 
