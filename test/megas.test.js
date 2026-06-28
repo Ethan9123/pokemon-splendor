@@ -17,8 +17,8 @@ function giveBonus(g, p, color, n) {
 }
 
 // ---- mega DB integrity ----
-test('mega DB: 10 cards, 2-3 bonuses, cost includes a master ball, maps to a base species', () => {
-  assert.strictEqual(MEGA.length, 10);
+test('mega DB: 11 cards, 2-3 bonuses, cost includes a master ball, maps to a base species', () => {
+  assert.strictEqual(MEGA.length, 11);
   const names = new Set(DB.map(c => c.name));
   for (const m of MEGA) {
     assert.strictEqual(m.tier, 'mega', m.id);
@@ -41,12 +41,28 @@ test('expansion off: no mega state, win trigger stays 18', () => {
 });
 
 // ---- setup ----
-test('setup: 4 mega tokens, 10-card mega offer, players hold 0', () => {
+test('setup: 4 mega tokens, 11-card mega offer, players hold 0', () => {
   const g = newGame();
   assert.strictEqual(g.megasEnabled, true);
   assert.strictEqual(g.supply.megaToken, 4);
-  assert.strictEqual(g.megaOffer.length, 10);
+  assert.strictEqual(g.megaOffer.length, 11);
   assert.strictEqual(g.players[0].megaToken, 0);
+});
+
+// ---- 超级化石翼龙 (Mega Aerodactyl): evolves from a rare-tier base ----
+test('Mega Aerodactyl: vp2 / yellow x3 / cost blue4 + 1 master, evolves from the rare 化石翼龙', () => {
+  const m = MEGA.find(x => x.id === 'mg_11');
+  assert.ok(m, 'mg_11 exists');
+  assert.strictEqual(m.name, '超级化石翼龙');
+  assert.strictEqual(m.megaFrom, '化石翼龙');
+  assert.strictEqual(m.vp, 2);
+  assert.strictEqual(m.bonus, 'yellow');
+  assert.strictEqual(m.bonusCount, 3);
+  assert.strictEqual(m.cost.blue, 4);
+  assert.strictEqual(m.cost.purple, 1);
+  // the base it evolves from really is a rare-tier card in the main DB
+  const base = DB.find(c => c.name === '化石翼龙');
+  assert.ok(base && base.tier === 'rare', '化石翼龙 is a rare-tier base');
 });
 
 // ---- take mega token action ----
