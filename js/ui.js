@@ -1099,15 +1099,15 @@
           : AI.chooseTurn(G, { difficulty: fallbackDiff });   // AZ seat whose net move failed
         if (epoch !== gameEpoch) return;               // undo/new-game while the worker searched
         if (!G || G.phase === 'gameover') { UI.busy = false; return; }
-        const takeMega = G.megasEnabled && aiShouldTakeMega(G, pid);
-        dec = takeMega ? { type: 'pass' } : decodePlan(plan);
+        // Megas moves (takeMega action, mega evolution) now come from the plan
+        // itself: legalActions enumerates takeMega and AI.manage weighs mega vs
+        // normal evolution — no UI bolt-ons, so search and reality stay in sync.
+        dec = decodePlan(plan);
         applyFn = () => {
-          if (takeMega) E.actionTakeMega(G);
-          else if (plan.action) E.applyAction(G, plan.action); else E.actionPass(G);
+          if (plan.action) E.applyAction(G, plan.action); else E.actionPass(G);
           for (const c of plan.discards) E.actionDiscard(G, c);
-          // Megas: a mega-evolution (if possible) takes priority over a normal one.
-          if (G.megasEnabled && !G.evolvedThisTurn) aiTryMegaEvolve(G, pid);
-          if (!G.evolvedThisTurn && plan.evolution) E.actionEvolve(G, plan.evolution.fromId, plan.evolution.toId);
+          if (plan.megaEvolution && !G.evolvedThisTurn) E.actionMegaEvolve(G, plan.megaEvolution.megaId, plan.megaEvolution.fromId);
+          else if (plan.evolution && !G.evolvedThisTurn) E.actionEvolve(G, plan.evolution.fromId, plan.evolution.toId);
           E.endTurn(G);
         };
       }
@@ -1118,29 +1118,6 @@
       if (G.phase === 'gameover') { setTimeout(showWin, ANIM_MS); return; }
       setTimeout(() => { if (epoch === gameEpoch) beginTurn(); }, ANIM_MS);
     }, think);
-  }
-
-  // ---- simple AI behaviour for the Megas expansion (heuristic seat) ----
-  function aiShouldTakeMega(G, pid) {
-    const p = G.players[pid];
-    if (p.megaToken >= 1 || G.supply.megaToken < 1) return false;
-    // pursue a mega if we own a base species whose available mega we can already afford
-    for (const id of G.megaOffer) {
-      const m = byId[id];
-      if (p.board.some(b => byId[b].name === m.megaFrom) && E.canAfford(G, p, m)) return true;
-    }
-    return false;
-  }
-  function aiTryMegaEvolve(G, pid) {
-    const p = G.players[pid];
-    const opts = E.megaEvolveOptions(G, p);
-    if (!opts.length) return;
-    let best = null, bestGain = -1e9;
-    for (const o of opts) {
-      const gain = (byId[o.megaId].vp - byId[o.fromId].vp) + (byId[o.megaId].bonusCount - 1); // VP + extra bonuses
-      if (gain > bestGain) { bestGain = gain; best = o; }
-    }
-    if (best) E.actionMegaEvolve(G, best.megaId, best.fromId);
   }
 
   // ---------------------------------------------------------------- win
