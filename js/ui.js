@@ -4,8 +4,16 @@
   const E = window.Engine, AI = window.AI, DB = window.CARD_DB;
   const MEGA_DB = window.MEGA_DB || [];
   const POKEMART_DB = window.POKEMART_DB || [];
-  // 究极 difficulty: determinized MCTS budget (validated ~57.5% vs 高手 at sims=200/dets=3 over 200 games).
-  const ULTRA_CFG = { sims: 200, dets: 3 };
+  // 究极 difficulty: single-tree determinized MCTS (vsearch v2), TIME-based budget.
+  // The web worker + the AI "thinking" pause hide the latency completely, so we
+  // spend real time: ~900ms ≈ 2500-3000 sims on desktop (auto-scales down on
+  // slower phones — same latency, fewer sims, still ≥ the old 200-sim budget).
+  // Validated: v2 at equal wall-clock beats the old 200/3 config 61.7% (37/60,
+  // p<.05); budget scaling adds more (2000-vs-600 sims: 58%). 3-4p still falls
+  // back to the heuristic: even with oppK pruning the search measured 29.4% at
+  // 3p / 15.6% at 4p (fair 33.3%/25%) — the multiplayer lever is an eval refit,
+  // not more search (see test/vsearch_mp.js).
+  const ULTRA_CFG = { timeMs: 900 };
 
   // --- AI web worker: heavy searches run OFF the main thread (no UI freeze). ---
   // ui posts a static-stripped state; the worker (js/ai.worker.js) loads the same
