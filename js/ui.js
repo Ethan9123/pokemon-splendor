@@ -6,6 +6,48 @@
   const POKEMART_DB = window.POKEMART_DB || [];
   // 究极 difficulty: determinized MCTS budget (validated ~57.5% vs 高手 at sims=200/dets=3 over 200 games).
   const ULTRA_CFG = { sims: 200, dets: 3 };
+
+  // --- AI web worker: heavy searches run OFF the main thread (no UI freeze). ---
+  // ui posts a static-stripped state; the worker (js/ai.worker.js) loads the same
+  // engine/AI files, reattaches the card DBs, and returns the plan. Any failure
+  // (no Worker support, load error, crash) falls back to the old synchronous path.
+  let aiWorker = null, aiJobSeq = 0;
+  const aiJobs = {};
+  function getAIWorker() {
+    if (aiWorker !== null) return aiWorker;               // Worker | false (known-unavailable)
+    try {
+      aiWorker = new Worker('js/ai.worker.js');
+      aiWorker.onmessage = (e) => {
+        const m = e.data || {}, j = aiJobs[m.id];
+        if (!j) return;
+        delete aiJobs[m.id];
+        if (m.error || !m.plan) j.fail(); else j.ok(m.plan);
+      };
+      aiWorker.onerror = () => {                          // worker died → fail all pending, disable
+        for (const id in aiJobs) { aiJobs[id].fail(); delete aiJobs[id]; }
+        try { aiWorker.terminate(); } catch (e) { }
+        aiWorker = false;
+      };
+    } catch (e) { aiWorker = false; }
+    return aiWorker;
+  }
+  // Promise<plan> for a turn: kind = 'ultra' (VSearch+opts) or a heuristic difficulty.
+  // `state` defaults to the live G (also used with determinized states for takeover).
+  function aiComputeAsync(kind, opts, state) {
+    const s = state || G;
+    const sync = () => (kind === 'ultra' && window.VSearch)
+      ? VSearch.chooseTurn(s, opts || ULTRA_CFG)
+      : AI.chooseTurn(s, { difficulty: kind || 'hard' });
+    const w = getAIWorker();
+    if (!w) return Promise.resolve(sync());
+    const { cardDB, byId: _b, megaDB, pokemartDB, _byName, log, ...dyn } = s;  // strip statics/caches
+    const id = ++aiJobSeq;
+    return new Promise((resolve) => {
+      aiJobs[id] = { ok: resolve, fail: () => resolve(sync()) };
+      try { w.postMessage({ id, kind, g: dyn, opts }); }
+      catch (e) { delete aiJobs[id]; resolve(sync()); }
+    });
+  }
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const BALL_NAMES = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
@@ -185,7 +227,7 @@
     if (msLeft <= 0 && !UI.net.takeoverBusy && UI.net.host && !myTurn()) {
       UI.net.takeoverBusy = true;
       setTimeout(() => { if (UI.net && UI.net.takeoverBusy) UI.net.takeoverBusy = false; }, 6000); // safety: never stick
-      setTimeout(() => { try { if (window.Net) Net.send({ t: 'takeover', plan: computeTakeoverPlan() }); } catch (e) { } }, 30);
+      setTimeout(() => { computeTakeoverPlan().then((plan) => { try { if (window.Net) Net.send({ t: 'takeover', plan }); } catch (e) { } }); }, 30);
     }
   }
   // Reconstruct a plausible FULL state from our redacted view so the AI can run:
@@ -210,14 +252,16 @@
     }
     return d;
   }
+  // async: the heavy search runs in the AI worker (host UI stays responsive)
   function computeTakeoverPlan() {
-    let plan = null;
+    const EMPTY = { action: null, discards: [], evolution: null };
     try {
       const det = determinizeForAI(G);
-      if (window.VSearch && det.numPlayers === 2) { try { plan = VSearch.chooseTurn(det, ULTRA_CFG); } catch (e) { plan = null; } }
-      if (!plan || !plan.action) plan = AI.chooseTurn(det, { difficulty: 'hard' });
-    } catch (e) { plan = null; }
-    return plan || { action: null, discards: [], evolution: null };
+      const kind = (window.VSearch && det.numPlayers === 2) ? 'ultra' : 'hard';
+      return aiComputeAsync(kind, ULTRA_CFG, det)
+        .then((p) => (p && p.action) ? p : aiComputeAsync('hard', undefined, det))
+        .catch(() => EMPTY);
+    } catch (e) { return Promise.resolve(EMPTY); }
   }
   // Derive the local UI phase from a snapshot. The board renders for everyone, but
   // you can only act on your own turn (interactable() also gates on myTurn()).
@@ -1024,7 +1068,13 @@
     // so use a short artificial pacing for it instead of the full 1.7–3.2s.
     const isUltra = p.diff === 'ultra' && window.VSearch && G.numPlayers === 2;
     const think = isUltra ? (250 + Math.random() * 250) : (1700 + Math.random() * 1500);
-    setTimeout(() => {
+    // Start the heavy search NOW, in the worker, so it runs DURING the "thinking"
+    // pause instead of freezing the UI after it. AZ seats keep their own sync path.
+    const fallbackDiff = (p.diff === 'alphazero' || p.diff === 'ultra') ? 'hard' : (p.diff || 'hard');
+    const planPromise = (p.diff === 'alphazero' && window.AZAI && AZAI.hasWeights())
+      ? null
+      : aiComputeAsync(isUltra ? 'ultra' : fallbackDiff, isUltra ? ULTRA_CFG : undefined);
+    setTimeout(async () => {
       if (epoch !== gameEpoch) return;                // game was replaced/undone mid-think — drop this timer
       if (!G || G.phase === 'gameover') { UI.busy = false; return; }
       let dec = null, applyFn = null;
@@ -1037,10 +1087,10 @@
         }
       }
       if (!applyFn) {                                  // heuristic / 究极-search (default seat, or AZ fallback)
-        const fallbackDiff = (p.diff === 'alphazero' || p.diff === 'ultra') ? 'hard' : (p.diff || 'hard');
-        const plan = isUltra
-          ? VSearch.chooseTurn(G, ULTRA_CFG)            // determinized MCTS, heuristic prior+leaf (2p only)
-          : AI.chooseTurn(G, { difficulty: fallbackDiff });
+        const plan = planPromise ? await planPromise
+          : AI.chooseTurn(G, { difficulty: fallbackDiff });   // AZ seat whose net move failed
+        if (epoch !== gameEpoch) return;               // undo/new-game while the worker searched
+        if (!G || G.phase === 'gameover') { UI.busy = false; return; }
         const takeMega = G.megasEnabled && aiShouldTakeMega(G, pid);
         dec = takeMega ? { type: 'pass' } : decodePlan(plan);
         applyFn = () => {
