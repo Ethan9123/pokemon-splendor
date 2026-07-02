@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
  * 璀璨宝石：宝可梦  —  Pokémon Splendor  game engine (pure logic, no DOM)
  * ---------------------------------------------------------------------
  * Faithful to the TTS mod "璀璨宝石：宝可梦（自动脚本）" + the rulebook:
@@ -742,71 +742,10 @@
   }
 
   // ------------------- legal move enumeration (for AI) ---------------
-  // Auto-plan the choice parameters of an effect capture so search/AI can play
-  // Pokémart cards without a UI: copy targets pick the player's DEEPEST bonus
-  // colour (coherence), discard_buy sacrifices the least valuable owned cards,
-  // free-takes pick the best available card (VP, bonuses, evolvability) and
-  // recurse for chained effects. Returns an opts object for actionCapture.
-  function autoCaptureOpts(s, p, card) {
-    const opts = {};
-    const pickCopyTarget = () => {
-      const cands = p.board.filter(id => effBonusColor(s, p, id));
-      if (!cands.length) return null;
-      const b = bonuses(s, p);
-      let best = cands[0], bs = -1;
-      for (const id of cands) { const v = b[effBonusColor(s, p, id)]; if (v > bs) { bs = v; best = id; } }
-      return best;
-    };
-    if (card.effect === 'copy' || card.effect === 'copy_free') {
-      const t = pickCopyTarget(); if (t) opts.copyTargetId = t;
-    }
-    if (card.effect === 'discard_buy') {
-      const col = card.effectParam.discardColor, need = card.effectParam.discardCount;
-      const owned = p.board.filter(id => effBonusColor(s, p, id) === col);
-      // sacrifice the least valuable first: low VP, not evolvable, single bonus
-      owned.sort((a, c) => {
-        const A = s.byId[a], C = s.byId[c];
-        return ((A.vp || 0) * 4 + (A.evolvesTo ? 3 : 0) + (A.bonusCount || 1))
-             - ((C.vp || 0) * 4 + (C.evolvesTo ? 3 : 0) + (C.bonusCount || 1));
-      });
-      opts.discardCards = owned.slice(0, need);
-    }
-    if (card.effect === 'free' || card.effect === 'copy_free') {
-      let best = null, bs = -1e9;
-      for (const t of freeTiers(card)) for (const id of (s.field[t] || [])) {
-        if (!id) continue;
-        const fc = s.byId[id];
-        if (!freeTakeable(s, p, fc)) continue;
-        const v = (fc.vp || 0) * 3 + (fc.bonusCount || 1) * 2 + (fc.evolvesTo ? 1 : 0);
-        if (v > bs) { bs = v; best = fc; }
-      }
-      if (best) {
-        opts.freeTakeId = best.id;
-        const sub = {};
-        if (isPokemart(best) && (best.effect === 'copy' || best.effect === 'copy_free')) {
-          const t = pickCopyTarget(); if (t) sub.copyTargetId = t;
-        }
-        if (isPokemart(best) && (best.effect === 'free' || best.effect === 'copy_free')) {
-          // chained free-take: plan one level deep with the same rule
-          const rec = autoCaptureOpts(s, p, best);
-          if (rec.freeTakeId) { sub.freeTakeId = rec.freeTakeId; sub.freeOpts = rec.freeOpts || {}; }
-        }
-        opts.freeOpts = sub;
-      }
-      // no takeable free card → effect fizzles, capture still legal (planFree allows it)
-    }
-    return opts;
-  }
-
   function legalActions(s) {
     const p = activePlayer(s);
     if (s.acted || s.phase !== 'play') return [];
     const acts = [];
-    // Megas: spending the whole turn on a Mega token is a real action — the AI
-    // must be able to plan it (required for the 20VP+colours+Mega win).
-    if (s.megasEnabled && p.megaToken < 1 && s.supply.megaToken > 0 && s.megaOffer.length) {
-      acts.push({ type: 'takeMega' });
-    }
     // takes
     const avail = COLORS.filter(c => s.supply[c] > 0);
     // 3 distinct
@@ -831,19 +770,16 @@
         if (card.effect === 'discard_buy') {
           const col = card.effectParam.discardColor, need = card.effectParam.discardCount;
           const owned = p.board.filter(bid => effBonusColor(s, p, bid) === col).length;
-          if (owned >= need) acts.push({ type: 'capture', cardId: id, opts: autoCaptureOpts(s, p, card) });
+          if (owned >= need) acts.push({ type: 'capture', cardId: id });
           continue;
         }
-        if (card.effect === 'copy' || card.effect === 'copy_free') { // need an owned bonus card to copy
+        if (card.effect === 'copy') { // needs an owned bonus card to copy
           if (p.board.some(bid => effBonusColor(s, p, bid)) && canAfford(s, p, card))
-            acts.push({ type: 'capture', cardId: id, opts: autoCaptureOpts(s, p, card) });
+            acts.push({ type: 'capture', cardId: id });
           continue;
         }
-        if (card.effect === 'free' && canAfford(s, p, card)) {   // TM: free take auto-planned
-          acts.push({ type: 'capture', cardId: id, opts: autoCaptureOpts(s, p, card) });
-          continue;
-        }
-        // double / colorless_master capture like a normal card
+        // double / colorless_master capture like a normal card. free / copy_free
+        // require a free-card choice and are driven by the UI (added with AI in 4b).
         if ((card.effect === 'double' || card.effect === 'colorless_master') && canAfford(s, p, card))
           acts.push({ type: 'capture', cardId: id });
         continue;
@@ -934,7 +870,7 @@
     computePayment, canAfford, paymentBreakdown,
     actionTake, actionReserve, actionCapture, actionEvolve, actionDiscard, actionPass,
     actionTakeMega, megaEvolveOptions, actionMegaEvolve, MEGA_TOKENS, MEGA_WIN_SCORE,
-    PM_TIERS, PM_SLOTS, fieldTiers, isPokemart, effBonusColor, freeTiers, freeTakeable, autoCaptureOpts,
+    PM_TIERS, PM_SLOTS, fieldTiers, isPokemart, effBonusColor, freeTiers, freeTakeable,
     evolutionOptions, needsDiscard, turnState, endTurn, determineWinner,
     legalActions, applyAction, redactFor, clone,
     zhBall, zhTier, payDesc,

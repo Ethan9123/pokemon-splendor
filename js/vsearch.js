@@ -63,6 +63,7 @@
     if (a.type === 'take') return 't' + a.colors.slice().sort().join('');
     if (a.type === 'capture') return 'c' + a.cardId;
     if (a.type === 'reserve') return 'r' + (a.target.fromField || ('d' + a.target.fromDeck));
+    if (a.type === 'takeMega') return 'm';   // must not collide with pass ('p')
     return 'p';
   }
 
@@ -247,12 +248,31 @@
   // are resolved on the REAL state with the heuristic's own manager (matches the model).
   function chooseTurn(G, opts) {
     opts = opts || {};
+    // First-Mega override (same discipline as AI.chooseTurn): qualification is
+    // binary and the offer is contested — when our base's Mega is affordable and
+    // we own none, spend the turn on the token; manage() megas the same turn.
+    // The tree's leaf eval can't price the binary qualification, so don't let
+    // "one more capture" lines outvote it.
+    if (G.megasEnabled) {
+      const p = G.players[G.turn];
+      const ownsMega = p.board.some(id => G.byId[id].tier === 'mega');
+      if (!ownsMega && p.megaToken < 1 && G.supply.megaToken > 0) {
+        for (const mid of (G.megaOffer || [])) {
+          const m = G.byId[mid];
+          if (p.board.some(id => G.byId[id].name === m.megaFrom) && E.canAfford(G, p, m)) {
+            const c0 = E.clone(G); E.applyAction(c0, { type: 'takeMega' });
+            const mp0 = (AI && AI.manage) ? AI.manage(c0, HARD) : { discards: [], evolution: null };
+            return { action: { type: 'takeMega' }, discards: mp0.discards || [], evolution: mp0.evolution || null, megaEvolution: mp0.megaEvolution || null };
+          }
+        }
+      }
+    }
     const a = move(G, opts);
     if (!a) return { action: null, discards: [], evolution: null };
     const c = E.clone(G); E.applyAction(c, a);
     if (AI && typeof AI.manage === 'function') {
       const plan = AI.manage(c, HARD);
-      return { action: a, discards: plan.discards || [], evolution: plan.evolution || null };
+      return { action: a, discards: plan.discards || [], evolution: plan.evolution || null, megaEvolution: plan.megaEvolution || null };
     }
     const me = c.players[c.turn]; const discards = []; let guard = 0;
     while (E.needsDiscard(c, me) && guard++ < 24) {
