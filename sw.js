@@ -1,7 +1,7 @@
 /* Pokémon Splendor — service worker (offline app shell + runtime card-image cache) */
-const VER = 'ps-cache-v7';
+const VER = 'ps-cache-v8'; // v8: card art JPG→WebP (~58% smaller) — bump so old JPG bytes are evicted, not doubled up
 const BALLS = ['red', 'blue', 'black', 'pink', 'yellow', 'purple'].map(c => `./assets/balls/${c}.png`);
-const BACKS = ['stage1', 'stage2', 'stage3', 'rare', 'legend'].map(t => `./assets/backs/${t}.jpg`);
+const BACKS = ['stage1', 'stage2', 'stage3', 'rare', 'legend'].map(t => `./assets/backs/${t}.webp`);
 const AVATARS = ['ash', 'misty', 'brock', 'rocket'].map(a => `./assets/avatars/${a}.png`);
 const SHELL = [
   './', './index.html', './css/style.css',

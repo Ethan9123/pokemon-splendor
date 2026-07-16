@@ -19,7 +19,7 @@
    "color": "yellow",
    "count": 3
   },
-  "img": "assets/cards/s1_01.jpg"
+  "img": "assets/cards/s1_01.webp"
  },
  {
   "id": "s1_02",
@@ -41,7 +41,7 @@
    "color": "pink",
    "count": 3
   },
-  "img": "assets/cards/s1_02.jpg"
+  "img": "assets/cards/s1_02.webp"
  },
  {
   "id": "s1_03",
@@ -63,7 +63,7 @@
    "color": "yellow",
    "count": 3
   },
-  "img": "assets/cards/s1_03.jpg"
+  "img": "assets/cards/s1_03.webp"
  },
  {
   "id": "s1_04",
@@ -85,7 +85,7 @@
    "color": "pink",
    "count": 2
   },
-  "img": "assets/cards/s1_04.jpg"
+  "img": "assets/cards/s1_04.webp"
  },
  {
   "id": "s1_05",
@@ -107,7 +107,7 @@
    "color": "blue",
    "count": 3
   },
-  "img": "assets/cards/s1_05.jpg"
+  "img": "assets/cards/s1_05.webp"
  },
  {
   "id": "s1_06",
@@ -129,7 +129,7 @@
    "color": "blue",
    "count": 3
   },
-  "img": "assets/cards/s1_06.jpg"
+  "img": "assets/cards/s1_06.webp"
  },
  {
   "id": "s1_07",
@@ -151,7 +151,7 @@
    "color": "black",
    "count": 3
   },
-  "img": "assets/cards/s1_07.jpg"
+  "img": "assets/cards/s1_07.webp"
  },
  {
   "id": "s1_08",
@@ -173,7 +173,7 @@
    "color": "blue",
    "count": 2
   },
-  "img": "assets/cards/s1_08.jpg"
+  "img": "assets/cards/s1_08.webp"
  },
  {
   "id": "s1_09",
@@ -195,7 +195,7 @@
    "color": "blue",
    "count": 3
   },
-  "img": "assets/cards/s1_09.jpg"
+  "img": "assets/cards/s1_09.webp"
  },
  {
   "id": "s1_10",
@@ -217,7 +217,7 @@
    "color": "pink",
    "count": 2
   },
-  "img": "assets/cards/s1_10.jpg"
+  "img": "assets/cards/s1_10.webp"
  },
  {
   "id": "s1_11",
@@ -239,7 +239,7 @@
    "color": "black",
    "count": 3
   },
-  "img": "assets/cards/s1_11.jpg"
+  "img": "assets/cards/s1_11.webp"
  },
  {
   "id": "s1_12",
@@ -261,7 +261,7 @@
    "color": "red",
    "count": 2
   },
-  "img": "assets/cards/s1_12.jpg"
+  "img": "assets/cards/s1_12.webp"
  },
  {
   "id": "s1_13",
@@ -283,7 +283,7 @@
    "color": "pink",
    "count": 3
   },
-  "img": "assets/cards/s1_13.jpg"
+  "img": "assets/cards/s1_13.webp"
  },
  {
   "id": "s1_14",
@@ -305,7 +305,7 @@
    "color": "red",
    "count": 3
   },
-  "img": "assets/cards/s1_14.jpg"
+  "img": "assets/cards/s1_14.webp"
  },
  {
   "id": "s1_15",
@@ -327,7 +327,7 @@
    "color": "yellow",
    "count": 2
   },
-  "img": "assets/cards/s1_15.jpg"
+  "img": "assets/cards/s1_15.webp"
  },
  {
   "id": "s1_16",
@@ -349,7 +349,7 @@
    "color": "yellow",
    "count": 3
   },
-  "img": "assets/cards/s1_16.jpg"
+  "img": "assets/cards/s1_16.webp"
  },
  {
   "id": "s1_17",
@@ -371,7 +371,7 @@
    "color": "black",
    "count": 3
   },
-  "img": "assets/cards/s1_17.jpg"
+  "img": "assets/cards/s1_17.webp"
  },
  {
   "id": "s1_18",
@@ -393,7 +393,7 @@
    "color": "yellow",
    "count": 2
   },
-  "img": "assets/cards/s1_18.jpg"
+  "img": "assets/cards/s1_18.webp"
  },
  {
   "id": "s1_19",
@@ -415,7 +415,7 @@
    "color": "blue",
    "count": 2
   },
-  "img": "assets/cards/s1_19.jpg"
+  "img": "assets/cards/s1_19.webp"
  },
  {
   "id": "s1_20",
@@ -437,7 +437,7 @@
    "color": "red",
    "count": 3
   },
-  "img": "assets/cards/s1_20.jpg"
+  "img": "assets/cards/s1_20.webp"
  },
  {
   "id": "s1_21",
@@ -459,7 +459,7 @@
    "color": "black",
    "count": 2
   },
-  "img": "assets/cards/s1_21.jpg"
+  "img": "assets/cards/s1_21.webp"
  },
  {
   "id": "s1_22",
@@ -481,7 +481,7 @@
    "color": "pink",
    "count": 2
   },
-  "img": "assets/cards/s1_22.jpg"
+  "img": "assets/cards/s1_22.webp"
  },
  {
   "id": "s1_23",
@@ -503,7 +503,7 @@
    "color": "black",
    "count": 2
   },
-  "img": "assets/cards/s1_23.jpg"
+  "img": "assets/cards/s1_23.webp"
  },
  {
   "id": "s1_24",
@@ -525,7 +525,7 @@
    "color": "red",
    "count": 3
   },
-  "img": "assets/cards/s1_24.jpg"
+  "img": "assets/cards/s1_24.webp"
  },
  {
   "id": "s1_25",
@@ -547,7 +547,7 @@
    "color": "yellow",
    "count": 3
   },
-  "img": "assets/cards/s1_25.jpg"
+  "img": "assets/cards/s1_25.webp"
  },
  {
   "id": "s1_26",
@@ -569,7 +569,7 @@
    "color": "blue",
    "count": 3
   },
-  "img": "assets/cards/s1_26.jpg"
+  "img": "assets/cards/s1_26.webp"
  },
  {
   "id": "s1_27",
@@ -591,7 +591,7 @@
    "color": "pink",
    "count": 3
   },
-  "img": "assets/cards/s1_27.jpg"
+  "img": "assets/cards/s1_27.webp"
  },
  {
   "id": "s1_28",
@@ -613,7 +613,7 @@
    "color": "pink",
    "count": 3
   },
-  "img": "assets/cards/s1_28.jpg"
+  "img": "assets/cards/s1_28.webp"
  },
  {
   "id": "s1_29",
@@ -635,7 +635,7 @@
    "color": "blue",
    "count": 2
   },
-  "img": "assets/cards/s1_29.jpg"
+  "img": "assets/cards/s1_29.webp"
  },
  {
   "id": "s1_30",
@@ -657,7 +657,7 @@
    "color": "black",
    "count": 2
   },
-  "img": "assets/cards/s1_30.jpg"
+  "img": "assets/cards/s1_30.webp"
  },
  {
   "id": "s1_31",
@@ -679,7 +679,7 @@
    "color": "red",
    "count": 3
   },
-  "img": "assets/cards/s1_31.jpg"
+  "img": "assets/cards/s1_31.webp"
  },
  {
   "id": "s1_32",
@@ -701,7 +701,7 @@
    "color": "black",
    "count": 3
   },
-  "img": "assets/cards/s1_32.jpg"
+  "img": "assets/cards/s1_32.webp"
  },
  {
   "id": "s1_33",
@@ -723,7 +723,7 @@
    "color": "red",
    "count": 2
   },
-  "img": "assets/cards/s1_33.jpg"
+  "img": "assets/cards/s1_33.webp"
  },
  {
   "id": "s1_34",
@@ -745,7 +745,7 @@
    "color": "red",
    "count": 2
   },
-  "img": "assets/cards/s1_34.jpg"
+  "img": "assets/cards/s1_34.webp"
  },
  {
   "id": "s1_35",
@@ -767,7 +767,7 @@
    "color": "yellow",
    "count": 2
   },
-  "img": "assets/cards/s1_35.jpg"
+  "img": "assets/cards/s1_35.webp"
  },
  {
   "id": "s2_01",
@@ -789,7 +789,7 @@
    "color": "black",
    "count": 3
   },
-  "img": "assets/cards/s2_01.jpg"
+  "img": "assets/cards/s2_01.webp"
  },
  {
   "id": "s2_02",
@@ -811,7 +811,7 @@
    "color": "blue",
    "count": 3
   },
-  "img": "assets/cards/s2_02.jpg"
+  "img": "assets/cards/s2_02.webp"
  },
  {
   "id": "s2_03",
@@ -833,7 +833,7 @@
    "color": "pink",
    "count": 4
   },
-  "img": "assets/cards/s2_03.jpg"
+  "img": "assets/cards/s2_03.webp"
  },
  {
   "id": "s2_04",
@@ -855,7 +855,7 @@
    "color": "blue",
    "count": 4
   },
-  "img": "assets/cards/s2_04.jpg"
+  "img": "assets/cards/s2_04.webp"
  },
  {
   "id": "s2_05",
@@ -877,7 +877,7 @@
    "color": "red",
    "count": 4
   },
-  "img": "assets/cards/s2_05.jpg"
+  "img": "assets/cards/s2_05.webp"
  },
  {
   "id": "s2_06",
@@ -899,7 +899,7 @@
    "color": "blue",
    "count": 3
   },
-  "img": "assets/cards/s2_06.jpg"
+  "img": "assets/cards/s2_06.webp"
  },
  {
   "id": "s2_07",
@@ -921,7 +921,7 @@
    "color": "blue",
    "count": 4
   },
-  "img": "assets/cards/s2_07.jpg"
+  "img": "assets/cards/s2_07.webp"
  },
  {
   "id": "s2_08",
@@ -943,7 +943,7 @@
    "color": "black",
    "count": 4
   },
-  "img": "assets/cards/s2_08.jpg"
+  "img": "assets/cards/s2_08.webp"
  },
  {
   "id": "s2_09",
@@ -965,7 +965,7 @@
    "color": "yellow",
    "count": 3
   },
-  "img": "assets/cards/s2_09.jpg"
+  "img": "assets/cards/s2_09.webp"
  },
  {
   "id": "s2_10",
@@ -987,7 +987,7 @@
    "color": "blue",
    "count": 4
   },
-  "img": "assets/cards/s2_10.jpg"
+  "img": "assets/cards/s2_10.webp"
  },
  {
   "id": "s2_11",
@@ -1009,7 +1009,7 @@
    "color": "black",
    "count": 4
   },
-  "img": "assets/cards/s2_11.jpg"
+  "img": "assets/cards/s2_11.webp"
  },
  {
   "id": "s2_12",
@@ -1031,7 +1031,7 @@
    "color": "red",
    "count": 4
   },
-  "img": "assets/cards/s2_12.jpg"
+  "img": "assets/cards/s2_12.webp"
  },
  {
   "id": "s2_13",
@@ -1053,7 +1053,7 @@
    "color": "pink",
    "count": 3
   },
-  "img": "assets/cards/s2_13.jpg"
+  "img": "assets/cards/s2_13.webp"
  },
  {
   "id": "s2_14",
@@ -1075,7 +1075,7 @@
    "color": "red",
    "count": 4
   },
-  "img": "assets/cards/s2_14.jpg"
+  "img": "assets/cards/s2_14.webp"
  },
  {
   "id": "s2_15",
@@ -1097,7 +1097,7 @@
    "color": "red",
    "count": 3
   },
-  "img": "assets/cards/s2_15.jpg"
+  "img": "assets/cards/s2_15.webp"
  },
  {
   "id": "s2_16",
@@ -1119,7 +1119,7 @@
    "color": "blue",
    "count": 4
   },
-  "img": "assets/cards/s2_16.jpg"
+  "img": "assets/cards/s2_16.webp"
  },
  {
   "id": "s2_17",
@@ -1141,7 +1141,7 @@
    "color": "yellow",
    "count": 3
   },
-  "img": "assets/cards/s2_17.jpg"
+  "img": "assets/cards/s2_17.webp"
  },
  {
   "id": "s2_18",
@@ -1163,7 +1163,7 @@
    "color": "yellow",
    "count": 4
   },
-  "img": "assets/cards/s2_18.jpg"
+  "img": "assets/cards/s2_18.webp"
  },
  {
   "id": "s2_19",
@@ -1185,7 +1185,7 @@
    "color": "black",
    "count": 4
   },
-  "img": "assets/cards/s2_19.jpg"
+  "img": "assets/cards/s2_19.webp"
  },
  {
   "id": "s2_20",
@@ -1207,7 +1207,7 @@
    "color": "black",
    "count": 4
   },
-  "img": "assets/cards/s2_20.jpg"
+  "img": "assets/cards/s2_20.webp"
  },
  {
   "id": "s2_21",
@@ -1229,7 +1229,7 @@
    "color": "black",
    "count": 3
   },
-  "img": "assets/cards/s2_21.jpg"
+  "img": "assets/cards/s2_21.webp"
  },
  {
   "id": "s2_22",
@@ -1251,7 +1251,7 @@
    "color": "red",
    "count": 3
   },
-  "img": "assets/cards/s2_22.jpg"
+  "img": "assets/cards/s2_22.webp"
  },
  {
   "id": "s2_23",
@@ -1273,7 +1273,7 @@
    "color": "red",
    "count": 4
   },
-  "img": "assets/cards/s2_23.jpg"
+  "img": "assets/cards/s2_23.webp"
  },
  {
   "id": "s2_24",
@@ -1295,7 +1295,7 @@
    "color": "pink",
    "count": 3
   },
-  "img": "assets/cards/s2_24.jpg"
+  "img": "assets/cards/s2_24.webp"
  },
  {
   "id": "s2_25",
@@ -1317,7 +1317,7 @@
    "color": "yellow",
    "count": 4
   },
-  "img": "assets/cards/s2_25.jpg"
+  "img": "assets/cards/s2_25.webp"
  },
  {
   "id": "s2_26",
@@ -1339,7 +1339,7 @@
    "color": "pink",
    "count": 4
   },
-  "img": "assets/cards/s2_26.jpg"
+  "img": "assets/cards/s2_26.webp"
  },
  {
   "id": "s2_27",
@@ -1361,7 +1361,7 @@
    "color": "pink",
    "count": 4
   },
-  "img": "assets/cards/s2_27.jpg"
+  "img": "assets/cards/s2_27.webp"
  },
  {
   "id": "s2_28",
@@ -1383,7 +1383,7 @@
    "color": "pink",
    "count": 4
   },
-  "img": "assets/cards/s2_28.jpg"
+  "img": "assets/cards/s2_28.webp"
  },
  {
   "id": "s2_29",
@@ -1405,7 +1405,7 @@
    "color": "yellow",
    "count": 4
   },
-  "img": "assets/cards/s2_29.jpg"
+  "img": "assets/cards/s2_29.webp"
  },
  {
   "id": "s2_30",
@@ -1427,7 +1427,7 @@
    "color": "yellow",
    "count": 4
   },
-  "img": "assets/cards/s2_30.jpg"
+  "img": "assets/cards/s2_30.webp"
  },
  {
   "id": "s3_01",
@@ -1446,7 +1446,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_01.jpg"
+  "img": "assets/cards/s3_01.webp"
  },
  {
   "id": "s3_02",
@@ -1465,7 +1465,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_02.jpg"
+  "img": "assets/cards/s3_02.webp"
  },
  {
   "id": "s3_03",
@@ -1484,7 +1484,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_03.jpg"
+  "img": "assets/cards/s3_03.webp"
  },
  {
   "id": "s3_04",
@@ -1503,7 +1503,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_04.jpg"
+  "img": "assets/cards/s3_04.webp"
  },
  {
   "id": "s3_05",
@@ -1522,7 +1522,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_05.jpg"
+  "img": "assets/cards/s3_05.webp"
  },
  {
   "id": "s3_06",
@@ -1541,7 +1541,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_06.jpg"
+  "img": "assets/cards/s3_06.webp"
  },
  {
   "id": "s3_07",
@@ -1560,7 +1560,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_07.jpg"
+  "img": "assets/cards/s3_07.webp"
  },
  {
   "id": "s3_08",
@@ -1579,7 +1579,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_08.jpg"
+  "img": "assets/cards/s3_08.webp"
  },
  {
   "id": "s3_09",
@@ -1598,7 +1598,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_09.jpg"
+  "img": "assets/cards/s3_09.webp"
  },
  {
   "id": "s3_10",
@@ -1617,7 +1617,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_10.jpg"
+  "img": "assets/cards/s3_10.webp"
  },
  {
   "id": "s3_11",
@@ -1636,7 +1636,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_11.jpg"
+  "img": "assets/cards/s3_11.webp"
  },
  {
   "id": "s3_12",
@@ -1655,7 +1655,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_12.jpg"
+  "img": "assets/cards/s3_12.webp"
  },
  {
   "id": "s3_13",
@@ -1674,7 +1674,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_13.jpg"
+  "img": "assets/cards/s3_13.webp"
  },
  {
   "id": "s3_14",
@@ -1693,7 +1693,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_14.jpg"
+  "img": "assets/cards/s3_14.webp"
  },
  {
   "id": "s3_15",
@@ -1712,7 +1712,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/s3_15.jpg"
+  "img": "assets/cards/s3_15.webp"
  },
  {
   "id": "rr_01",
@@ -1731,7 +1731,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_01.jpg"
+  "img": "assets/cards/rr_01.webp"
  },
  {
   "id": "rr_02",
@@ -1750,7 +1750,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_02.jpg"
+  "img": "assets/cards/rr_02.webp"
  },
  {
   "id": "rr_03",
@@ -1769,7 +1769,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_03.jpg"
+  "img": "assets/cards/rr_03.webp"
  },
  {
   "id": "rr_04",
@@ -1788,7 +1788,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_04.jpg"
+  "img": "assets/cards/rr_04.webp"
  },
  {
   "id": "rr_05",
@@ -1807,7 +1807,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_05.jpg"
+  "img": "assets/cards/rr_05.webp"
  },
  {
   "id": "rr_06",
@@ -1826,7 +1826,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_06.jpg"
+  "img": "assets/cards/rr_06.webp"
  },
  {
   "id": "rr_07",
@@ -1845,7 +1845,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_07.jpg"
+  "img": "assets/cards/rr_07.webp"
  },
  {
   "id": "rr_08",
@@ -1864,7 +1864,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_08.jpg"
+  "img": "assets/cards/rr_08.webp"
  },
  {
   "id": "rr_09",
@@ -1883,7 +1883,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_09.jpg"
+  "img": "assets/cards/rr_09.webp"
  },
  {
   "id": "rr_10",
@@ -1902,7 +1902,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/rr_10.jpg"
+  "img": "assets/cards/rr_10.webp"
  },
  {
   "id": "lg_01",
@@ -1921,7 +1921,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_01.jpg"
+  "img": "assets/cards/lg_01.webp"
  },
  {
   "id": "lg_02",
@@ -1940,7 +1940,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_02.jpg"
+  "img": "assets/cards/lg_02.webp"
  },
  {
   "id": "lg_03",
@@ -1959,7 +1959,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_03.jpg"
+  "img": "assets/cards/lg_03.webp"
  },
  {
   "id": "lg_04",
@@ -1978,7 +1978,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_04.jpg"
+  "img": "assets/cards/lg_04.webp"
  },
  {
   "id": "lg_05",
@@ -1997,7 +1997,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_05.jpg"
+  "img": "assets/cards/lg_05.webp"
  },
  {
   "id": "lg_06",
@@ -2016,7 +2016,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_06.jpg"
+  "img": "assets/cards/lg_06.webp"
  },
  {
   "id": "lg_07",
@@ -2035,7 +2035,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_07.jpg"
+  "img": "assets/cards/lg_07.webp"
  },
  {
   "id": "lg_08",
@@ -2054,7 +2054,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_08.jpg"
+  "img": "assets/cards/lg_08.webp"
  },
  {
   "id": "lg_09",
@@ -2073,7 +2073,7 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_09.jpg"
+  "img": "assets/cards/lg_09.webp"
  },
  {
   "id": "lg_10",
@@ -2092,6 +2092,6 @@
   },
   "evolvesTo": null,
   "evoCost": null,
-  "img": "assets/cards/lg_10.jpg"
+  "img": "assets/cards/lg_10.webp"
  }
 ]
