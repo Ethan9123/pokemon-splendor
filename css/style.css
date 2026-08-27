@@ -185,11 +185,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .tier-special .tier-label{color:var(--gold)}
 .deck-pile{flex:none;width:var(--card-w);height:var(--card-h);border-radius:10px;border:2px dashed var(--line);display:grid;place-items:center;position:relative;background:linear-gradient(135deg,#222a63,#161b42);background-size:cover;background-position:center;cursor:default;overflow:hidden}
 /* real tier card-back art from the TTS mod (darkened so the count stays legible) */
-.deck-pile[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage1.jpg)}
-.deck-pile[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage2.jpg)}
-.deck-pile[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage3.jpg)}
-.deck-pile[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/rare.jpg)}
-.deck-pile[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/legend.jpg)}
+.deck-pile[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage1.webp)}
+.deck-pile[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage2.webp)}
+.deck-pile[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage3.webp)}
+.deck-pile[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/rare.webp)}
+.deck-pile[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/legend.webp)}
 /* PokéMart uses a distinct supplied back for each shop level. */
 .deck-pile[data-tier="pmL1"]{background-image:linear-gradient(rgba(8,10,30,.12),rgba(8,10,30,.28)),url(../assets/backs/pokemart-1.png)}
 .deck-pile[data-tier="pmL2"]{background-image:linear-gradient(rgba(8,10,30,.12),rgba(8,10,30,.28)),url(../assets/backs/pokemart-2.png)}
@@ -385,11 +385,11 @@ body.tutorial-choice-open #tut-mask,body.tutorial-choice-open #tut-bubble{visibi
 .mini-card.stacked{margin-top:-44px}
 /* face-down reserve backs: tier-correct art for base and PokéMart cards */
 .mini-card.card-back{background:linear-gradient(135deg,#3a2a6e,#221a4a) center/cover no-repeat}
-.mini-card.card-back[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage1.jpg)}
-.mini-card.card-back[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage2.jpg)}
-.mini-card.card-back[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage3.jpg)}
-.mini-card.card-back[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/rare.jpg)}
-.mini-card.card-back[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/legend.jpg)}
+.mini-card.card-back[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage1.webp)}
+.mini-card.card-back[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage2.webp)}
+.mini-card.card-back[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage3.webp)}
+.mini-card.card-back[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/rare.webp)}
+.mini-card.card-back[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/legend.webp)}
 .mini-card.card-back[data-tier="pmL1"]{background-image:linear-gradient(rgba(8,10,30,.16),rgba(8,10,30,.3)),url(../assets/backs/pokemart-1.png)}
 .mini-card.card-back[data-tier="pmL2"]{background-image:linear-gradient(rgba(8,10,30,.16),rgba(8,10,30,.3)),url(../assets/backs/pokemart-2.png)}
 .mini-card.card-back[data-tier="pmL3"]{background-image:linear-gradient(rgba(8,10,30,.16),rgba(8,10,30,.3)),url(../assets/backs/pokemart-3.png)}
@@ -518,11 +518,11 @@ body.tutorial-choice-open #tut-mask,body.tutorial-choice-open #tut-bubble{visibi
 .fly-card img{width:100%;height:100%;object-fit:cover;display:block}
 /* blind deck-reserve flies a tier-correct back instead of a flat gradient */
 .fly-card[data-tier]{background:center/cover no-repeat}
-.fly-card[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage1.jpg)}
-.fly-card[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage2.jpg)}
-.fly-card[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage3.jpg)}
-.fly-card[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/rare.jpg)}
-.fly-card[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/legend.jpg)}
+.fly-card[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage1.webp)}
+.fly-card[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage2.webp)}
+.fly-card[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage3.webp)}
+.fly-card[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/rare.webp)}
+.fly-card[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/legend.webp)}
 .fly-card[data-tier="pmL1"]{background-image:linear-gradient(rgba(8,10,30,.12),rgba(8,10,30,.28)),url(../assets/backs/pokemart-1.png)}
 .fly-card[data-tier="pmL2"]{background-image:linear-gradient(rgba(8,10,30,.12),rgba(8,10,30,.28)),url(../assets/backs/pokemart-2.png)}
 .fly-card[data-tier="pmL3"]{background-image:linear-gradient(rgba(8,10,30,.12),rgba(8,10,30,.28)),url(../assets/backs/pokemart-3.png)}

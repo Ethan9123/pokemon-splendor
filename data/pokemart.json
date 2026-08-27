@@ -18,7 +18,7 @@
   "effectParam": {
    "freeFromTier": "pmL2_or_stage2"
   },
-  "img": "assets/cards/pm_01.jpg"
+  "img": "assets/cards/pm_01.webp"
  },
  {
   "id": "pm_02",
@@ -39,7 +39,7 @@
   "effectParam": {
    "freeFromTier": "pmL2_or_stage2"
   },
-  "img": "assets/cards/pm_02.jpg"
+  "img": "assets/cards/pm_02.webp"
  },
  {
   "id": "pm_03",
@@ -60,7 +60,7 @@
   "effectParam": {
    "freeFromTier": "pmL2_or_stage2"
   },
-  "img": "assets/cards/pm_03.jpg"
+  "img": "assets/cards/pm_03.webp"
  },
  {
   "id": "pm_04",
@@ -81,7 +81,7 @@
   "effectParam": {
    "freeFromTier": "pmL2_or_stage2"
   },
-  "img": "assets/cards/pm_04.jpg"
+  "img": "assets/cards/pm_04.webp"
  },
  {
   "id": "pm_05",
@@ -102,7 +102,7 @@
   "effectParam": {
    "freeFromTier": "pmL2_or_stage2"
   },
-  "img": "assets/cards/pm_05.jpg"
+  "img": "assets/cards/pm_05.webp"
  },
  {
   "id": "pm_06",
@@ -121,7 +121,7 @@
   },
   "effect": "colorless_master",
   "effectParam": null,
-  "img": "assets/cards/pm_06.jpg"
+  "img": "assets/cards/pm_06.webp"
  },
  {
   "id": "pm_07",
@@ -140,7 +140,7 @@
   },
   "effect": "colorless_master",
   "effectParam": null,
-  "img": "assets/cards/pm_07.jpg"
+  "img": "assets/cards/pm_07.webp"
  },
  {
   "id": "pm_08",
@@ -159,7 +159,7 @@
   },
   "effect": "colorless_master",
   "effectParam": null,
-  "img": "assets/cards/pm_08.jpg"
+  "img": "assets/cards/pm_08.webp"
  },
  {
   "id": "pm_09",
@@ -178,7 +178,7 @@
   },
   "effect": "colorless_master",
   "effectParam": null,
-  "img": "assets/cards/pm_09.jpg"
+  "img": "assets/cards/pm_09.webp"
  },
  {
   "id": "pm_10",
@@ -197,7 +197,7 @@
   },
   "effect": "colorless_master",
   "effectParam": null,
-  "img": "assets/cards/pm_10.jpg"
+  "img": "assets/cards/pm_10.webp"
  },
  {
   "id": "pm_11",
@@ -216,7 +216,7 @@
   },
   "effect": "double",
   "effectParam": null,
-  "img": "assets/cards/pm_11.jpg"
+  "img": "assets/cards/pm_11.webp"
  },
  {
   "id": "pm_12",
@@ -235,7 +235,7 @@
   },
   "effect": "double",
   "effectParam": null,
-  "img": "assets/cards/pm_12.jpg"
+  "img": "assets/cards/pm_12.webp"
  },
  {
   "id": "pm_13",
@@ -254,7 +254,7 @@
   },
   "effect": "double",
   "effectParam": null,
-  "img": "assets/cards/pm_13.jpg"
+  "img": "assets/cards/pm_13.webp"
  },
  {
   "id": "pm_14",
@@ -273,7 +273,7 @@
   },
   "effect": "double",
   "effectParam": null,
-  "img": "assets/cards/pm_14.jpg"
+  "img": "assets/cards/pm_14.webp"
  },
  {
   "id": "pm_15",
@@ -292,7 +292,7 @@
   },
   "effect": "double",
   "effectParam": null,
-  "img": "assets/cards/pm_15.jpg"
+  "img": "assets/cards/pm_15.webp"
  },
  {
   "id": "pm_16",
@@ -313,7 +313,7 @@
   "effectParam": {
    "freeFromTier": "pmL1_or_stage1"
   },
-  "img": "assets/cards/pm_16.jpg"
+  "img": "assets/cards/pm_16.webp"
  },
  {
   "id": "pm_17",
@@ -334,7 +334,7 @@
   "effectParam": {
    "freeFromTier": "pmL1_or_stage1"
   },
-  "img": "assets/cards/pm_17.jpg"
+  "img": "assets/cards/pm_17.webp"
  },
  {
   "id": "pm_18",
@@ -355,7 +355,7 @@
   "effectParam": {
    "freeFromTier": "pmL1_or_stage1"
   },
-  "img": "assets/cards/pm_18.jpg"
+  "img": "assets/cards/pm_18.webp"
  },
  {
   "id": "pm_19",
@@ -376,7 +376,7 @@
   "effectParam": {
    "freeFromTier": "pmL1_or_stage1"
   },
-  "img": "assets/cards/pm_19.jpg"
+  "img": "assets/cards/pm_19.webp"
  },
  {
   "id": "pm_20",
@@ -397,7 +397,7 @@
   "effectParam": {
    "freeFromTier": "pmL1_or_stage1"
   },
-  "img": "assets/cards/pm_20.jpg"
+  "img": "assets/cards/pm_20.webp"
  },
  {
   "id": "pm_21",
@@ -416,7 +416,7 @@
   },
   "effect": "copy",
   "effectParam": null,
-  "img": "assets/cards/pm_21.jpg"
+  "img": "assets/cards/pm_21.webp"
  },
  {
   "id": "pm_22",
@@ -435,7 +435,7 @@
   },
   "effect": "copy",
   "effectParam": null,
-  "img": "assets/cards/pm_22.jpg"
+  "img": "assets/cards/pm_22.webp"
  },
  {
   "id": "pm_23",
@@ -454,7 +454,7 @@
   },
   "effect": "copy",
   "effectParam": null,
-  "img": "assets/cards/pm_23.jpg"
+  "img": "assets/cards/pm_23.webp"
  },
  {
   "id": "pm_24",
@@ -473,7 +473,7 @@
   },
   "effect": "copy",
   "effectParam": null,
-  "img": "assets/cards/pm_24.jpg"
+  "img": "assets/cards/pm_24.webp"
  },
  {
   "id": "pm_25",
@@ -492,7 +492,7 @@
   },
   "effect": "copy",
   "effectParam": null,
-  "img": "assets/cards/pm_25.jpg"
+  "img": "assets/cards/pm_25.webp"
  },
  {
   "id": "pm_26",
@@ -514,7 +514,7 @@
    "discardColor": "red",
    "discardCount": 2
   },
-  "img": "assets/cards/pm_26.jpg"
+  "img": "assets/cards/pm_26.webp"
  },
  {
   "id": "pm_27",
@@ -536,7 +536,7 @@
    "discardColor": "yellow",
    "discardCount": 2
   },
-  "img": "assets/cards/pm_27.jpg"
+  "img": "assets/cards/pm_27.webp"
  },
  {
   "id": "pm_28",
@@ -558,7 +558,7 @@
    "discardColor": "pink",
    "discardCount": 2
   },
-  "img": "assets/cards/pm_28.jpg"
+  "img": "assets/cards/pm_28.webp"
  },
  {
   "id": "pm_29",
@@ -580,7 +580,7 @@
    "discardColor": "black",
    "discardCount": 2
   },
-  "img": "assets/cards/pm_29.jpg"
+  "img": "assets/cards/pm_29.webp"
  },
  {
   "id": "pm_30",
@@ -602,6 +602,6 @@
    "discardColor": "blue",
    "discardCount": 2
   },
-  "img": "assets/cards/pm_30.jpg"
+  "img": "assets/cards/pm_30.webp"
  }
 ]
