@@ -11,3 +11,4 @@ assets/policy.json
 !.dev.vars.example
 .env*
 !.env.example
+_rep_*.json

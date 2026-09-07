@@ -133,8 +133,42 @@
         case 'start':  return this._start(connId, msg.opts);
         case 'action': return this._action(connId, msg);
         case 'takeover': return this._takeover(connId, msg);
+        case 'name':   return this._rename(connId, msg.name);
+        case 'rematch': return this._rematch(connId);
         case 'sync':   return this._stateTo(connId);
       }
+    }
+
+    // 改名：大厅里随时可改，立即广播给所有人（不重发 welcome，避免打断状态）。
+    // 名字只影响显示；座位归属仍由 token 决定。
+    _rename(connId, name) {
+      const seat = this.conns[connId];
+      if (seat == null || seat < 0) return;                     // 观战者没有名字
+      const clean = String(name == null ? '' : name)
+        .split('').filter(c => c >= ' ').join('').trim().slice(0, 12);
+      if (!clean) return;
+      if (this.seats[seat].name === clean) return;              // 无变化不广播
+      this.seats[seat].name = clean;
+      // 已开局时同步改游戏内的显示名，这样计分板/日志也跟着更新
+      if (this.G && this.G.players[seat]) this.G.players[seat].name = clean;
+      this._roster();
+      if (this.started) this._broadcastState();
+    }
+
+    // 再来一局：房主在对局结束后把房间打回大厅，座位与 token 全部保留，
+    // 这样朋友之间连着打好几局不用重新建房、重新发链接。
+    _rematch(connId) {
+      if (this.conns[connId] !== 0) return this.send(connId, { t: 'reject', reason: '只有房主可以开始下一局' });
+      if (!this.started) return;                                // 已经在大厅了
+      if (!this.G || this.G.phase !== 'gameover') {
+        return this.send(connId, { t: 'reject', reason: '本局还没结束' });
+      }
+      this.G = null;
+      this.started = false;
+      this.turnStartedAt = 0;
+      this.seq++;
+      this._broadcast({ t: 'lobby' });                          // 客户端据此回到大厅界面
+      this._roster();
     }
 
     _start(connId, opts) {

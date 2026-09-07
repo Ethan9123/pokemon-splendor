@@ -293,5 +293,53 @@ test('state broadcast carries turnStartedAt / serverNow / turnTimeoutMs for the 
   assert.ok(s.turnTimeoutMs > 0, 'a turn timeout is advertised');
 });
 
+// ---- 改名 / 再来一局（联机体验改进）----
+test('rename: 大厅改名立即广播；观战者无名字；空名被忽略', () => {
+  const { room, last } = makeRoom();
+  room.onMessage('cA', { t: 'join', name: 'Alice', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'Bob', token: 'tB' });
+  room.onMessage('cB', { t: 'name', name: '小明' });
+  assert.strictEqual(last('cA', 'roster').players[1].name, '小明', '对手能看到新名字');
+  room.onMessage('cB', { t: 'name', name: '   ' });
+  assert.strictEqual(last('cA', 'roster').players[1].name, '小明', '空名被忽略');
+  room.onMessage('cB', { t: 'name', name: 'A'.repeat(50) });
+  assert.strictEqual(last('cA', 'roster').players[1].name.length, 12, '超长名截断');
+});
+
+test('rename: 开局后改名同步进游戏状态（计分板/日志跟着变）', () => {
+  const { room, last } = makeRoom();
+  room.onMessage('cA', { t: 'join', name: 'Alice', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'Bob', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });
+  room.onMessage('cB', { t: 'name', name: '小红' });
+  assert.strictEqual(last('cA', 'state').state.players[1].name, '小红');
+});
+
+test('rematch: 仅房主 + 仅对局结束后；重置回大厅但保留座位与 token', () => {
+  const { room, last, clear } = makeRoom();
+  room.now = 0;
+  room.onMessage('cA', { t: 'join', name: 'Alice', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'Bob', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });
+  room.onMessage('cA', { t: 'rematch' });
+  assert.ok(/还没结束/.test((last('cA', 'reject') || {}).reason || ''), '未结束时应拒绝');
+  room.G.phase = 'gameover'; room.G.winner = 0;
+  clear();
+  room.onMessage('cB', { t: 'rematch' });
+  assert.ok(/只有房主/.test((last('cB', 'reject') || {}).reason || ''), '非房主应被拒绝');
+  clear();
+  room.onMessage('cA', { t: 'rematch' });
+  assert.ok(last('cA', 'lobby'), '广播 lobby 让客户端回大厅');
+  assert.ok(last('cB', 'lobby'), '对手也回大厅');
+  assert.strictEqual(room.started, false);
+  assert.strictEqual(room.G, null);
+  assert.strictEqual(room.seats.length, 2, '座位保留');
+  assert.strictEqual(room.seats[0].token, 'tA', 'token 保留 → 不用重新发链接');
+  clear();
+  room.onMessage('cA', { t: 'start', opts: {} });
+  assert.ok(last('cA', 'state'), '房主可以直接开下一局');
+  assert.ok(last('cB', 'state'), '对手也收到新对局');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

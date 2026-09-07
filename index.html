@@ -75,6 +75,10 @@
     <div class="setup-card">
       <h1 class="brand" style="font-size:clamp(22px,6vw,30px)"><span class="brand-splendor">联机房间</span></h1>
       <div class="lobby-code">房间码 <b id="lobby-code">—</b> <button id="lobby-copy" class="ghost small">复制邀请链接</button></div>
+      <div class="setup-row lobby-name">
+        <label for="lobby-nick">你的昵称</label>
+        <input type="text" id="lobby-nick" maxlength="12" placeholder="训练家" autocomplete="nickname">
+      </div>
       <div id="lobby-status" class="lobby-status" role="status" aria-live="polite"></div>
       <div id="lobby-roster" class="lobby-roster" aria-live="polite" aria-label="房间玩家"></div>
       <div class="setup-row lobby-exp">
@@ -140,6 +144,7 @@
         <button id="menu-btn" class="ghost small">菜单</button>
       </div>
     </header>
+    <div id="net-bar" class="net-bar" role="status" aria-live="assertive"></div>
     <div id="idle-bar" class="idle-bar" role="status" aria-live="polite"></div>
     <div id="rotate-hint" class="hidden"><i class="ti ti-device-mobile-rotated" aria-hidden="true"></i> 横屏可同时看到更多卡牌<button id="rotate-dismiss" aria-label="关闭提示">✕</button></div>
 
@@ -175,7 +180,9 @@
   <div id="win-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="win-title">
     <div class="modal-box win">
       <div id="win-content"></div>
-      <button class="primary" id="play-again">再来一局</button>
+      <div id="win-actions">
+        <button class="primary" id="play-again">再来一局</button>
+      </div>
     </div>
   </div>
 

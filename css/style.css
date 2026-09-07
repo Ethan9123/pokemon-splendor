@@ -87,6 +87,26 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .lr-dot.off{background:var(--muted);opacity:.45}
 .lobby-roster .muted{color:var(--muted);font-size:13px}
 .lobby-exp{justify-content:center;flex-wrap:wrap}
+/* ---------- 联机体验：连接状态条 / 在线点 / 昵称 / 胜利弹窗按钮 ---------- */
+.net-bar{text-align:center;line-height:1.4}
+.net-bar:empty{display:none}
+.net-off{display:inline-block;margin:4px auto;padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:700;
+  background:rgba(224,90,74,.16);border:1px solid var(--bad);color:#ffb3a8}
+/* 玩家名字前的在线状态点：断线时一眼可见 */
+.pdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;flex:none}
+.pdot.on{background:var(--good);box-shadow:0 0 5px var(--good)}
+.pdot.off{background:var(--bad);box-shadow:0 0 5px var(--bad);animation:pdotBlink 1.4s infinite}
+@keyframes pdotBlink{0%,100%{opacity:1}50%{opacity:.35}}
+/* 大厅昵称输入 */
+.lobby-name{justify-content:center;align-items:center;gap:10px}
+.lobby-name label{color:var(--muted);font-size:13px}
+.lobby-name input{width:min(220px,60vw);padding:8px 12px;border-radius:8px;border:1px solid var(--line);
+  background:#11163a;color:var(--ink);font-size:14px;text-align:center}
+.lobby-name input:focus{outline:none;border-color:var(--gold)}
+/* 胜利弹窗按钮区（联机时是「再来一局（同房间）」+「离开房间」）*/
+#win-actions{display:flex;flex-direction:column;gap:8px;align-items:stretch;margin-top:4px}
+#win-actions button{min-height:44px}
+.win-wait{color:var(--muted);font-size:13px;padding:8px 0;text-align:center}
 .lobby-hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
 /* idle / disconnect → AI-takeover status strip */
 .idle-bar{text-align:center;line-height:1.4;min-height:0}
