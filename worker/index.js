@@ -101,7 +101,11 @@ export class Room {
     // Persist on anything that mutates room state. `join` MUST persist: it adds a
     // seat, and because the heartbeat auto-response never wakes the DO, an idle
     // lobby evicts within ~30s — without this the un-started lobby's seats are lost.
-    if (msg.t === 'join' || msg.t === 'start' || msg.t === 'action') await this._persist();
+    // 任何会改变房间状态的消息都必须落盘。name 和 rematch 也在其列：
+    // 心跳的 auto-response 不唤醒 DO，空闲房间几十秒就被驱逐；只要没落盘，
+    // 改的名字/重开后的大厅状态就会在唤醒时被旧快照覆盖回去（生产实测过）。
+    if (msg.t === 'join' || msg.t === 'start' || msg.t === 'action'
+        || msg.t === 'name' || msg.t === 'rematch' || msg.t === 'takeover') await this._persist();
   }
 
   async webSocketClose(ws) {
