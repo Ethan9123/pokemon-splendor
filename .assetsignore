@@ -11,3 +11,11 @@ assets/cards/_qc
 *.log
 *.md
 serve.py
+
+# never publish: wrangler scratch (its deploy source maps), git housekeeping, and the local-only
+# experimental AlphaZero weights (23 MB; the online "AlphaZero(实验)" seat intentionally falls back to the heuristic)
+.wrangler
+.gitignore
+.gitattributes
+*.map
+assets/policy.json
