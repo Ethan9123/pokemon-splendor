@@ -1304,10 +1304,20 @@
     UI.phase = 'main'; UI.pick = []; UI.selCard = UI.selDeck = null; UI.busy = false;
     render(); updateUndoBtn();
   }
+  let undoHome = null, undoBtnEl = null;   // desktop home (fixed corner) + a retained node reference
   function updateUndoBtn() {
-    const btn = $('#undo-btn'); if (!btn) return;
+    // Keep our own reference: on phones the button lives inside #action-bar, whose innerHTML is
+    // rebuilt every render — that detaches the node, and a fresh querySelector would find nothing.
+    const btn = undoBtnEl || (undoBtnEl = $('#undo-btn')); if (!btn) return;
+    if (!undoHome) undoHome = btn.parentNode;
     const show = UI.hasAI && UI.humans === 1 && G && G.phase === 'play' && UI.phase === 'main' && !me().isAI && !UI.busy && undoStack.length >= 2;
     btn.classList.toggle('hidden', !show);
+    // On phones the button sits inside the action bar (thumb zone, part of the dock) instead of
+    // floating over the board — floating bottom-left it landed on the lowest row's deck pile on
+    // small screens. The bar is rebuilt every render, so re-home the button each time.
+    const bar = $('#action-bar'), onMobile = matchMedia('(max-width:999px)').matches;
+    if (onMobile) { if (bar && btn.parentNode !== bar) bar.appendChild(btn); }
+    else if (btn.parentNode !== undoHome) undoHome.appendChild(btn);
   }
   function doDiscard(color) {
     if (UI.phase !== 'discard') return;
@@ -1566,6 +1576,13 @@
     const mq = matchMedia('(max-width:999px)');
     (mq.addEventListener ? mq.addEventListener('change', syncDockH) : mq.addListener && mq.addListener(syncDockH));
     window.addEventListener('resize', syncDockH, { passive: true });
+    // Board rows start snapping only after the player scrolls them (css .tier-row.snap).
+    // Snapping from load pre-scrolled every row, sliding the deck pile under the sticky
+    // tier label, which then swallowed the tap. Rows are rebuilt each render, so this is cheap.
+    document.addEventListener('scroll', (e) => {
+      const row = e.target && e.target.closest && e.target.closest('.tier-row');
+      if (row) row.classList.add('snap');
+    }, { capture: true, passive: true });
     window.addEventListener('orientationchange', syncDockH);
     syncDockH();
   }

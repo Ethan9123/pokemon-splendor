@@ -78,6 +78,7 @@ node test/room.test.js     # 联机房间权威（座位/脱敏/重连/持久化
 node test/megas.test.js    # 超级进化扩展
 node test/pokemart.test.js # PokéMart 商店扩展
 node test/tutorial_layout.test.js # 新手教程气泡布局（永不遮挡行动栏/目标）
+python test/mobile_ux_audit.py     # 手机/小屏/横屏 UX 审计（playwright 截图 + 遮挡/溢出/点击目标检测，用法见文件头）
 ```
 
 ## 部署

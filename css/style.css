@@ -286,7 +286,7 @@ body.has-card-selection #action-bar{border-color:var(--gold);box-shadow:0 0 0 1p
 .act-buttons .primary{min-height:48px}
 .tray{display:flex;gap:6px;align-items:center;margin:8px 0;min-height:38px;flex-wrap:wrap}
 .tray .ball[data-discard]{width:44px;height:44px;cursor:pointer}
-.tray .tray-pick{padding:0;border:2px solid var(--gold);min-height:0;flex:none;box-shadow:0 2px 7px rgba(0,0,0,.4)}
+.tray .tray-pick{width:40px;height:40px;padding:0;border:2px solid var(--gold);min-height:0;flex:none;box-shadow:0 2px 7px rgba(0,0,0,.4)} /* a real thumb target, like the discard tray's 44px */
 .evo-option{width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:8px;min-height:48px}
 .evo-option b{color:var(--gold)}
 @media (hover:hover) and (pointer:fine){ .evo-option:hover{border-color:var(--gold)} }
@@ -366,7 +366,8 @@ body.tutorial-choice-open #tut-mask,body.tutorial-choice-open #tut-bubble{visibi
   background:rgba(10,13,40,.95);border:1px solid var(--gold);color:var(--ink);border-radius:22px;
   padding:8px 8px 8px 14px;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);backdrop-filter:blur(6px)}
 #rotate-hint .ti{color:var(--gold)}
-#rotate-hint button{background:transparent;border:none;color:var(--muted);font-size:16px;line-height:1;padding:4px 8px;min-height:auto}
+#rotate-hint button{background:transparent;border:none;color:var(--muted);font-size:16px;line-height:1;padding:4px 8px;min-height:auto;position:relative}
+#rotate-hint button::after{content:"";position:absolute;inset:-10px} /* keep the ✕ visually small but give it a ~44px hit area */
 
 /* ---------- log ---------- */
 #log{max-height:230px;display:flex;flex-direction:column}
@@ -499,10 +500,13 @@ body.tutorial-choice-open #tut-mask,body.tutorial-choice-open #tut-bubble{visibi
   .mychip{flex:0 0 auto}
 
   /* board rows scroll horizontally instead of wrapping */
+  /* Snap only once the player has scrolled a row (.snap is added by ui.js on first scroll).
+     Snapping from load pre-scrolled every row so the deck pile slid under the sticky label. */
   .tier-row{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:8px;padding:6px;
-    scroll-snap-type:x proximity;overscroll-behavior-x:contain}
-  .tier-label{position:sticky;left:0;z-index:2;writing-mode:horizontal-tb;text-orientation:mixed;width:auto;letter-spacing:1px;
-    padding:2px 6px;border-radius:8px;background:var(--panel);align-self:stretch;display:flex;align-items:center}
+    scroll-snap-type:none;overscroll-behavior-x:contain}
+  .tier-row.snap{scroll-snap-type:x proximity}
+  .tier-label{position:sticky;left:0;z-index:2;pointer-events:none;writing-mode:horizontal-tb;text-orientation:mixed;width:auto;letter-spacing:1px;
+    padding:2px 6px;border-radius:8px;background:var(--panel);align-self:stretch;display:flex;align-items:center} /* decorative: never intercept a tap meant for the card beneath */
   .card-strip{flex-wrap:nowrap}
   .card,.deck-pile{scroll-snap-align:start}
 
@@ -521,7 +525,13 @@ body.tutorial-choice-open #tut-mask,body.tutorial-choice-open #tut-bubble{visibi
 
 /* landscape phone: keep the dock but allow wider rows */
 @media (max-width:999px) and (orientation:landscape){
-  #controls{max-height:64svh;max-height:64dvh}
+  /* Landscape has ~390px of height: a stacked dock ate 64% of it and left a ~55px sliver of
+     board. Lay the panels side by side (action bar | supply; resources below) so the dock is
+     ~140px and two full card rows fit; it wraps back to stacked on narrow landscape. */
+  #controls{max-height:64svh;max-height:64dvh;flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:6px}
+  #action-bar{flex:1 1 320px;min-width:0;order:1}
+  #supply{flex:0 0 auto;max-width:100%;order:2}
+  #my-resources{flex:1 1 100%;order:3}
   #players{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
   #inspect-img{max-height:calc(100dvh - 92px);max-width:74vw}
   #inspect-inner{flex-direction:row;align-items:center}
@@ -557,7 +567,12 @@ body.tutorial-choice-open #tut-mask,body.tutorial-choice-open #tut-bubble{visibi
 #undo-btn .ti,#undo-btn i{margin-right:4px}
 @media (hover:hover) and (pointer:fine){ #undo-btn:hover{filter:brightness(1.1)} }
 /* mobile: lift the undo button above the fixed bottom dock (placed after the base rule so it wins source-order) */
-@media (max-width:999px){ #undo-btn{bottom:calc(var(--dock-h) + var(--sa-b) + 10px)} }
+/* mobile: ui.js re-homes the button into #action-bar (inside the dock) so it never floats over cards */
+@media (max-width:999px){
+  #undo-btn{bottom:calc(var(--dock-h) + var(--sa-b) + 10px)}
+  #action-bar #undo-btn{position:static;display:inline-flex;align-items:center;margin-top:8px;min-height:40px;padding:8px 14px;box-shadow:none;font-size:13px}
+  #action-bar #undo-btn.hidden{display:none}
+}
 
 /* ===== PokéMart expansion ===== */
 .pokemart-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 0 8px;padding:12px 15px;border:1px solid rgba(75,211,153,.32);border-radius:16px;background:linear-gradient(110deg,rgba(24,111,77,.42),rgba(29,65,116,.24));box-shadow:inset 0 1px rgba(255,255,255,.06)}
