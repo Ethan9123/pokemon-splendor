@@ -11,6 +11,8 @@
  *   Net.on(event, fn)             welcome | roster | state | reject | over | status
  *   Net.start(opts)               host starts the game
  *   Net.action(move)              send a move ({type,...} engine action)
+ *   Net.setName(name)             rename my seat (live, in lobby or mid-game)
+ *   Net.rematch()                 host: end-of-game -> back to lobby, same seats
  *   Net.sync() / Net.close()
  * ===================================================================== */
 (function () {
@@ -51,11 +53,14 @@
   function beat() { stopBeat(); hb = setInterval(() => { try { if (ws && ws.readyState === 1) ws.send('{"t":"ping"}'); } catch (e) { } }, 25000); }
   function stopBeat() { if (hb) { clearInterval(hb); hb = null; } }
 
-  function send(msg) { try { if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); } catch (e) { } }
-  function action(move) { send({ t: 'action', seq: ++seq, action: move }); }
+  // 返回 true 表示确实发出去了；断线时返回 false，UI 据此提示玩家而不是静默吞掉操作
+  function send(msg) { try { if (ws && ws.readyState === 1) { ws.send(JSON.stringify(msg)); return true; } } catch (e) { } return false; }
+  function action(move) { return send({ t: 'action', seq: ++seq, action: move }); }
   function start(opts) { send({ t: 'start', opts: opts || {} }); }
   function sync() { send({ t: 'sync' }); }
+  function setName(name) { cfg && (cfg.name = name); return send({ t: 'name', name }); }
+  function rematch() { return send({ t: 'rematch' }); }
   function close() { closedByUs = true; clearTimeout(reconnect); stopBeat(); if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { } } ws = null; }
 
-  window.Net = { connect, on, send, action, start, sync, close, isOpen: () => !!(ws && ws.readyState === 1) };
+  window.Net = { connect, on, send, action, start, sync, setName, rematch, close, isOpen: () => !!(ws && ws.readyState === 1) };
 })();
