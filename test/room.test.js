@@ -234,8 +234,8 @@ test('takeover with an empty/garbage plan still advances the turn (never stalls)
   room.onMessage('cB', { t: 'join', token: 'tB' });
   room.onMessage('cA', { t: 'start', opts: {} });               // turn = 0 (host A)
   room.now = 200000;
-  room.onMessage('cA', { t: 'takeover', plan: {} });            // empty → forced legal fallback
-  assert.strictEqual(last('cA', 'state').state.turn, 1, 'turn advanced despite empty plan');
+  room.onMessage('cB', { t: 'takeover', plan: {} });            // 由对手触发（不能替自己代打）
+  assert.strictEqual(last('cB', 'state').state.turn, 1, 'turn advanced despite empty plan');
 });
 
 test('malformed network action is rejected without crashing the room', () => {
@@ -257,7 +257,7 @@ test('takeover cannot discard tokens unless the timed-out player is over the lim
   room.onMessage('cA', { t: 'start', opts: {} });
   room.G.players[0].tokens.red = 3;
   room.now = 200000;
-  room.onMessage('cA', { t: 'takeover', plan: {
+  room.onMessage('cB', { t: 'takeover', plan: {
     action: TAKE, discards: Array(20).fill('red'), evolution: null,
   } });
   assert.strictEqual(room.G.players[0].tokens.red, 4, 'malicious extra discards ignored');
@@ -273,12 +273,12 @@ test('takeover applies a planned Mega evolution before ending the turn', () => {
   p.board.push(base.id);
   for (const c of E.ALL_TOKENS) p.tokens[c] = mega.cost[c] || 0;
   room.now = 200000;
-  room.onMessage('cA', { t: 'takeover', plan: {
+  room.onMessage('cB', { t: 'takeover', plan: {
     action: { type: 'takeMega' }, discards: [],
     megaEvolution: { megaId: mega.id, fromId: base.id }, evolution: null,
   } });
   assert.ok(p.board.includes(mega.id) && !p.board.includes(base.id), 'Mega evolution executed by authority');
-  assert.strictEqual(last('cA', 'state').state.turn, 1, 'turn advanced after Mega evolution');
+  assert.strictEqual(last('cB', 'state').state.turn, 1, 'turn advanced after Mega evolution');
 });
 
 test('state broadcast carries turnStartedAt / serverNow / turnTimeoutMs for the idle clock', () => {
@@ -390,6 +390,57 @@ test('观战者：房间已满时重开仍只能观战（不能挤掉别人）',
   room.onMessage('cS', { t: 'join', name: 'S', token: 'tS' });
   assert.strictEqual(last('cS', 'welcome').seat, -1, '满员时仍是观战');
   assert.strictEqual(room.seats.length, 2, '不应挤出新座位');
+});
+
+test('代打：任何在座玩家都能替超时者触发（修复「房主自己掉线全场卡死」）', () => {
+  const { room, last, clear } = makeRoom();
+  room.now = 0;
+  room.onMessage('cA', { t: 'join', name: 'A', token: 'tA' });   // A = 房主(seat0)
+  room.onMessage('cB', { t: 'join', name: 'B', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });                // 轮到房主 A
+  // 场景：房主 A 自己掉线/挂机 —— 以前只有房主能代打，且房主不代打自己 → 全场永久卡死
+  room.now = 200000;
+  clear();
+  room.onMessage('cB', { t: 'takeover', plan: { action: TAKE } });   // 由非房主 B 触发
+  const s = last('cB', 'state');
+  assert.ok(s, '非房主也应能替超时的房主代打');
+  assert.strictEqual(s.state.players[0].tokens.red, 1, 'AI 替房主(seat0)行动了');
+  assert.strictEqual(s.state.turn, 1, '回合推进到 B');
+});
+
+test('代打：不能替自己代打；观战者不能代打', () => {
+  const { room, last, clear } = makeRoom();
+  room.now = 0;
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  room.onMessage('cB', { t: 'join', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });                // 轮到 A
+  room.now = 200000;
+  clear();
+  room.onMessage('cA', { t: 'takeover', plan: { action: TAKE } });   // A 想替自己
+  assert.ok(/不能替自己/.test((last('cA', 'reject') || {}).reason || ''), '不能替自己代打');
+  assert.ok(!last('cA', 'state'), '不应产生任何状态变化');
+  // 观战者
+  room.onMessage('cS', { t: 'join', token: 'tS' });
+  clear();
+  room.onMessage('cS', { t: 'takeover', plan: { action: TAKE } });
+  assert.ok(/观战者/.test((last('cS', 'reject') || {}).reason || ''), '观战者不能代打');
+});
+
+test('代打：多人同时触发只生效一次（第二个被「尚未超时」挡下）', () => {
+  const { room, last, clear } = makeRoom();
+  room.now = 0;
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  room.onMessage('cB', { t: 'join', token: 'tB' });
+  room.onMessage('cC', { t: 'join', token: 'tC' });
+  room.onMessage('cA', { t: 'start', opts: {} });                // 轮到 A
+  room.now = 200000;
+  clear();
+  room.onMessage('cB', { t: 'takeover', plan: { action: TAKE } });
+  const turnAfterFirst = last('cB', 'state').state.turn;
+  clear();
+  room.onMessage('cC', { t: 'takeover', plan: { action: TAKE } });   // 同一时刻的第二个请求
+  assert.ok(/尚未超时/.test((last('cC', 'reject') || {}).reason || ''), '第二个应被计时校验挡下');
+  assert.strictEqual(room.G.turn, turnAfterFirst, '回合不应被推进两次');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -215,12 +215,17 @@
     // sends the plan here; the server validates host + that the 3-min timeout has
     // truly elapsed (anti-cheat), then runs the whole turn for the active seat.
     _takeover(connId, msg) {
-      if (this.conns[connId] !== 0) return this.send(connId, { t: 'reject', reason: '只有房主可以代打' });
+      // 任何「在座」玩家都可以替超时的人触发 AI 代打 —— 早期只允许房主，
+      // 导致「掉线/挂机的正是房主」时全场永远卡死（房主还不代打自己）。
+      // 只要还有一个人在线，牌局就能推进；服务端仍二次校验超时，防提前接管。
+      const by = this.conns[connId];
+      if (by == null || by < 0) return this.send(connId, { t: 'reject', reason: '观战者不能代打' });
       if (!this.started || !this.G || this.G.phase !== 'play') return;
+      if (by === this.G.turn) return this.send(connId, { t: 'reject', reason: '不能替自己代打' });
       if (this.now - this.turnStartedAt < TURN_TIMEOUT_MS) return this.send(connId, { t: 'reject', reason: '尚未超时' });
       const seat = this.G.turn;
       const plan = (msg && msg.plan) || {};
-      this.G.log.push({ turn: this.G.turn, round: this.G.round, msg: `⏱️ ${this.G.players[seat].name} 超时，房主AI代打` });
+      this.G.log.push({ turn: this.G.turn, round: this.G.round, msg: `⏱️ ${this.G.players[seat].name} 超时，由 AI 代打` });
       // main action (AI's pick, else any legal action, else a legitimate pass) — always acts
       let acted = false;
       try { if (plan.action) acted = E.applyAction(this.G, plan.action, seat).ok; } catch (e) { }
