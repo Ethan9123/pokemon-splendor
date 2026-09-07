@@ -31,6 +31,22 @@
     catch (e) { t = 'tok-' + Math.random().toString(36).slice(2); }
     return t;
   }
+  // 把用户粘进来的东西解析成房间码。朋友收到的往往是「复制邀请链接」给出的整条 URL，
+  // 直接按字符清洗会得到 HTTPSPOKEMON-SPLENDORTRY-BOARD-G 这种乱码并进入空房间。
+  // 依次尝试：?room= 参数 → URL 末段路径 → 原文清洗。
+  function parseRoomCode(raw) {
+    let s = String(raw == null ? '' : raw).trim();
+    if (!s) return '';
+    const q = s.match(/[?&]room=([^&#\s]+)/i);
+    if (q) s = q[1];
+    else if (/^https?:/i.test(s) || s.indexOf('/') >= 0) {
+      const seg = s.split(/[?#]/)[0].split('/').filter(Boolean);
+      if (seg.length) s = seg[seg.length - 1];
+    }
+    try { s = decodeURIComponent(s); } catch (e) { }
+    return s.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32);
+  }
+
   function url(code) {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     return proto + '//' + location.host + '/room/' + encodeURIComponent(code) + '/ws';
@@ -60,7 +76,14 @@
   function sync() { send({ t: 'sync' }); }
   function setName(name) { cfg && (cfg.name = name); return send({ t: 'name', name }); }
   function rematch() { return send({ t: 'rematch' }); }
+  // 重新发一次 join：用于「房主重开下一局」后，让观战者（座位 -1）有机会入座。
+  // 已入座的人重发 join 会按 token 认回原座位，无副作用。
+  function rejoin() { return cfg ? send({ t: 'join', name: cfg.name, token: token(cfg.code) }) : false; }
   function close() { closedByUs = true; clearTimeout(reconnect); stopBeat(); if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { } } ws = null; }
 
-  window.Net = { connect, on, send, action, start, sync, setName, rematch, close, isOpen: () => !!(ws && ws.readyState === 1) };
+  const api = { connect, on, send, action, start, sync, setName, rematch, rejoin, close, parseRoomCode,
+                isOpen: () => !!(ws && ws.readyState === 1) };
+  if (typeof window !== 'undefined') window.Net = api;
+  // 纯函数部分（parseRoomCode）可被 Node 测试直接 require；其余函数依赖浏览器 API。
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

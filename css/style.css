@@ -90,6 +90,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 /* ---------- 联机体验：连接状态条 / 在线点 / 昵称 / 胜利弹窗按钮 ---------- */
 .net-bar{text-align:center;line-height:1.4}
 .net-bar:empty{display:none}
+.net-spectate{display:inline-block;margin:4px auto;padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:700;
+  background:rgba(122,79,192,.18);border:1px solid var(--purple);color:#cbb6ff}
 .net-off{display:inline-block;margin:4px auto;padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:700;
   background:rgba(224,90,74,.16);border:1px solid var(--bad);color:#ffb3a8}
 /* 玩家名字前的在线状态点：断线时一眼可见 */
@@ -106,6 +108,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 /* 胜利弹窗按钮区（联机时是「再来一局（同房间）」+「离开房间」）*/
 #win-actions{display:flex;flex-direction:column;gap:8px;align-items:stretch;margin-top:4px}
 #win-actions button{min-height:44px}
+.win-note{color:var(--muted);font-size:12.5px;line-height:1.6;margin:2px 0 10px;text-align:center}
 .win-wait{color:var(--muted);font-size:13px;padding:8px 0;text-align:center}
 .lobby-hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
 /* idle / disconnect → AI-takeover status strip */
