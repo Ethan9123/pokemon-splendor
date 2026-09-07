@@ -341,5 +341,56 @@ test('rematch: 仅房主 + 仅对局结束后；重置回大厅但保留座位�
   assert.ok(last('cB', 'state'), '对手也收到新对局');
 });
 
+// ---- 房间码解析（朋友常常直接粘贴邀请链接）----
+const NetApi = require('../js/net.js');
+test('parseRoomCode: 邀请链接 / 纯房间码 / 带中文前缀 都能解析', () => {
+  const P = NetApi.parseRoomCode;
+  assert.strictEqual(P('ABC12'), 'ABC12');
+  assert.strictEqual(P('  abc12 '), 'ABC12', '大小写与空格');
+  assert.strictEqual(P('https://pokemon-splendor.try-board-game.uk/?room=ABC12'), 'ABC12', '整条邀请链接');
+  assert.strictEqual(P('http://localhost:8012/?room=abc12'), 'ABC12', '本地链接');
+  assert.strictEqual(P('pokemon-splendor.try-board-game.uk/?room=XY7Z9'), 'XY7Z9', '没有协议头的链接');
+  assert.strictEqual(P('房间码：ABC12'), 'ABC12', '带中文前缀');
+  assert.strictEqual(P('ABC12。'), 'ABC12', '带中文标点');
+  assert.strictEqual(P(''), '');
+  assert.strictEqual(P('   '), '');
+  assert.strictEqual(P(null), '');
+});
+
+test('观战者：开局后加入只能观战；房主重开后重新 join 可入座（兑现 UI 的承诺）', () => {
+  const { room, last } = makeRoom();
+  room.onMessage('cA', { t: 'join', name: 'A', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'B', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });
+  // 开局后进来的人只能观战
+  room.onMessage('cS', { t: 'join', name: '围观群众', token: 'tS' });
+  assert.strictEqual(last('cS', 'welcome').seat, -1, '开局后加入 = 观战');
+  // 房主重开
+  room.G.phase = 'gameover'; room.G.winner = 0;
+  room.onMessage('cA', { t: 'rematch' });
+  assert.ok(last('cS', 'lobby'), '观战者也收到回大厅广播');
+  // 客户端据此重新 join → 应真的拿到座位（否则 UI 的提示就是空头支票）
+  room.onMessage('cS', { t: 'join', name: '围观群众', token: 'tS' });
+  const seat = last('cS', 'welcome').seat;
+  assert.ok(seat >= 0, '重开后观战者应能入座，实际 seat=' + seat);
+  assert.strictEqual(room.seats.length, 3, '应新增一个座位');
+  // 新座位在下一局里真的参战
+  room.onMessage('cA', { t: 'start', opts: {} });
+  assert.strictEqual(last('cS', 'state').state.numPlayers, 3, '下一局是 3 人局');
+});
+
+test('观战者：房间已满时重开仍只能观战（不能挤掉别人）', () => {
+  const { room, last } = makeRoom({ maxSeats: 2 });
+  room.onMessage('cA', { t: 'join', name: 'A', token: 'tA' });
+  room.onMessage('cB', { t: 'join', name: 'B', token: 'tB' });
+  room.onMessage('cA', { t: 'start', opts: {} });
+  room.onMessage('cS', { t: 'join', name: 'S', token: 'tS' });
+  room.G.phase = 'gameover'; room.G.winner = 0;
+  room.onMessage('cA', { t: 'rematch' });
+  room.onMessage('cS', { t: 'join', name: 'S', token: 'tS' });
+  assert.strictEqual(last('cS', 'welcome').seat, -1, '满员时仍是观战');
+  assert.strictEqual(room.seats.length, 2, '不应挤出新座位');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -349,6 +349,7 @@
     // apply
     for (const c of colors) { s.supply[c]--; p.tokens[c]++; }
     s.acted = true;
+    s.passStreak = 0;                          // 有人真的行动了 → 清零和棋计数
     s.taken = colors.slice();
     log(s, `${p.name} 拿取 ${colors.map(zhBall).join('、')}`);
     return { ok: true };
@@ -380,6 +381,8 @@
     let got = '';
     if (s.supply.purple > 0) { s.supply.purple--; p.tokens.purple++; got = ' 并获得1个大师球'; }
     s.acted = true;
+    s.passStreak = 0;                          // 有人真的行动了 → 清零和棋计数
+    s.acquiredThisTurn = true;                 // 拿到牌 = 有进展
     log(s, `${p.name} 保留了一张${zhTier(tier)}宝可梦${fromDeck ? '（牌堆顶）' : ''}${got}`);
     return { ok: true, cardId };
   }
@@ -505,6 +508,8 @@
       for (const did of r.discarded) discardFromBoard(s, p, did);
       p.board.push(cardId);
       s.acted = true;
+      s.passStreak = 0;                          // 有人真的行动了 → 清零和棋计数
+      s.acquiredThisTurn = true;                 // 买到牌 = 有进展
       log(s, `${p.name} 用${card.name}获得（弃掉${r.discarded.length}张${zhBall(card.effectParam.discardColor)}卡）`);
       return { ok: true };
     }
@@ -543,6 +548,8 @@
     p.board.push(cardId);
     if (assocColor) { p.assoc = p.assoc || {}; p.assoc[cardId] = assocColor; }
     s.acted = true;
+    s.passStreak = 0;                          // 有人真的行动了 → 清零和棋计数
+    s.acquiredThisTurn = true;                 // 买到牌 = 有进展
     const extra = spend.length ? `，弃${spend.length}图鉴抵${spend.length * 2}万能` : '';
     const asc = assocColor ? `，关联${zhBall(assocColor)}` : '';
     log(s, `${p.name} 捕捉了 ${card.name}（${payDesc(payment.pay)}${extra}${asc}）`);
@@ -600,6 +607,7 @@
     p.buried.push(fromId);
     p.board.push(opt.toId);
     s.evolvedThisTurn = true;
+    s.acquiredThisTurn = true;                 // 进化也拿了新牌 = 有进展
     log(s, `${p.name} 将 ${s.byId[fromId].name} 进化为 ${s.byId[opt.toId].name}`);
     return { ok: true, fromId, toId: opt.toId };
   }
@@ -614,6 +622,7 @@
     if (s.supply.megaToken < 1) return { ok: false, error: '没有可用的 Mega 代币' };
     s.supply.megaToken--; p.megaToken++;
     s.acted = true;
+    s.passStreak = 0;                          // 有人真的行动了 → 清零和棋计数
     log(s, `${p.name} 获得了 1 个 Mega 代币`);
     return { ok: true };
   }
@@ -654,6 +663,7 @@
     s.megaOffer = s.megaOffer.filter(id => id !== megaId);
     p.board.push(megaId);
     s.evolvedThisTurn = true;
+    s.acquiredThisTurn = true;                 // 进化也拿了新牌 = 有进展
     log(s, `${p.name} 将 ${s.byId[opt.fromId].name} 超级进化为 ${mega.name}（${payDesc(payment.pay)}）`);
     return { ok: true, megaId, fromId: opt.fromId };
   }
@@ -686,6 +696,7 @@
     if (s.acted) return { ok: false, error: '本回合已行动' };
     if (legalActions(s).length) return { ok: false, error: '尚有可执行的行动' };
     s.acted = true;
+    s.passStreak = (s.passStreak || 0) + 1;   // 连续跳过计数，用于和棋判定
     log(s, `${activePlayer(s).name} 无法行动，跳过回合`);
     return { ok: true };
   }
@@ -715,6 +726,24 @@
     }
     // The game ends once the LAST player of the round finishes during the
     // final round, so every Trainer has taken an equal number of turns.
+    // 和棋（僵局）判定：如果连续一整圈每个人都「无合法行动只能跳过」，
+    // 说明牌与球都已耗尽而胜利条件无人能达成（Megas 的资格条件下可复现）。
+    // 实体游戏没规定这种情况，但数字版必须终止 —— 否则联机房间会永久卡死。
+    // 按现有分数与既定平局规则结算。
+    // 无进展判定：只要没人拿到任何新牌，就累计「空转回合」。
+    // 已复现的死循环：牌堆见底、双方满 10 球，场上只剩「拿 1 个球」一个合法行动，
+    // 拿完必须弃掉，净变化为零 —— 有合法行动，却永远不会结束。
+    // 阈值取 8 整圈（2人局=16 手）远高于真实对局的最长「无人买牌」间隔（开局约 3-4 手）。
+    if (s.acquiredThisTurn) s.idleTurns = 0;
+    else s.idleTurns = (s.idleTurns || 0) + 1;
+    s.acquiredThisTurn = false;
+    if ((s.passStreak || 0) >= s.numPlayers || (s.idleTurns || 0) >= s.numPlayers * 8) {
+      s.phase = 'gameover';
+      s.winner = determineWinner(s);
+      s.stalemate = true;
+      log(s, `所有训练家都已无法行动，牌局结束（按当前分数结算），胜者：${s.players[s.winner].name}`);
+      return { ok: true, gameover: true, stalemate: true };
+    }
     const wasLastPlayer = s.turn === s.numPlayers - 1;
     if (s.lastRound && wasLastPlayer) {
       s.phase = 'gameover';

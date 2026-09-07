@@ -151,7 +151,10 @@
   function defaultNick() { return savedNick() || ('训练家' + Math.floor(1000 + Math.random() * 9000)); }
 
   function openOnline(code, asHost) {
-    code = (code || '').toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32);
+    // 用 Net.parseRoomCode：朋友常常直接把「邀请链接」整条粘过来，
+    // 按字符硬清洗会得到乱码房间码并进入一个空房间。
+    code = (window.Net && Net.parseRoomCode) ? Net.parseRoomCode(code)
+         : String(code || '').toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32);
     if (!code || !window.Net) return;
     if (window.Tutorial && Tutorial.stop) Tutorial.stop();
     const name = defaultNick();
@@ -197,6 +200,8 @@
       $('#win-modal').classList.add('hidden');
       $('#game').classList.add('hidden');
       $('#lobby').classList.remove('hidden');
+      // 观战者（座位 -1）借这次回大厅的机会重新入座；已入座的人按 token 认回原座，无副作用。
+      if (window.Net && Net.rejoin) Net.rejoin();
       renderLobby();
       flashHint('房主已重开一局，等待开始');
     });
@@ -223,7 +228,13 @@
     const bar = $('#net-bar'); if (!bar) return;
     if (!isOnline() || !UI.net.started) { bar.innerHTML = ''; return; }
     const s = UI.net.status;
-    if (s === 'connected') { bar.innerHTML = ''; return; }
+    if (s === 'connected') {
+      // 观战者（座位 -1，通常是开局后才进来的人）要知道自己为什么不能操作
+      bar.innerHTML = (UI.net.seat != null && UI.net.seat < 0)
+        ? '<span class="net-spectate">👀 观战中 —— 本局已开始，你可以旁观；房主开下一局时会自动为你安排座位（房间未满时）</span>'
+        : '';
+      return;
+    }
     const msg = (s === 'connecting' && !UI.net.everConnected)
       ? '正在连接房间…'
       : '⚠ 与房间的连接已断开，正在自动重连…（你的座位和进度都保留，重连后继续）';
@@ -1447,7 +1458,13 @@
     const w = G.winner;
     let rows = scores.slice().sort((a, b) => b.s - a.s || b.bur - a.bur || b.brd - a.brd)
       .map(r => `<div class="wrow${r.i === w ? ' winner' : ''}"><span>${r.i === w ? '👑 ' : ''}${r.name}</span><span>${r.s} 分 · ${r.brd} 只 · 进化 ${r.bur}</span></div>`).join('');
-    $('#win-content').innerHTML = `<div class="win-trophy">🏆</div><h2 id="win-title">${G.players[w].name} 获胜！</h2><div class="win-scores">${rows}</div>`;
+    // 和棋（牌与球耗尽、无人达成胜利条件）要说清楚，否则玩家看到「某某获胜」会以为是正常结束
+    const stale = !!G.stalemate;
+    const head = stale
+      ? `<div class="win-trophy">🤝</div><h2 id="win-title">牌局结束 · ${G.players[w].name} 分数最高</h2>` +
+        '<div class="win-note">卡牌与精灵球都已耗尽，无人达成胜利条件 —— 按当前分数结算</div>'
+      : `<div class="win-trophy">🏆</div><h2 id="win-title">${G.players[w].name} 获胜！</h2>`;
+    $('#win-content').innerHTML = head + `<div class="win-scores">${rows}</div>`;
     // 联机：房主可以原地重开，座位/房间码/邀请链接都不变；非房主等房主开
     const wa = $('#win-actions');
     if (wa) {
@@ -1583,8 +1600,11 @@
     // online lobby
     if ($('#online-create')) $('#online-create').addEventListener('click', () => openOnline(makeRoomCode(), true));
     if ($('#online-join')) $('#online-join').addEventListener('click', () => {
-      const c = prompt('输入朋友发给你的 5 位房间码：');
-      if (c && c.trim()) openOnline(c.trim(), false);
+      const c = prompt('输入房间码，或直接粘贴朋友发来的邀请链接：');
+      if (c == null) return;                       // 用户取消
+      const parsed = (window.Net && Net.parseRoomCode) ? Net.parseRoomCode(c) : '';
+      if (!parsed) { flashHint('没认出房间码，请粘贴邀请链接或输入 5 位房间码'); return; }
+      openOnline(parsed, false);
     });
     // 大厅昵称：边打边同步给房间（去抖），所有人立刻看到新名字
     const nick = $('#lobby-nick');
