@@ -330,13 +330,15 @@
     const msLeft = idleMsLeft();
     const secs = Math.max(0, Math.ceil(msLeft / 1000));
     const offline = !activeConnected();
-    if (UI.net.takeoverBusy) ib.innerHTML = '<span class="idle-ai">🤖 房主AI代打中…</span>';
-    else if (!myTurn()) ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后房主AI接管</span>` : '';
-    else if (!UI.net.host) ib.innerHTML = (msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由房主AI代打</span>` : ''; // only non-host gets taken over
+    if (UI.net.takeoverBusy) ib.innerHTML = '<span class="idle-ai">🤖 AI 代打中…</span>';
+    else if (!myTurn()) ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后由 AI 接管</span>` : '';
+    else if (!UI.net.host) ib.innerHTML = (msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由 AI 代打</span>` : ''; // only non-host gets taken over
     else ib.innerHTML = '';   // host's own turn: the host is never auto-taken-over
     // the HOST drives takeover for an idle OTHER seat (never its own turn) once the
     // timeout truly elapses (the server re-validates the timing).
-    if (msLeft <= 0 && !UI.net.takeoverBusy && UI.net.host && !myTurn()) {
+    // 任何在座玩家都可触发（不只房主）：否则房主自己掉线时全场卡死。
+    // 多人同时触发也无妨 —— 服务端处理完第一个就会重置计时，其余会被「尚未超时」拒绝。
+    if (msLeft <= 0 && !UI.net.takeoverBusy && onlineSeat() >= 0 && !myTurn()) {
       UI.net.takeoverBusy = true;
       setTimeout(() => { if (UI.net && UI.net.takeoverBusy) UI.net.takeoverBusy = false; }, 6000); // safety: never stick
       setTimeout(() => { computeTakeoverPlan().then((plan) => { try { if (window.Net) Net.send({ t: 'takeover', plan }); } catch (e) { } }); }, 30);
