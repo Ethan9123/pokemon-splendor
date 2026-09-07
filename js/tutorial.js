@@ -5,6 +5,23 @@
  * ====================================================================================== */
 (function () {
   'use strict';
+
+  // Pure layout for the coach bubble: pick a `top` (and, only when nothing fits, a
+  // `maxHeight`) that keeps the bubble entirely off the `avoid` band — the spotlit
+  // target merged with the action bar. Exported before the DOM guard so Node can test it.
+  function placeBubble(o) {
+    const { viewTop, viewH, bh, safe, avoid } = o, gap = 14, minH = 120;
+    if (!avoid) return { top: Math.max(viewTop + safe, Math.min(viewTop + 58, viewTop + viewH - bh - safe)), maxHeight: null };
+    const roomBelow = viewTop + viewH - avoid.bottom - gap - safe;
+    const roomAbove = avoid.top - viewTop - gap - safe;
+    if (roomBelow >= bh) return { top: avoid.bottom + gap, maxHeight: null };
+    if (roomAbove >= bh) return { top: avoid.top - gap - bh, maxHeight: null };
+    // neither side fits the whole bubble: take the roomier side and let the bubble scroll inside it
+    if (roomBelow >= roomAbove) return { top: avoid.bottom + gap, maxHeight: Math.max(minH, roomBelow) };
+    return { top: viewTop + safe, maxHeight: Math.max(minH, roomAbove) };
+  }
+  if (typeof module !== 'undefined' && module.exports) module.exports = { placeBubble };
+
   const PS = window.PSGame;
   if (!PS) return;
   const E = PS.E;
@@ -59,6 +76,10 @@
   }
 
   // ---------------------------------------------------------------- steps
+  // Once the picked balls form a legal take, the lesson's next tap is the (enabled) confirm
+  // button — move the spotlight there so a beginner sees exactly what to press next.
+  const confirmTake = () => document.querySelector('#action-bar [data-act="confirm-take"]:not([disabled])');
+
   const baseSteps = [
     {
       title: '欢迎来到训练家学院 🎓',
@@ -67,16 +88,16 @@
     },
     {
       title: '① 拿精灵球（3 个不同色）',
-      html: '每个回合只能做 <b>一个</b>主要行动，最常用的就是拿球。<br>规则：一次拿 <b>3 个不同颜色</b>的精灵球。<br>👇 在高亮的精灵球区，点 <b>3 个不同颜色</b>，再点「确定拿取」。',
+      html: '每个回合只能做 <b>一个</b>主要行动，最常用的就是拿球。<br>规则：一次拿 <b>3 个不同颜色</b>的精灵球。<br>👇 在高亮的精灵球区，点 <b>3 个不同颜色</b>，再点「拿取 3 个」。',
       arrange: (g) => { for (const c of COLORS) g.supply[c] = 4; setTokens(g, {}); },
-      target: '#supply',
+      target: () => confirmTake() || document.querySelector('#supply'),
       detect: (g, c) => tokenTotal(g) >= c.tok + 3,
     },
     {
       title: '② 拿精灵球（2 个同色）',
-      html: '另一种拿法：拿 <b>2 个相同</b>颜色（仅当该颜色还剩 ≥4 个时才可以）。<br>👇 连点同一种颜色 <b>2 次</b>（例如黑色），再点「确定拿取」。',
+      html: '另一种拿法：拿 <b>2 个相同</b>颜色（仅当该颜色还剩 ≥4 个时才可以）。<br>👇 连点同一种颜色 <b>2 次</b>（例如黑色），再点「拿取 2 个」。',
       arrange: (g) => { for (const c of COLORS) g.supply[c] = 4; },
-      target: '#supply',
+      target: () => confirmTake() || document.querySelector('#supply'),
       detect: (g, c) => tokenTotal(g) >= c.tok + 2,
     },
     {
@@ -224,15 +245,22 @@
     if (!bubble || bubble.classList.contains('hidden')) return;
     const vv = window.visualViewport;
     const viewTop = vv ? vv.offsetTop : 0, viewH = vv ? vv.height : window.innerHeight;
-    const safe = 10, bh = Math.min(bubble.offsetHeight, viewH - safe * 2);
-    let top = viewTop + 58;
-    if (targetRect) {
-      const below = viewTop + viewH - targetRect.bottom;
-      if (below >= bh + 18) top = targetRect.bottom + 14;
-      else if (targetRect.top - viewTop >= bh + 18) top = targetRect.top - bh - 14;
+    const safe = 10;
+    bubble.style.maxHeight = '';                       // measure the natural height, not a previous cap
+    const bh = Math.min(bubble.offsetHeight, viewH - safe * 2);
+    // The lesson's follow-up tap (拿取 N 个 / 捕捉 / 保留 / 进化) lives in #action-bar, which sits
+    // right above the supply. Keep the bubble off the bar as well as the target — on a phone the
+    // "above the target" slot IS the bar, and a covered confirm button can't be pressed.
+    let avoid = targetRect ? { top: targetRect.top, bottom: targetRect.bottom } : null;
+    const bar = document.getElementById('action-bar');
+    if (avoid && bar && !bar.classList.contains('hidden')) {
+      const br = bar.getBoundingClientRect();
+      const onScreen = br.width > 0 && br.height > 0 && br.bottom > viewTop && br.top < viewTop + viewH;
+      if (onScreen) avoid = { top: Math.min(avoid.top, br.top), bottom: Math.max(avoid.bottom, br.bottom) };
     }
-    top = Math.max(viewTop + safe, Math.min(top, viewTop + viewH - bh - safe));
-    bubble.style.top = Math.round(top) + 'px';
+    const p = placeBubble({ viewTop, viewH, bh, safe, avoid });
+    if (p.maxHeight) bubble.style.maxHeight = p.maxHeight + 'px';
+    bubble.style.top = Math.round(p.top) + 'px';
   }
 
   function snapshot(g) {

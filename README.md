@@ -77,6 +77,7 @@ node test/ai_expansions.test.js # PokéMart/Mega AI、暗牌公平性、搜索�
 node test/room.test.js     # 联机房间权威（座位/脱敏/重连/持久化/超时代打）
 node test/megas.test.js    # 超级进化扩展
 node test/pokemart.test.js # PokéMart 商店扩展
+node test/tutorial_layout.test.js # 新手教程气泡布局（永不遮挡行动栏/目标）
 ```
 
 ## 部署
