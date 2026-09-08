@@ -57,5 +57,18 @@ test('no target: default slot near the top, clamped to the viewport', () => {
   assert.strictEqual(tiny.top, safe, 'clamped up when the bubble is taller than the default slot allows');
 });
 
+test('short landscape: a slot below 120px must not overlap the controls', () => {
+  const avoid = { top: 80, bottom: 290 };
+  const p = placeBubble({ viewTop: 0, viewH: 320, bh: 240, safe: 10, avoid });
+  assert.ok(p.maxHeight < 120);
+  assert.ok(!overlaps(p.top, p.maxHeight, avoid));
+  assert.ok(p.top >= 10 && p.top + p.maxHeight <= 310);
+});
+
+test('a target filling the viewport hides the bubble instead of covering it', () => {
+  const p = placeBubble({ viewTop: 0, viewH: 320, bh: 240, safe: 10, avoid: { top: 0, bottom: 320 } });
+  assert.strictEqual(p.maxHeight, 0);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

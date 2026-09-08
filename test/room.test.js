@@ -443,5 +443,69 @@ test('代打：多人同时触发只生效一次（第二个被「尚未超时�
   assert.strictEqual(room.G.turn, turnAfterFirst, '回合不应被推进两次');
 });
 
+test('reconnect revokes old control and old close preserves the new live seat', () => {
+  const { room, last } = makeRoom();
+  room.join('old', 'A', 'a'); room.join('b', 'B', 'b');
+  room.onMessage('old', { t: 'start' });
+  room.join('new', 'A', 'a');
+  assert.strictEqual(room.conns.old, -1);
+  assert.strictEqual(last('old', 'welcome').host, false);
+  assert.strictEqual(last('old', 'state').state.viewerId, -1);
+  room.onMessage('old', { t: 'action', action: TAKE });
+  assert.ok(last('old', 'reject'));
+  room.leave('old');
+  assert.strictEqual(room.seats[0].connId, 'new');
+  assert.strictEqual(room.seats[0].connected, true);
+  room.onMessage('new', { t: 'action', action: TAKE });
+  assert.strictEqual(room.G.players[0].tokens.red, 1);
+});
+
+test('repeat joins are idempotent and cannot occupy another seat', () => {
+  const { room, last } = makeRoom();
+  room.join('a', 'A', 'a'); room.join('a', 'A', 'a');
+  room.join('a', 'B', 'b');
+  assert.ok(last('a', 'reject'));
+  assert.strictEqual(room.seats.length, 1);
+  assert.strictEqual(room.conns.a, 0);
+  assert.strictEqual(room.seats[0].token, 'a');
+});
+
+test('missing and malformed identities cannot create seats', () => {
+  const { room } = makeRoom();
+  for (const t of [null, undefined, '', '  ', {}, [], 123, 'x'.repeat(257)]) room.join('a', 'A', t);
+  assert.strictEqual(room.seats.length, 0);
+  assert.strictEqual(room.conns.a, undefined);
+});
+
+test('rebind revokes a previous mapping without sending messages', () => {
+  const { room, last, clear } = makeRoom();
+  room.join('old', 'A', 'a'); clear();
+  room.rebind('new', 'a'); room.leave('old');
+  assert.strictEqual(room.seats[0].connId, 'new');
+  assert.strictEqual(room.seats[0].connected, true);
+  assert.ok(!last('new', 'welcome'));
+});
+
+test('join and rename normalize names consistently and reconnect updates game names', () => {
+  const { room } = makeRoom();
+  const name = '\n' + '😀'.repeat(15) + '\t';
+  room.join('a', name, 'a'); room.join('b', {}, 'b');
+  assert.strictEqual(room.seats[0].name, '😀'.repeat(12));
+  assert.strictEqual(typeof room.seats[1].name, 'string');
+  room.onMessage('a', { t: 'start' });
+  room.join('new', 'New', 'a');
+  assert.strictEqual(room.G.players[0].name, 'New');
+  room.onMessage('new', { t: 'name', name });
+  assert.strictEqual(room.G.players[0].name, '😀'.repeat(12));
+});
+
+test('server rejects a single-player online start', () => {
+  const { room, last } = makeRoom();
+  room.join('a', 'A', 'a'); room.onMessage('a', { t: 'start' });
+  assert.strictEqual(room.started, false);
+  assert.strictEqual(room.G, null);
+  assert.ok(last('a', 'reject'));
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -42,6 +42,9 @@
   // Idle/disconnect turn timeout: after this long with no move, the host's AI
   // may take over the active seat (enforced server-side; the host computes the move).
   const TURN_TIMEOUT_MS = 180000; // 3 minutes
+  const validToken = token => typeof token === 'string' && token.trim().length > 0 && token.length <= 256;
+  const cleanName = name => typeof name === 'string'
+    ? Array.from(name.replace(/[\u0000-\u001f\u007f]/g, '').trim()).slice(0, 12).join('') : '';
 
   // strip the shared static card refs so a room state is pure data we can persist
   function serializeG(s) {
@@ -76,6 +79,11 @@
 
     // ----------------------------- connections -----------------------------
     join(connId, name, token) {
+      if (!validToken(token)) return this.send(connId, { t: 'reject', reason: '无效的玩家身份，请重新连接' });
+      const current = this.conns[connId];
+      if (current != null && current >= 0 && this.seats[current].token !== token) {
+        return this.send(connId, { t: 'reject', reason: '同一连接不能重复占座' });
+      }
       // reconnect: a seat already bound to this stable token
       let seat = token != null ? this.seats.findIndex(s => s.token === token) : -1;
       if (seat < 0) {                                           // a new player
@@ -90,11 +98,10 @@
       }
       if (seat >= 0) {
         const st = this.seats[seat];
-        st.token = token || st.token || ('seat' + seat);
-        st.connId = connId;
-        st.name = name || st.name || ('训练家 ' + (seat + 1));
-        st.connected = true;
-        this.conns[connId] = seat;
+        st.token = token;
+        this._bind(connId, seat, true);
+        st.name = cleanName(name) || st.name || ('训练家 ' + (seat + 1));
+        if (this.G && this.G.players[seat]) this.G.players[seat].name = st.name;
       } else {
         this.conns[connId] = -1;                                // spectator
       }
@@ -106,7 +113,7 @@
 
     leave(connId) {
       const seat = this.conns[connId];
-      if (seat != null && seat >= 0 && this.seats[seat]) {
+      if (seat != null && seat >= 0 && this.seats[seat] && this.seats[seat].connId === connId) {
         this.seats[seat].connected = false;
         this.seats[seat].connId = null;                         // keep token → seat reclaimable
       }
@@ -119,10 +126,22 @@
     // when the client itself re-sends join/sync on a real reconnect). Works even
     // before the game has started, so a lobby that hibernated isn't bricked.
     rebind(connId, token) {
-      const seat = token != null ? this.seats.findIndex(s => s.token === token) : -1;
-      if (seat >= 0) { this.seats[seat].connId = connId; this.seats[seat].connected = true; this.conns[connId] = seat; }
+      const seat = validToken(token) ? this.seats.findIndex(s => s.token === token) : -1;
+      if (seat >= 0) this._bind(connId, seat);
       else this.conns[connId] = -1;
       return this.conns[connId];
+    }
+
+    _bind(connId, seat, notify = false) {
+      const st = this.seats[seat], previous = st.connId;
+      if (previous && previous !== connId) {
+        this.conns[previous] = -1;
+        if (notify) {
+          this.send(previous, { t: 'welcome', connId: previous, seat: -1, host: false });
+          this._stateTo(previous);
+        }
+      }
+      st.connId = connId; st.connected = true; this.conns[connId] = seat;
     }
 
     // ------------------------------- messages ------------------------------
@@ -144,8 +163,7 @@
     _rename(connId, name) {
       const seat = this.conns[connId];
       if (seat == null || seat < 0) return;                     // 观战者没有名字
-      const clean = String(name == null ? '' : name)
-        .split('').filter(c => c >= ' ').join('').trim().slice(0, 12);
+      const clean = cleanName(name);
       if (!clean) return;
       if (this.seats[seat].name === clean) return;              // 无变化不广播
       this.seats[seat].name = clean;
@@ -174,7 +192,7 @@
     _start(connId, opts) {
       if (this.conns[connId] !== 0) return this.send(connId, { t: 'reject', reason: '只有房主可以开始游戏' });
       if (this.started) return this._stateTo(connId);
-      if (!this.seats.length) return this.send(connId, { t: 'reject', reason: '房间里还没有玩家' });
+      if (this.seats.length < 2 || this.seats.length > 4) return this.send(connId, { t: 'reject', reason: '联机对局需要 2–4 名玩家' });
       opts = opts || {};
       const names = this.seats.map((s, i) => s.name || ('训练家 ' + (i + 1)));
       // server-authoritative RNG: NEVER trust a client-supplied seed — it would let

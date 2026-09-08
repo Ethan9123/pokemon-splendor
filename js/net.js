@@ -19,6 +19,7 @@
   'use strict';
   let ws = null, cfg = null, hb = null, reconnect = null, closedByUs = false, seq = 0;
   const handlers = {};
+  const sessionTokens = new Map();
 
   function on(ev, fn) { handlers[ev] = fn; }
   function emit(ev, data) { if (handlers[ev]) { try { handlers[ev](data); } catch (e) { console.error('Net handler', ev, e); } } }
@@ -26,9 +27,15 @@
   // stable identity per room, stored locally → reconnect reclaims the seat
   function token(code) {
     const k = 'pkmn_net_token_' + code;
+    if (sessionTokens.has(k)) return sessionTokens.get(k);
     let t = null;
-    try { t = localStorage.getItem(k); if (!t) { t = 'tok-' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(k, t); } }
-    catch (e) { t = 'tok-' + Math.random().toString(36).slice(2); }
+    try { t = localStorage.getItem(k); } catch (e) { }
+    if (!t) {
+      t = 'tok-' + Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('');
+      try { localStorage.setItem(k, t); } catch (e) { }
+    }
+    // Storage may be blocked; reconnection within this page must retain its seat.
+    sessionTokens.set(k, t);
     return t;
   }
   // 把用户粘进来的东西解析成房间码。朋友收到的往往是「复制邀请链接」给出的整条 URL，

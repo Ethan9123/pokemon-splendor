@@ -18,7 +18,7 @@
   --app-h:100vh; --app-h:100svh; --app-h:100dvh;/* follow the visible mobile viewport */
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;overscroll-behavior-y:none}
 html,body{margin:0;height:100%}
 body{
   font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;

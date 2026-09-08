@@ -51,7 +51,7 @@ export class Room {
         const meta = ws.deserializeAttachment() || {};
         if (!meta.connId) continue;
         this.conns.set(ws, meta.connId);
-        if (meta.token) this.authority.rebind(meta.connId, meta.token);
+        this.authority.rebind(meta.connId, meta.token); // spectators also need future broadcasts
       }
     })();
     return this._ready;
@@ -93,11 +93,18 @@ export class Room {
     let msg;
     try { msg = JSON.parse(typeof message === 'string' ? message : ''); } catch (e) { return; }
     if (!msg || typeof msg.t !== 'string') return;
-    // persist identity on the socket so we can rebind it after hibernation
-    if (msg.t === 'join') ws.serializeAttachment({ connId, token: msg.token, name: msg.name });
     this.authority.now = Date.now();   // inject server clock (idle-timeout / takeover)
     try { this.authority.onMessage(connId, msg); }
     catch (e) { /* one hostile/buggy message must never escape the hibernation handler */ }
+    // Attach only accepted identities. A rejected re-join must never replace the
+    // socket's identity, and a superseded socket must remain a spectator on wake.
+    if (msg.t === 'join') {
+      for (const [socket, cid] of this.conns) {
+        const seat = this.authority.conns[cid];
+        const token = seat != null && seat >= 0 ? this.authority.seats[seat].token : null;
+        socket.serializeAttachment({ connId: cid, token });
+      }
+    }
     // Persist on anything that mutates room state. `join` MUST persist: it adds a
     // seat, and because the heartbeat auto-response never wakes the DO, an idle
     // lobby evicts within ~30s — without this the un-started lobby's seats are lost.

@@ -10,15 +10,17 @@
   // `maxHeight`) that keeps the bubble entirely off the `avoid` band — the spotlit
   // target merged with the action bar. Exported before the DOM guard so Node can test it.
   function placeBubble(o) {
-    const { viewTop, viewH, bh, safe, avoid } = o, gap = 14, minH = 120;
+    const { viewTop, viewH, bh, safe, avoid } = o, gap = 14;
     if (!avoid) return { top: Math.max(viewTop + safe, Math.min(viewTop + 58, viewTop + viewH - bh - safe)), maxHeight: null };
     const roomBelow = viewTop + viewH - avoid.bottom - gap - safe;
     const roomAbove = avoid.top - viewTop - gap - safe;
     if (roomBelow >= bh) return { top: avoid.bottom + gap, maxHeight: null };
     if (roomAbove >= bh) return { top: avoid.top - gap - bh, maxHeight: null };
     // neither side fits the whole bubble: take the roomier side and let the bubble scroll inside it
-    if (roomBelow >= roomAbove) return { top: avoid.bottom + gap, maxHeight: Math.max(minH, roomBelow) };
-    return { top: viewTop + safe, maxHeight: Math.max(minH, roomAbove) };
+    // Never impose a minimum taller than the available space (short landscape /
+    // browser chrome). A zero-height slot is hidden until there is room again.
+    if (roomBelow >= roomAbove) return { top: Math.max(viewTop + safe, avoid.bottom + gap), maxHeight: Math.max(0, roomBelow) };
+    return { top: viewTop + safe, maxHeight: Math.max(0, roomAbove) };
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = { placeBubble };
 
@@ -30,6 +32,7 @@
   const P = (g) => g.players[0];
 
   let active = false, curMode = 'base', steps = [], idx = 0, ctx = null, describedTarget = null;
+  let layoutFrame = 0, dockObserver = null, lastTarget = null, focusTimer = 0;
 
   // ---------------------------------------------------------------- scenario builders
   function purge(g, id) {                       // remove an id from every deck and field slot
@@ -228,6 +231,12 @@
   function positionSpot() {
     const s = steps[idx], mask = document.getElementById('tut-mask'); if (!mask) return;
     const t = s ? resolve(s.target) : null;
+    // A newly rendered confirm/evolve control may be inside a scrolled dock.
+    // Reveal it by scrolling ONLY that container, never the document behind it.
+    if (t && t !== lastTarget) {
+      if (t.closest('#controls')) revealTarget(t);
+      lastTarget = t;
+    }
     if (!t) { mask.classList.add('hidden'); positionBubble(null); return; }
     const r = t.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) { mask.classList.add('hidden'); positionBubble(null); return; }
@@ -240,12 +249,25 @@
     positionBubble(r);
   }
 
+  function revealTarget(t) {
+    const dock = t.closest('#controls');
+    if (dock && getComputedStyle(dock).position === 'fixed') {
+      const r = t.getBoundingClientRect(), dr = dock.getBoundingClientRect();
+      if (r.top < dr.top + 8) dock.scrollTop += r.top - dr.top - 8;
+      else if (r.bottom > dr.bottom - 8) dock.scrollTop += r.bottom - dr.bottom + 8;
+      return;
+    }
+    // Board targets need one scroll when the lesson changes, not on every reflow.
+    if (t.scrollIntoView) t.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+  }
+
   function positionBubble(targetRect) {
     const bubble = document.getElementById('tut-bubble');
     if (!bubble || bubble.classList.contains('hidden')) return;
     const vv = window.visualViewport;
     const viewTop = vv ? vv.offsetTop : 0, viewH = vv ? vv.height : window.innerHeight;
     const safe = 10;
+    const scrollTop = bubble.scrollTop;
     bubble.style.maxHeight = '';                       // measure the natural height, not a previous cap
     const bh = Math.min(bubble.offsetHeight, viewH - safe * 2);
     // The lesson's follow-up tap (拿取 N 个 / 捕捉 / 保留 / 进化) lives in #action-bar, which sits
@@ -259,8 +281,10 @@
       if (onScreen) avoid = { top: Math.min(avoid.top, br.top), bottom: Math.max(avoid.bottom, br.bottom) };
     }
     const p = placeBubble({ viewTop, viewH, bh, safe, avoid });
-    if (p.maxHeight) bubble.style.maxHeight = p.maxHeight + 'px';
+    bubble.style.visibility = p.maxHeight === 0 ? 'hidden' : '';
+    if (p.maxHeight !== null) bubble.style.maxHeight = p.maxHeight + 'px';
     bubble.style.top = Math.round(p.top) + 'px';
+    bubble.scrollTop = scrollTop;
   }
 
   function snapshot(g) {
@@ -269,6 +293,8 @@
   }
 
   function showStep() {
+    clearTimeout(focusTimer);
+    lastTarget = null;
     const s = steps[idx]; if (!s) { finish(); return; }
     if (s.arrange) s.arrange(PS.G);
     ctx = snapshot(PS.G);            // snapshot AFTER arrange but BEFORE render, so the
@@ -282,7 +308,7 @@
     if (describedTarget) { describedTarget.removeAttribute('aria-describedby'); describedTarget = null; }
     if (s.next) {
       const nx = document.createElement('button'); nx.className = 'primary'; nx.textContent = '下一步 ▶'; nx.onclick = next; acts.appendChild(nx);
-      setTimeout(() => nx.focus(), 0);
+      focusTimer = setTimeout(() => nx.focus({ preventScroll: true }), 0);
     } else {
       const hint = document.createElement('span'); hint.className = 'tut-hint'; hint.textContent = '按上面的提示操作…'; acts.appendChild(hint);
       const retry = document.createElement('button'); retry.className = 'ghost small'; retry.textContent = '重来本步'; retry.onclick = retryStep; acts.appendChild(retry);
@@ -290,12 +316,12 @@
     const ex = document.createElement('button'); ex.className = 'ghost small'; ex.textContent = '退出教程'; ex.onclick = exit; acts.appendChild(ex);
     document.getElementById('tut-bubble').classList.remove('hidden');
     const t = resolve(s.target);
-    if (t && t.scrollIntoView) {
+    if (t) {
       t.setAttribute('aria-describedby', 'tut-text'); describedTarget = t;
-      try { t.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { }
-      if (!s.next && t.focus) setTimeout(() => t.focus({ preventScroll: true }), 80);
+      revealTarget(t);
+      if (!s.next && t.focus) focusTimer = setTimeout(() => t.focus({ preventScroll: true }), 80);
     }
-    positionSpot();
+    onReflow();
   }
 
   function next() { idx++; if (idx >= steps.length) finish(); else showStep(); }
@@ -311,6 +337,7 @@
     const m = document.getElementById('tut-mask'); if (m) m.classList.add('hidden');
     const wm = document.getElementById('win-modal'); if (wm) wm.classList.add('hidden');
     const b = document.getElementById('tut-bubble'); if (!b) return;
+    b.style.visibility = ''; b.style.maxHeight = ''; b.style.top = '10px';
     try { localStorage.setItem('ps-tutorial-complete-' + curMode, '1'); } catch (e) { }
     document.getElementById('tut-step').textContent = '教程完成';
     document.getElementById('tut-title').innerHTML = curMode === 'megas' ? '⚡ 学会超级进化！' : curMode === 'pokemart' ? '🛒 PokéMart 毕业！' : '🏆 恭喜通关！';
@@ -325,26 +352,57 @@
     go.onclick = () => exit(curMode); acts.appendChild(go);
     if (curMode !== 'megas') { const ag = document.createElement('button'); ag.className = 'ghost small'; ag.textContent = '再练一次'; ag.onclick = () => start(curMode); acts.appendChild(ag); }
     b.classList.remove('hidden');
-    setTimeout(() => go.focus(), 0);
+    focusTimer = setTimeout(() => go.focus({ preventScroll: true }), 0);
   }
 
   function onRender(g) {
     if (!active) return;
-    positionSpot();
+    onReflow();
     const s = steps[idx];
     if (s && s.detect) { try { if (s.detect(g, ctx || snapshot(g))) next(); } catch (e) { } }
   }
 
   // ---------------------------------------------------------------- lifecycle
-  function onReflow() { positionSpot(); }
+  function onReflow(event) {
+    // Internal reading/scrolling must not remeasure and reset the bubble itself.
+    const bubble = document.getElementById('tut-bubble');
+    if (event && event.type === 'scroll' && bubble && event.target instanceof Node && bubble.contains(event.target)) return;
+    if (!active || layoutFrame) return;
+    layoutFrame = requestAnimationFrame(() => { layoutFrame = 0; if (active) positionSpot(); });
+  }
   function onTutorialKey(e) {
     if (e.key !== 'Escape' || !active) return;
     const dialog = document.querySelector('.modal:not(.hidden),#inspect:not(.hidden)');
     if (dialog) return; // the top-most dialog owns Escape
     exit();
   }
-  function addListeners() { window.addEventListener('scroll', onReflow, true); window.addEventListener('resize', onReflow); document.addEventListener('keydown', onTutorialKey); }
-  function removeListeners() { window.removeEventListener('scroll', onReflow, true); window.removeEventListener('resize', onReflow); document.removeEventListener('keydown', onTutorialKey); }
+  function addListeners() {
+    window.addEventListener('scroll', onReflow, { capture: true, passive: true });
+    window.addEventListener('resize', onReflow);
+    if (window.visualViewport) {
+      visualViewport.addEventListener('resize', onReflow);
+      visualViewport.addEventListener('scroll', onReflow);
+    }
+    const dock = document.getElementById('controls');
+    if (window.ResizeObserver && dock) {
+      dockObserver = new ResizeObserver(() => { lastTarget = null; onReflow(); });
+      dockObserver.observe(dock);
+    }
+    document.addEventListener('keydown', onTutorialKey);
+  }
+  function removeListeners() {
+    window.removeEventListener('scroll', onReflow, true);
+    window.removeEventListener('resize', onReflow);
+    if (window.visualViewport) {
+      visualViewport.removeEventListener('resize', onReflow);
+      visualViewport.removeEventListener('scroll', onReflow);
+    }
+    if (dockObserver) dockObserver.disconnect();
+    dockObserver = null; lastTarget = null;
+    cancelAnimationFrame(layoutFrame); layoutFrame = 0;
+    clearTimeout(focusTimer);
+    document.removeEventListener('keydown', onTutorialKey);
+  }
 
   function start(mode) {
     stop();

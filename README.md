@@ -81,6 +81,17 @@ node test/tutorial_layout.test.js # 新手教程气泡布局（永不遮挡行�
 python test/mobile_ux_audit.py     # 手机/小屏/横屏 UX 审计（playwright 截图 + 遮挡/溢出/点击目标检测，用法见文件头）
 ```
 
+移动端教程回归（需要 Python Playwright 及对应浏览器）：在仓库目录启动
+`python -m http.server 8765 --bind 127.0.0.1`，另一个终端执行
+`python test/tutorial_mobile.test.py chromium` 或 `python test/tutorial_mobile.test.py webkit`。
+测试会实际触摸选球、检查确认按钮命中、缩小视口、继续教程，并验证退出后重新进入。
+截图保存在 `test/_ux_audit/`。桌面浏览器模拟不能替代 iPhone 微信真机复测。
+
+联机身份回归：`node test/room.test.js`、`node test/net_identity.test.js`、
+`node test/worker_identity.test.js`。最后一项使用内存存储和模拟 WebSocket 检查真实 Worker
+消息处理器的休眠恢复逻辑，不替代 Cloudflare 环境集成测试。
+启动上述本地服务器后，`python test/ui_names.test.py` 验证昵称和日志不会被解析为 HTML。
+
 ## 部署
 
 - **纯静态**（单机热座 + AI）：任意静态托管即可（如 GitHub Pages），双击 `index.html` 同款。

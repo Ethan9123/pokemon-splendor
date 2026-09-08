@@ -57,6 +57,10 @@
     });
   }
   const $ = (s, r) => (r || document).querySelector(s);
+  // Player names and logs are untrusted, including old local saves. Encode at
+  // every HTML sink; server-side length limits alone do not prevent markup.
+  const escapeHTML = value => String(value == null ? '' : value).replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const BALL_NAMES = { red: '精灵球', blue: '超级球', black: '高级球', pink: '治愈球', yellow: '先机球', purple: '大师球' };
   const TIER_NAMES = { legend: '传说', rare: '稀有', stage3: '三阶', stage2: '二阶', stage1: '一阶', mega: 'Mega', pmL1: '商店Ⅰ', pmL2: '商店Ⅱ', pmL3: '商店Ⅲ' };
@@ -214,7 +218,7 @@
     const r = UI.net.roster || [];
     const rr = $('#lobby-roster');
     if (rr) rr.innerHTML = r.length
-      ? r.map(p => `<div class="lr-row"><span class="lr-dot ${p.connected ? 'on' : 'off'}" aria-hidden="true"></span>${p.seat + 1}. ${p.name}${p.seat === 0 ? ' 👑' : ''}${p.seat === UI.net.seat ? '（你）' : ''}<span class="sr-only">，${p.connected ? '在线' : '已断线'}</span></div>`).join('')
+      ? r.map(p => `<div class="lr-row"><span class="lr-dot ${p.connected ? 'on' : 'off'}" aria-hidden="true"></span>${p.seat + 1}. ${escapeHTML(p.name)}${p.seat === 0 ? ' 👑' : ''}${p.seat === UI.net.seat ? '（你）' : ''}<span class="sr-only">，${p.connected ? '在线' : '已断线'}</span></div>`).join('')
       : '<div class="muted">等待玩家加入…</div>';
     const start = $('#lobby-start');
     if (start) { start.style.display = UI.net.host ? '' : 'none'; start.disabled = !(r.length >= 2); }
@@ -483,8 +487,8 @@
     const when = o.ts ? new Date(o.ts).toLocaleString('zh-CN', { hour12: false }) : '';
     const div = document.createElement('div');
     div.id = 'resume-banner'; div.className = 'resume-banner';
-    div.innerHTML = `<div class="rb-text">发现未完成的对局${seat ? `，轮到 <b>${seat}</b>` : ''}` +
-      `${vp ? `<br><small>${vp}</small>` : ''}${when ? `<br><small class="rb-when">${when}</small>` : ''}</div>` +
+    div.innerHTML = `<div class="rb-text">发现未完成的对局${seat ? `，轮到 <b>${escapeHTML(seat)}</b>` : ''}` +
+      `${vp ? `<br><small>${escapeHTML(vp)}</small>` : ''}${when ? `<br><small class="rb-when">${when}</small>` : ''}</div>` +
       `<div class="rb-btns"><button id="resume-btn" class="primary">▶ 继续上一局</button>` +
       `<button id="resume-discard" class="ghost">放弃</button></div>`;
     const card = $('.setup-card'), tagline = card && card.querySelector('.tagline');
@@ -564,15 +568,15 @@
     }
     chips += `<div class="mychip master" aria-label="大师球：手中 ${p.tokens.purple} 个"><div class="ball purple sm" aria-hidden="true"></div><span class="mc-tok"><small>球</small>${p.tokens.purple}</span></div>`;
     if (G.megasEnabled) chips += `<div class="mychip mega" aria-label="Mega 代币：持有 ${p.megaToken} 个"><div class="ball mega-token sm" aria-hidden="true"></div><span class="mc-tok">${p.megaToken}</span></div>`;
-    host.innerHTML = `<span class="mc-label">我的资源 · ${p.name} · 球 ${E.tokenTotal(p)}/${E.TOKEN_MAX}</span><div class="mychips">${chips}</div>`;
+    host.innerHTML = `<span class="mc-label">我的资源 · ${escapeHTML(p.name)} · 球 ${E.tokenTotal(p)}/${E.TOKEN_MAX}</span><div class="mychips">${chips}</div>`;
   }
 
   function renderBanner() {
     const p = isOnline() ? G.players[G.turn] : me();
     let txt;
     if (G.phase === 'gameover') txt = '游戏结束';
-    else if (p.isAI) txt = `${p.name} · ${E.scoreOf(G, p)}分 · <span class="thinking">思考中<span class="dot"></span><span class="dot"></span><span class="dot"></span></span>`;
-    else txt = `${p.name} 的回合${isOnline() && myTurn() ? '（你）' : ''} · ${E.scoreOf(G, p)}分${G.lastRound ? ' · ⚠ 最后一轮' : ''}`;
+    else if (p.isAI) txt = `${escapeHTML(p.name)} · ${E.scoreOf(G, p)}分 · <span class="thinking">思考中<span class="dot"></span><span class="dot"></span><span class="dot"></span></span>`;
+    else txt = `${escapeHTML(p.name)} 的回合${isOnline() && myTurn() ? '（你）' : ''} · ${E.scoreOf(G, p)}分${G.lastRound ? ' · ⚠ 最后一轮' : ''}`;
     $('#turn-banner').innerHTML = txt;
   }
 
@@ -582,9 +586,9 @@
     host.innerHTML = G.players.map((p, i) => {
       const score = E.scoreOf(G, p), balls = E.tokenTotal(p), active = i === G.turn && G.phase === 'play';
       return `<div class="score-pill${active ? ' active' : ''}" data-player="${i}" role="listitem" ${active ? 'aria-current="true"' : ''}
-        aria-label="${p.name}：${score}/${target}分，持有${balls}个精灵球${active ? '，当前回合' : ''}">
+        aria-label="${escapeHTML(p.name)}：${score}/${target}分，持有${balls}个精灵球${active ? '，当前回合' : ''}">
         <span class="score-dot" style="background:${SEAT_COLORS[i]}" aria-hidden="true"></span>
-        <span class="score-name">${p.name}</span><b>${score}</b><small>/${target}分</small><span class="score-balls">球${balls}</span>
+        <span class="score-name">${escapeHTML(p.name)}</span><b>${score}</b><small>/${target}分</small><span class="score-balls">球${balls}</span>
       </div>`;
     }).join('');
   }
@@ -846,7 +850,7 @@
       bar.innerHTML = '<div class="act-hint">🔌 连接已断开，正在重连…<br><span style="font-size:12px;opacity:.7">重连成功后可以继续操作，进度不会丢</span></div>';
       return;
     }
-    if (isOnline() && !myTurn()) { bar.innerHTML = `<div class="act-hint">等待 <b>${G.players[G.turn].name}</b> 行动…<br><span style="font-size:12px;opacity:.7">轮到你时这里会出现操作按钮</span></div>`; return; }
+    if (isOnline() && !myTurn()) { bar.innerHTML = `<div class="act-hint">等待 <b>${escapeHTML(G.players[G.turn].name)}</b> 行动…<br><span style="font-size:12px;opacity:.7">轮到你时这里会出现操作按钮</span></div>`; return; }
     if (isOnline() && UI.net.pendingAction) { bar.innerHTML = '<div class="act-hint"><span class="thinking">正在等待服务器确认 <span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>'; return; }
 
     if (UI.phase === 'discard') {
@@ -983,7 +987,7 @@
       el.innerHTML =
         `<div class="player-head">
            <div class="pavatar" style="background-color:${SEAT_COLORS[i]};background-image:url(${seatAvatar(i)});box-shadow:0 0 0 2px ${SEAT_COLORS[i]}"></div>
-           <div class="pname">${netDot(i)}${p.name}</div>
+           <div class="pname">${netDot(i)}${escapeHTML(p.name)}</div>
            <div class="ptokens${tot > E.TOKEN_MAX ? ' over' : tot === E.TOKEN_MAX ? ' full' : ''}" title="持有的精灵球总数（回合结束上限 ${E.TOKEN_MAX} 个）" aria-label="持有精灵球 ${tot}/${E.TOKEN_MAX}"><span class="pt-lbl">球</span>${tot}<small>/${E.TOKEN_MAX}</small></div>
            <div class="pscore" aria-label="${E.scoreOf(G, p)}分，目标${G.megasEnabled ? E.MEGA_WIN_SCORE : E.WIN_SCORE}分">${E.scoreOf(G, p)}<small>/${G.megasEnabled ? E.MEGA_WIN_SCORE : E.WIN_SCORE}</small></div>
          </div>
@@ -996,7 +1000,7 @@
   }
 
   function renderLog() {
-    const lines = G.log.slice(-40).map(l => `<div class="ln">${l.msg}</div>`).join('');
+    const lines = G.log.slice(-40).map(l => `<div class="ln">${escapeHTML(l.msg)}</div>`).join('');
     const box = $('#log-lines');
     const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 24;
     const prevTop = box.scrollTop;
@@ -1390,7 +1394,7 @@
       document.body.appendChild(ov);
     }
     ov.innerHTML = `<div class="po-inner"><div class="pavatar" style="margin:0 auto 14px;width:56px;height:56px;background-color:${SEAT_COLORS[G.turn]};background-image:url(${seatAvatar(G.turn)});box-shadow:0 0 0 3px ${SEAT_COLORS[G.turn]}"></div>
-      <h2 id="pass-title">请将设备交给<br>${p.name}</h2><p>其他玩家的保留区会保持隐藏</p>
+      <h2 id="pass-title">请将设备交给<br>${escapeHTML(p.name)}</h2><p>其他玩家的保留区会保持隐藏</p>
       <button class="primary" id="ready-btn" style="margin-top:16px;padding:12px 30px">我准备好了</button></div>`;
     const game = $('#game'); if (game) game.inert = true;
     ov.classList.remove('hidden');
@@ -1469,13 +1473,13 @@
     const scores = G.players.map((p, i) => ({ i, s: E.scoreOf(G, p), bur: p.buried.length, brd: p.board.length, name: p.name }));
     const w = G.winner;
     let rows = scores.slice().sort((a, b) => b.s - a.s || b.bur - a.bur || b.brd - a.brd)
-      .map(r => `<div class="wrow${r.i === w ? ' winner' : ''}"><span>${r.i === w ? '👑 ' : ''}${r.name}</span><span>${r.s} 分 · ${r.brd} 只 · 进化 ${r.bur}</span></div>`).join('');
+      .map(r => `<div class="wrow${r.i === w ? ' winner' : ''}"><span>${r.i === w ? '👑 ' : ''}${escapeHTML(r.name)}</span><span>${r.s} 分 · ${r.brd} 只 · 进化 ${r.bur}</span></div>`).join('');
     // 和棋（牌与球耗尽、无人达成胜利条件）要说清楚，否则玩家看到「某某获胜」会以为是正常结束
     const stale = !!G.stalemate;
     const head = stale
-      ? `<div class="win-trophy">🤝</div><h2 id="win-title">牌局结束 · ${G.players[w].name} 分数最高</h2>` +
+      ? `<div class="win-trophy">🤝</div><h2 id="win-title">牌局结束 · ${escapeHTML(G.players[w].name)} 分数最高</h2>` +
         '<div class="win-note">卡牌与精灵球都已耗尽，无人达成胜利条件 —— 按当前分数结算</div>'
-      : `<div class="win-trophy">🏆</div><h2 id="win-title">${G.players[w].name} 获胜！</h2>`;
+      : `<div class="win-trophy">🏆</div><h2 id="win-title">${escapeHTML(G.players[w].name)} 获胜！</h2>`;
     $('#win-content').innerHTML = head + `<div class="win-scores">${rows}</div>`;
     // 联机：房主可以原地重开，座位/房间码/邀请链接都不变；非房主等房主开
     const wa = $('#win-actions');
