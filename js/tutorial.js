@@ -82,6 +82,19 @@
   // Once the picked balls form a legal take, the lesson's next tap is the (enabled) confirm
   // button — move the spotlight there so a beginner sees exactly what to press next.
   const confirmTake = () => document.querySelector('#action-bar [data-act="confirm-take"]:not([disabled])');
+  // Follow the player's next action, not the card they have already selected.
+  const cardTarget = id => {
+    const end = PS.G.acted && document.querySelector('#action-bar [data-act="end-turn"]');
+    if (end) return end;
+    if (PS.UI.selCard === id) {
+      const buy = document.querySelector('#action-bar [data-act="capture"]:not([disabled])');
+      if (buy) return buy;
+    }
+    return document.querySelector(`.card[data-card="${id}"]`);
+  };
+  const reserveTarget = () => (PS.G.acted && document.querySelector('#action-bar [data-act="end-turn"]'))
+    || document.querySelector('#action-bar [data-act="reserve-deck"]:not([disabled])')
+    || document.querySelector('.deck-pile.reservable');
 
   const baseSteps = [
     {
@@ -107,7 +120,7 @@
       title: '③ 捕捉宝可梦',
       html: '<b>捕捉</b> = 花精灵球把宝可梦收入囊中，<b>立刻得分</b>。<br>看 <b>喇叭芽</b>：它要 2红+2粉，但你的 <b>2 个粉色折扣</b>把粉色全抵掉了，所以只要 <b>2 红</b>就能捕捉——你手上正好有 2 红！<br>👇 点高亮的 <b>喇叭芽</b>，再点「捕捉」。',
       arrange: (g) => { setTokens(g, { red: 2 }); placeField(g, 'stage1', 1, 's1_04'); E.refill(g, 'stage1'); },
-      target: () => document.querySelector('.card[data-card="s1_04"]'),
+      target: () => cardTarget('s1_04'),
       detect: (g) => P(g).board.includes('s1_04'),
     },
     {
@@ -120,7 +133,7 @@
     {
       title: '⑤ 保留（预订一张卡）',
       html: '想要的卡现在买不起？用 <b>保留</b> 把它收进手牌（最多 3 张，别人抢不走），还会 <b>白送 1 个大师球</b>（紫色万能球，能当任意颜色用，非常珍贵）。<br>👇 点一个高亮的 <b>牌堆</b>（虚线方块）来保留它顶上的牌。',
-      target: () => document.querySelector('.deck-pile.reservable'),
+      target: reserveTarget,
       detect: (g, c) => P(g).reserve.length > c.reserve,
     },
     {
@@ -136,7 +149,7 @@
         p.tokens = t;
         g.winScore = score(g) + (card.vp || 0); // this single capture wins exactly
       },
-      target: () => document.querySelector('.card[data-card="s3_11"]'),
+      target: () => cardTarget('s3_11'),
       detect: (g) => g.phase === 'gameover',
     },
   ];
@@ -172,42 +185,42 @@
       title: '① 药水：一张抵两张',
       html: '<b>药水</b>会提供 <b>2 个同色永久折扣</b>，是快速发展经济的核心道具。<br>我已准备好刚好足够的球。👇 点高亮的<b>药水</b>，然后点「购买道具」。',
       arrange: (g) => { placeOnly(g, 'pmL2', 'pm_12'); setTokens(g, { blue: 4, pink: 3 }); },
-      target: () => document.querySelector('.card[data-card="pm_12"]'),
+      target: () => cardTarget('pm_12'),
       detect: (g) => P(g).board.includes('pm_12'),
     },
     {
       title: '② 技能机：复制一种折扣',
       html: '<b>技能机</b>没有固定颜色。获得时选择你已拥有的一张彩色卡，它就永久复制那种折扣。<br>👇 点<b>技能机</b>后选「购买道具」，再在弹窗中选一张关联卡。',
       arrange: (g) => { placeOnly(g, 'pmL1', 'pm_23'); setTokens(g, { red: 3, blue: 2 }); },
-      target: () => document.querySelector('.card[data-card="pm_23"]'),
+      target: () => cardTarget('pm_23'),
       detect: (g) => P(g).board.includes('pm_23') && !!P(g).assoc.pm_23,
     },
     {
       title: '③ 图鉴：需要时再抵款',
       html: '<b>图鉴</b>平时不给颜色折扣，但购买其他卡时可丢弃，当作 <b>2 个万能球</b>。<br>你已拥有一张图鉴，现在少 2 个红球。👇 捕捉高亮的<b>蚊香蝌蚪</b>，并确认弃用图鉴抵款。',
       arrange: (g) => { setBoard(g, ['s1_14', 'pm_06']); placeOnly(g, 'stage1', 's1_21'); setTokens(g, { red: 1 }); },
-      target: () => document.querySelector('.card[data-card="s1_21"]'),
+      target: () => cardTarget('s1_21'),
       detect: (g) => P(g).board.includes('s1_21') && !P(g).board.includes('pm_06'),
     },
     {
       title: '④ 神奇糖果：一次做两件事',
       html: '<b>神奇糖果</b>同时有两个效果：① 复制你已有的一种折扣；② 立即免费拿一张场上的 <b>Lv.1 道具或一级宝可梦</b>。<br>👇 购买神奇糖果，按顺序完成两次选择。',
       arrange: (g) => { setBoard(g, ['s1_14']); placeOnly(g, 'pmL2', 'pm_18'); g.field.pmL1.fill(null); placeOnly(g, 'stage1', 's1_07'); setTokens(g, { red: 1, blue: 4, black: 3 }); },
-      target: () => document.querySelector('.card[data-card="pm_18"]'),
+      target: () => cardTarget('pm_18'),
       detect: (g) => P(g).board.includes('pm_18'),
     },
     {
       title: '⑤ 进化石：免费拿二级卡',
       html: '<b>进化石</b>会让你立即免费拿一张场上的 <b>Lv.2 道具或二级宝可梦</b>。免费卡的效果也会继续触发。<br>👇 购买<b>进化石</b>，再选一张免费卡。',
       arrange: (g) => { placeOnly(g, 'pmL3', 'pm_02'); placeOnly(g, 'pmL2', 'pm_11'); g.field.stage2.fill(null); setTokens(g, { blue: 1, black: 6, pink: 3 }); },
-      target: () => document.querySelector('.card[data-card="pm_02"]'),
+      target: () => cardTarget('pm_02'),
       detect: (g) => P(g).board.includes('pm_02'),
     },
     {
       title: '⑥ 驱虫喷雾：弃卡换高分',
       html: '<b>驱虫喷雾</b>不花精灵球，而是弃掉指定颜色的 <b>2 张已拥有卡</b>，换取 3 分。会牺牲长期折扣，适合冲分收尾。<br>我已给你两张粉色卡。👇 购买高亮的<b>驱虫喷雾</b>，在弹窗中选两张作为代价。',
       arrange: (g) => { setBoard(g, ['s1_14', 's1_20']); placeOnly(g, 'pmL3', 'pm_28'); setTokens(g, {}); },
-      target: () => document.querySelector('.card[data-card="pm_28"]'),
+      target: () => cardTarget('pm_28'),
       detect: (g) => P(g).board.includes('pm_28'),
     },
     {
@@ -223,7 +236,8 @@
     const mask = document.createElement('div'); mask.id = 'tut-mask'; mask.className = 'hidden';
     const bubble = document.createElement('div'); bubble.id = 'tut-bubble'; bubble.className = 'hidden';
     bubble.setAttribute('role', 'region'); bubble.setAttribute('aria-live', 'polite'); bubble.setAttribute('aria-labelledby', 'tut-title'); bubble.setAttribute('aria-describedby', 'tut-text');
-    bubble.innerHTML = '<div id="tut-step"></div><div id="tut-title"></div><div id="tut-text"></div><div id="tut-actions"></div>';
+    bubble.innerHTML = '<div id="tut-step"></div><div id="tut-title"></div><div id="tut-next" role="status"></div><details id="tut-details"><summary>规则说明</summary><div id="tut-text"></div></details><div id="tut-actions"></div>';
+    bubble.querySelector('details').addEventListener('toggle', onReflow);
     document.body.appendChild(mask); document.body.appendChild(bubble);
   }
   const resolve = (t) => (typeof t === 'function') ? t() : (t ? document.querySelector(t) : null);
@@ -231,6 +245,7 @@
   function positionSpot() {
     const s = steps[idx], mask = document.getElementById('tut-mask'); if (!mask) return;
     const t = s ? resolve(s.target) : null;
+    updateInstruction(t, s);
     // A newly rendered confirm/evolve control may be inside a scrolled dock.
     // Reveal it by scrolling ONLY that container, never the document behind it.
     if (t && t !== lastTarget) {
@@ -249,6 +264,28 @@
     positionBubble(r);
   }
 
+  function updateInstruction(t, step) {
+    const line = document.getElementById('tut-next');
+    if (!line || !step) return;
+    let text = '跟随高亮完成操作';
+    if (step.next) text = '了解后，点击「下一步」';
+    else if (t) {
+      const act = t.dataset.act;
+      if (act === 'capture') text = `点击「${t.textContent.trim()}」继续`;
+      else if (act === 'end-turn') text = '先点击「不进化，结束回合」，再继续本步';
+      else if (act === 'confirm-take') text = `已选好，点击「${t.textContent.trim()}」`;
+      else if (act === 'reserve-deck') text = '点击「保留牌堆顶」';
+      else if (t.dataset.card) text = `点击高亮的「${byId[t.dataset.card].name}」`;
+      else if (t.id === 'supply') text = idx === 1
+        ? `选择 3 个不同颜色的球（已选 ${PS.UI.pick.length}/3）`
+        : `连点同一种颜色 2 次（已选 ${PS.UI.pick.length}/2）`;
+      else if (t.classList.contains('evo-option')) text = '点击高亮的进化按钮';
+      else if (t.classList.contains('deck-pile')) text = '点击高亮牌堆，预订一张卡';
+      else if (t.hasAttribute('data-take-mega')) text = '点击高亮的 Mega 代币';
+    }
+    if (line.textContent !== text) line.textContent = text;
+  }
+
   function revealTarget(t) {
     const dock = t.closest('#controls');
     if (dock && getComputedStyle(dock).position === 'fixed') {
@@ -259,6 +296,16 @@
     }
     // Board targets need one scroll when the lesson changes, not on every reflow.
     if (t.scrollIntoView) t.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    if (!dock) {
+      const header = document.getElementById('topbar'), controls = document.getElementById('controls');
+      const top = Math.max(0, header ? header.getBoundingClientRect().bottom : 0) + 16;
+      const bottom = controls && getComputedStyle(controls).position === 'fixed'
+        ? controls.getBoundingClientRect().top - 16 : innerHeight - 16;
+      const r = t.getBoundingClientRect();
+      if (r.top < top || r.bottom > bottom) {
+        window.scrollBy({ top: r.top - (top + Math.max(0, (bottom - top - r.height) / 2)), behavior: 'instant' });
+      }
+    }
   }
 
   function positionBubble(targetRect) {
@@ -268,19 +315,31 @@
     const viewTop = vv ? vv.offsetTop : 0, viewH = vv ? vv.height : window.innerHeight;
     const safe = 10;
     const scrollTop = bubble.scrollTop;
+    bubble.classList.remove('tut-compact');
     bubble.style.maxHeight = '';                       // measure the natural height, not a previous cap
     const bh = Math.min(bubble.offsetHeight, viewH - safe * 2);
     // The lesson's follow-up tap (拿取 N 个 / 捕捉 / 保留 / 进化) lives in #action-bar, which sits
     // right above the supply. Keep the bubble off the bar as well as the target — on a phone the
     // "above the target" slot IS the bar, and a covered confirm button can't be pressed.
-    let avoid = targetRect ? { top: targetRect.top, bottom: targetRect.bottom } : null;
+    // Only vertically avoid things in the bubble's horizontal lane. On desktop
+    // the right sidebar and a board card can span almost the entire height while
+    // leaving the centre lane empty; merging them forced the guide offscreen.
+    const lane = bubble.getBoundingClientRect();
+    const intersectsLane = r => r && r.left < lane.right + 10 && r.right > lane.left - 10;
+    let avoid = intersectsLane(targetRect) ? { top: targetRect.top, bottom: targetRect.bottom } : null;
     const bar = document.getElementById('action-bar');
-    if (avoid && bar && !bar.classList.contains('hidden')) {
+    if (targetRect && bar && !bar.classList.contains('hidden')) {
       const br = bar.getBoundingClientRect();
       const onScreen = br.width > 0 && br.height > 0 && br.bottom > viewTop && br.top < viewTop + viewH;
-      if (onScreen) avoid = { top: Math.min(avoid.top, br.top), bottom: Math.max(avoid.bottom, br.bottom) };
+      if (onScreen && intersectsLane(br)) avoid = avoid
+        ? { top: Math.min(avoid.top, br.top), bottom: Math.max(avoid.bottom, br.bottom) }
+        : { top: br.top, bottom: br.bottom };
     }
-    const p = placeBubble({ viewTop, viewH, bh, safe, avoid });
+    let p = placeBubble({ viewTop, viewH, bh, safe, avoid });
+    if (p.maxHeight !== null && p.maxHeight < 180) {
+      bubble.classList.add('tut-compact');
+      p = placeBubble({ viewTop, viewH, bh: bubble.offsetHeight, safe, avoid });
+    }
     bubble.style.visibility = p.maxHeight === 0 ? 'hidden' : '';
     if (p.maxHeight !== null) bubble.style.maxHeight = p.maxHeight + 'px';
     bubble.style.top = Math.round(p.top) + 'px';
@@ -304,13 +363,14 @@
     document.getElementById('tut-step').textContent = '第 ' + (idx + 1) + ' / ' + steps.length + ' 步';
     document.getElementById('tut-title').innerHTML = s.title || '';
     document.getElementById('tut-text').innerHTML = s.html || '';
+    document.getElementById('tut-details').open = !!s.next;
+    document.getElementById('tut-details').scrollTop = 0;
     const acts = document.getElementById('tut-actions'); acts.innerHTML = '';
     if (describedTarget) { describedTarget.removeAttribute('aria-describedby'); describedTarget = null; }
     if (s.next) {
       const nx = document.createElement('button'); nx.className = 'primary'; nx.textContent = '下一步 ▶'; nx.onclick = next; acts.appendChild(nx);
       focusTimer = setTimeout(() => nx.focus({ preventScroll: true }), 0);
     } else {
-      const hint = document.createElement('span'); hint.className = 'tut-hint'; hint.textContent = '按上面的提示操作…'; acts.appendChild(hint);
       const retry = document.createElement('button'); retry.className = 'ghost small'; retry.textContent = '重来本步'; retry.onclick = retryStep; acts.appendChild(retry);
     }
     const ex = document.createElement('button'); ex.className = 'ghost small'; ex.textContent = '退出教程'; ex.onclick = exit; acts.appendChild(ex);
@@ -338,6 +398,8 @@
     const wm = document.getElementById('win-modal'); if (wm) wm.classList.add('hidden');
     const b = document.getElementById('tut-bubble'); if (!b) return;
     b.style.visibility = ''; b.style.maxHeight = ''; b.style.top = '10px';
+    document.getElementById('tut-details').open = true;
+    document.getElementById('tut-next').textContent = '练习完成，可以开始正式对局了';
     try { localStorage.setItem('ps-tutorial-complete-' + curMode, '1'); } catch (e) { }
     document.getElementById('tut-step').textContent = '教程完成';
     document.getElementById('tut-title').innerHTML = curMode === 'megas' ? '⚡ 学会超级进化！' : curMode === 'pokemart' ? '🛒 PokéMart 毕业！' : '🏆 恭喜通关！';

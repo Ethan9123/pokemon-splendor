@@ -86,6 +86,8 @@ python test/mobile_ux_audit.py     # 手机/小屏/横屏 UX 审计（playwright
 `python test/tutorial_mobile.test.py chromium` 或 `python test/tutorial_mobile.test.py webkit`。
 测试会实际触摸选球、检查确认按钮命中、缩小视口、继续教程，并验证退出后重新进入。
 截图保存在 `test/_ux_audit/`。桌面浏览器模拟不能替代 iPhone 微信真机复测。
+`python test/tutorial_actions.test.py` 另外验证桌面、手机与横屏商店教程：卡牌 → 购买按钮的
+高亮切换、结束回合提示、可展开规则及关联卡弹窗（Chromium / WebKit）。
 
 联机身份回归：`node test/room.test.js`、`node test/net_identity.test.js`、
 `node test/worker_identity.test.js`。最后一项使用内存存储和模拟 WebSocket 检查真实 Worker
