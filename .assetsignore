@@ -19,3 +19,4 @@ serve.py
 .gitattributes
 *.map
 assets/policy.json
+_rep_*.json
