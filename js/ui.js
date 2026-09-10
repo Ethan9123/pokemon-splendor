@@ -4,6 +4,27 @@
   const E = window.Engine, AI = window.AI, DB = window.CARD_DB;
   const MEGA_DB = window.MEGA_DB || [];
   const POKEMART_DB = window.POKEMART_DB || [];
+
+  // WebP fallback. All card art is WebP (#31), but Safari on macOS <= 10.15 / iOS <= 13 cannot
+  // decode it — every card and deck back showed as a broken "?" there. Probe by decoding a 1x1
+  // WebP (a canvas-encode probe would misclassify Firefox); on failure switch each card image to
+  // its JPEG twin and set <html class="no-webp"> so CSS paints the .jpg deck backs. The probe is
+  // async but resolves in a few ms, long before the first card renders; if a game is already on
+  // screen it re-renders. `?nowebp=1` forces the fallback so the path can be checked anywhere.
+  // NB: `G`/`render` are declared further down; only the async probe path (which runs after
+  // this module has initialised) may touch them — the synchronous `?nowebp=1` path must not.
+  function useJpegFallback(rerender) {
+    document.documentElement.classList.add('no-webp');
+    for (const c of [].concat(DB, MEGA_DB, POKEMART_DB)) if (c && typeof c.img === 'string') c.img = c.img.replace(/\.webp$/, '.jpg');
+    if (rerender && G) render();
+  }
+  if (/[?&]nowebp=1/.test(location.search)) useJpegFallback(false);
+  else {
+    const probe = new Image();
+    probe.onload = () => { if (!(probe.width > 0 && probe.height > 0)) useJpegFallback(true); };
+    probe.onerror = () => useJpegFallback(true);
+    probe.src = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=';
+  }
   // 究极 difficulty: single-tree determinized MCTS (vsearch v2), TIME-based budget.
   // The web worker + the AI "thinking" pause hide the latency completely, so we
   // spend real time: ~900ms ≈ 2500-3000 sims on desktop (auto-scales down on
@@ -894,17 +915,19 @@
       const info = affordInfo(c);
       const aff = !!info;
       const loc = E.locateCard(G, UI.selCard);
-      const reserveTier = (loc.where === 'field') && (E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier));
-      const canReserve = reserveTier && p.reserve.length < E.HAND_MAX;
+      const rs = reserveState(loc, p);
       const actionText = acquireLabel(c);
       const eff = E.isPokemart(c) && c.effect ? ` · <span class="eff-tag">${EFFECT_NAMES[c.effect] || ''}</span>` : '';
       let ledger = purchaseLedgerHTML(c, info);
       const block = !aff ? acquireBlockReason(c) : '';
       if (block) ledger = `<div class="pay-ledger unafford"><div class="pl-short">⚠ ${block}</div></div>` + ledger;
       else if (!ledger && !aff) ledger = `<div class="pay-ledger unafford"><div class="pl-short">⚠ 当前资源不足</div></div>`;
+      if (rs && !rs.ok) ledger += `<div class="pay-ledger unafford"><div class="pl-short">🚫 ${rs.reason}</div></div>`;
       let html = `<img class="sel-preview${E.isPokemart(c) ? ' pm-card' : ''}" src="${c.img}" alt="${c.name}卡面"><div class="act-hint">已选：<b>${c.name}</b>（${TIER_NAMES[c.tier]}，${c.vp}分）${eff}<br><span style="font-size:12px;opacity:.75">点卡面可放大查看</span></div>${ledger}<div class="act-buttons">`;
       if (aff) html += `<button class="primary" data-act="capture">${actionText}</button>`;
-      if (canReserve) html += `<button class="ghost" data-act="reserve-card">保留</button>`;
+      if (rs) html += rs.ok
+        ? `<button class="${aff ? 'ghost' : 'primary'}" data-act="reserve-card">保留</button>`   // can't capture → reserving IS the main move
+        : `<button class="ghost" disabled aria-disabled="true">保留</button>`;
       html += `<button class="ghost" data-act="clear-sel">取消</button></div>`;
       bar.innerHTML = html;
       return;
@@ -1556,15 +1579,26 @@
     if (inspectReturnFocus && inspectReturnFocus.focus) inspectReturnFocus.focus({ preventScroll: true });
     inspectReturnFocus = null;
   }
+  // Can this field card be reserved right now? null = reserving doesn't apply (not a field card);
+  // otherwise {ok, reason}. The UI shows a disabled 保留 with the rule rather than omitting the
+  // button — players read a missing button as a bug ("联机时保留按钮没了").
+  function reserveState(loc, p) {
+    if (!loc || loc.where !== 'field') return null;
+    if (!(E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier))) return { ok: false, reason: '稀有 / 传说不可保留，只能用大师球捕捉' };
+    if (p.reserve.length >= E.HAND_MAX) return { ok: false, reason: `手牌已满（最多保留 ${E.HAND_MAX} 张）` };
+    return { ok: true };
+  }
   // build capture/reserve buttons for the inspect overlay, if the card is actionable now
   function inspectActionsFor(id) {
     if (!interactable()) return '';
     const p = me(), c = byId[id]; if (!c) return '';
     const loc = E.locateCard(G, id);
-    const canReserve = loc && loc.where === 'field' && (E.NORMAL_TIERS.includes(loc.tier) || E.PM_TIERS.includes(loc.tier)) && p.reserve.length < E.HAND_MAX;
+    const rs = loc ? reserveState(loc, p) : null, aff = !!affordInfo(c);
     let h = '';
-    if (affordInfo(c)) h += `<button class="primary" data-inspect-act="capture">${acquireLabel(c)}</button>`;
-    if (canReserve) h += `<button class="ghost" data-inspect-act="reserve-card">保留</button>`;
+    if (aff) h += `<button class="primary" data-inspect-act="capture">${acquireLabel(c)}</button>`;
+    if (rs) h += rs.ok
+      ? `<button class="${aff ? 'ghost' : 'primary'}" data-inspect-act="reserve-card">保留</button>`
+      : `<button class="ghost" disabled aria-disabled="true">保留</button><span class="inspect-note">🚫 ${rs.reason}</span>`;
     return h;
   }
 
