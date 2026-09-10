@@ -624,3 +624,25 @@ body.tutorial-choice-open #tut-mask,body.tutorial-choice-open #tut-bubble{visibi
 @container game-field (min-width:1040px){
   .pokemart-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+
+/* ---------- WebP fallback ----------
+   Safari on macOS <= 10.15 / iOS <= 13 cannot decode WebP. ui.js probes support at load and sets
+   <html class="no-webp">; card <img> paths are rewritten to .jpg there, and these mirror the CSS backs. */
+html.no-webp .deck-pile[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage1.jpg)}
+html.no-webp .deck-pile[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage2.jpg)}
+html.no-webp .deck-pile[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/stage3.jpg)}
+html.no-webp .deck-pile[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/rare.jpg)}
+html.no-webp .deck-pile[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.40),rgba(8,10,30,.62)),url(../assets/backs/legend.jpg)}
+html.no-webp .mini-card.card-back[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage1.jpg)}
+html.no-webp .mini-card.card-back[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage2.jpg)}
+html.no-webp .mini-card.card-back[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/stage3.jpg)}
+html.no-webp .mini-card.card-back[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/rare.jpg)}
+html.no-webp .mini-card.card-back[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.5),rgba(8,10,30,.65)),url(../assets/backs/legend.jpg)}
+html.no-webp .fly-card[data-tier="stage1"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage1.jpg)}
+html.no-webp .fly-card[data-tier="stage2"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage2.jpg)}
+html.no-webp .fly-card[data-tier="stage3"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/stage3.jpg)}
+html.no-webp .fly-card[data-tier="rare"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/rare.jpg)}
+html.no-webp .fly-card[data-tier="legend"]{background-image:linear-gradient(rgba(8,10,30,.45),rgba(8,10,30,.6)),url(../assets/backs/legend.jpg)}
+
+/* reason line under a disabled 保留 in the inspect overlay (wraps to its own row) */
+.inspect-note{flex-basis:100%;text-align:center;color:var(--gold);font-size:12.5px;line-height:1.5}
