@@ -95,14 +95,23 @@ export class Room {
     }
   }
 
-  async alarm(alarmInfo) {
+  async alarm() {
     await this._init();
     const a = this.authority;
     if (!a.aiPending() || !a.humansConnected()) return;   // nothing to do / nobody here → pause
+    // Alarms are delivered at-least-once: a duplicate (or late retry) of the alarm that
+    // just played the previous bot must not make the next bot move instantly.
+    const due = a.turnStartedAt + AI_TURN_DELAY_MS;
+    if (Date.now() < due - 100) { await this.state.storage.setAlarm(due); return; }
+    // Count attempts per bot TURN (seq), durably and BEFORE thinking — not the alarm's own
+    // retryCount, which counts redeliveries of one alarm event. If the think dies (e.g. the
+    // CPU limit resets the object and its memory), the next try — the platform's retry or a
+    // fresh alarm re-armed by a client's sync — thinks more cheaply (see aiThinkOpts).
+    const rec = (await this.state.storage.get('aiAttempt')) || {};
+    const attempt = rec.seq === a.seq ? (rec.n | 0) + 1 : 0;
+    await this.state.storage.put('aiAttempt', { seq: a.seq, n: attempt });
     a.now = Date.now();
-    // A retry means the previous run of this same bot turn died before persisting
-    // (e.g. it exceeded the CPU limit mid-think); stepAI then thinks more cheaply.
-    try { a.stepAI((alarmInfo && alarmInfo.retryCount) || 0); }
+    try { a.stepAI(attempt); }
     catch (e) { /* stepAI falls back internally; never let the bot loop die here */ }
     await this._persist();
     if (a.aiPending() && a.humansConnected()) {

@@ -211,6 +211,8 @@
       UI.net.roster = m.players || []; UI.net.started = m.started;
       UI.net.hostSeat = (typeof m.hostSeat === 'number') ? m.hostSeat : -1;   // 房主按身份认，不一定坐 1 号位
       UI.net.maxSeats = m.maxSeats || 4;
+      if (typeof m.shuffleCount === 'number') UI.net.shuffleCount = m.shuffleCount;   // 刷新/晚到的人也看得到房主重随过几次
+      UI.net.aiKicks = 0;
       renderLobby();
       if (G && G.phase !== 'gameover' && UI.net.started) renderPlayers();  // 对局中同步在线状态点
     });
@@ -285,16 +287,17 @@
             (canEdit ? '<button class="ghost lr-add" data-add="1" aria-label="添加一个电脑玩家">＋ 电脑</button>' : '') + '</div>');
         }
       }
-      const html = rows.length ? rows.join('') : '<div class="muted">等待玩家加入…</div>';
-      // 名单没变就不重绘：否则别人改名时，房主正展开的难度下拉框会被整个替换掉
-      if (rr._html !== html) {
-        const f = document.activeElement;
-        const refocus = (f && rr.contains(f))
-          ? (f.matches('select[data-seat]') ? `select[data-seat="${f.dataset.seat}"]` : '[data-add], select[data-seat]')
-          : null;
-        rr.innerHTML = html; rr._html = html;
-        if (refocus) { const n = rr.querySelector(refocus); if (n) n.focus({ preventScroll: true }); }
-      }
+      const list = rows.length ? rows : ['<div class="muted">等待玩家加入…</div>'];
+      // 逐行比较、只重绘变了的行：朋友改名/掉线只重绘他那一行，
+      // 房主正展开的难度下拉框（在另一行）不会被替换，选择也不会丢
+      const f = document.activeElement;
+      const refocus = (f && rr.contains(f))
+        ? (f.matches('select[data-seat]') ? `select[data-seat="${f.dataset.seat}"]` : '[data-add], select[data-seat]')
+        : null;
+      if (rr.children.length !== list.length) rr.innerHTML = list.join('');
+      else for (let k = 0; k < list.length; k++) { if (rr.children[k]._html !== list[k]) rr.children[k].outerHTML = list[k]; }
+      Array.prototype.forEach.call(rr.children, (el, k) => { el._html = list[k]; });
+      if (refocus && !rr.contains(document.activeElement)) { const n = rr.querySelector(refocus); if (n) n.focus({ preventScroll: true }); }
     }
     const tools = $('#lobby-tools');
     if (tools) {
@@ -359,6 +362,7 @@
     UI.net.turnTimeoutMs = m.turnTimeoutMs || 180000;
     UI.net.stateAt = Date.now();
     UI.net.takeoverBusy = false;            // new authoritative state → allow a fresh takeover
+    if (m.seq !== UI.net.lastSeq) { UI.net.lastSeq = m.seq; UI.net.aiKicks = 0; }   // 电脑回合的催促次数按回合计
     UI.net.pendingAction = false;
     $('#setup').classList.add('hidden'); $('#lobby').classList.add('hidden');
     $('#game').classList.remove('hidden');
@@ -426,22 +430,33 @@
     const secs = Math.max(0, Math.ceil(msLeft / 1000));
     // 电脑座位由服务器按节奏执行，不走超时代打。万一电脑回合迟迟不动（服务器定时器意外丢失），
     // 每 8 秒发一次 sync 唤醒房间 —— 服务器收到任何消息都会重新排上电脑回合。
+    const roster = UI.net.roster || [];
     const active = G.players[G.turn];
     if (active && active.isAI) {
+      // 服务器只在有真人在线时推进电脑（没人在就暂停、不花钱）—— 此时催也没用，直接说明
+      if (!roster.some(p => !p.ai && p.connected)) {
+        ib.innerHTML = '<span class="idle-wait">玩家都已离线，电脑暂停中，有人回来后继续</span>';
+        return;
+      }
       ib.innerHTML = '';
+      // 每个电脑回合最多催 3 次：真丢了定时器，第一次就能补上；再多只是空转唤醒房间
       const waited = UI.net.turnTimeoutMs - msLeft;
-      if (waited > 8000 && Date.now() - (UI.net.aiKickAt || 0) > 8000) {
+      if (waited > 8000 && Date.now() - (UI.net.aiKickAt || 0) > 8000 && (UI.net.aiKicks || 0) < 3) {
         UI.net.aiKickAt = Date.now();
+        UI.net.aiKicks = (UI.net.aiKicks || 0) + 1;
         if (window.Net) Net.sync();
       }
       return;
     }
     const offline = !activeConnected();
-    // 能替你代打的只有「其他在线的真人」（电脑不会发起代打）；只和电脑打时没人会接管你，就不催
-    const othersOnline = (UI.net.roster || []).some(p => !p.ai && p.connected && p.seat !== onlineSeat());
+    // 能代打的只有「在线、且不是当前回合」的真人（电脑和观战者都不会发起代打）。
+    // 没有这样的人时不显示倒计时 —— 否则观战者会一直看到「0 秒后由 AI 接管」却什么都不发生。
+    const canTakeover = roster.some(p => !p.ai && p.connected && p.seat !== G.turn);
     if (UI.net.takeoverBusy) ib.innerHTML = '<span class="idle-ai">🤖 AI 代打中…</span>';
-    else if (!myTurn()) ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后由 AI 接管</span>` : '';
-    else ib.innerHTML = (othersOnline && msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由 AI 代打</span>` : '';
+    else if (!myTurn()) ib.innerHTML = canTakeover
+      ? ((offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后由 AI 接管</span>` : '')
+      : (offline ? '<span class="idle-wait">⚠ 对手已断线，等待其重连</span>' : '');
+    else ib.innerHTML = (canTakeover && msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由 AI 代打</span>` : '';
     // Any OTHER seated player drives the takeover of an idle human seat once the
     // timeout truly elapses (the server re-validates the timing).
     // 任何在座玩家都可触发（不只房主）：否则房主自己掉线时全场卡死。
@@ -1770,11 +1785,16 @@
         if (!btn || btn.disabled) return;
         btn.disabled = true;                                 // 防连点加出两个电脑；名单一变按钮就被重绘
         setTimeout(() => { btn.disabled = false; }, 1500);   // 被拒绝/没发出时名单不变，稍后恢复可点
-        lobbySent(add ? Net.addAI('normal') : Net.removeAI(Number(rm.dataset.remove)));
+        if (add) { lobbySent(Net.addAI('normal')); return; }
+        // 带上点击时看到的电脑名字：若在新名单到达前连点，服务器会拒绝过期的座位号，而不是误删别的电脑
+        const seatNo = Number(rm.dataset.remove), seen = (UI.net.roster || []).find(p => p.seat === seatNo);
+        lobbySent(Net.removeAI(seatNo, seen ? seen.name : undefined));
       });
       lobbyRoster.addEventListener('change', (e) => {
         const sel = e.target.closest('select[data-seat]');
-        if (sel && window.Net && UI.net) lobbySent(Net.setAILevel(Number(sel.dataset.seat), sel.value));
+        if (!sel || !window.Net || !UI.net) return;
+        const seatNo = Number(sel.dataset.seat), seen = (UI.net.roster || []).find(p => p.seat === seatNo);
+        lobbySent(Net.setAILevel(seatNo, sel.value, seen ? seen.name : undefined));
       });
     }
     if ($('#lobby-tools')) $('#lobby-tools').addEventListener('click', (e) => {

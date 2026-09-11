@@ -13,6 +13,8 @@
  *   Net.action(move)              send a move ({type,...} engine action)
  *   Net.setName(name)             rename my seat (live, in lobby or mid-game)
  *   Net.rematch()                 host: end-of-game -> back to lobby, same seats
+ *   Net.addAI(level) / removeAI(seat, name) / setAILevel(seat, level, name) / shuffle()
+ *                                 host, lobby: bot seats + random seat order
  *   Net.sync() / Net.close()
  * ===================================================================== */
 (function () {
@@ -88,8 +90,9 @@
   function rejoin() { return cfg ? send({ t: 'join', name: cfg.name, token: token(cfg.code) }) : false; }
   // 房主在大厅调整座位（服务器校验房主身份与大厅阶段）
   function addAI(level) { return send({ t: 'addAI', level }); }
-  function removeAI(seat) { return send({ t: 'removeAI', seat }); }
-  function setAILevel(seat, level) { return send({ t: 'aiLevel', seat, level }); }
+  // name = 该行电脑的名字：座位号会因移除/随机而变化，服务器据此拒绝过期的操作
+  function removeAI(seat, name) { return send({ t: 'removeAI', seat, name }); }
+  function setAILevel(seat, level, name) { return send({ t: 'aiLevel', seat, level, name }); }
   function shuffle() { return send({ t: 'shuffle' }); }
   function close() { closedByUs = true; clearTimeout(reconnect); stopBeat(); if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { } } ws = null; }
 

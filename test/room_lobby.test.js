@@ -7,6 +7,7 @@ const E = require('../js/engine.js');
 const AI = require('../js/ai.js');
 const DB = require('../data/cards.json');
 const MEGA = require('../data/megas.json');
+const PM = require('../data/pokemart.json');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -15,7 +16,7 @@ function test(name, fn) {
 }
 function makeRoom(extra) {
   const inbox = {};
-  const room = new Room(Object.assign({ cardDB: DB, megaDB: MEGA, maxSeats: 4, ai: AI,
+  const room = new Room(Object.assign({ cardDB: DB, megaDB: MEGA, pokemartDB: PM, maxSeats: 4, ai: AI,
     send: (cid, msg) => { (inbox[cid] = inbox[cid] || []).push(msg); } }, extra || {}));
   const last = (cid, t) => { const a = (inbox[cid] || []).filter(m => m.t === t); return a[a.length - 1]; };
   const all = (cid, t) => (inbox[cid] || []).filter(m => m.t === t);
@@ -167,38 +168,46 @@ test('shuffle: 仅房主；每次向全员广播（含第几次与先手是谁�
   room.onMessage('cA', { t: 'addAI' });
   room.onMessage('cB', { t: 'shuffle' });
   assert.ok(/只有房主/.test(last('cB', 'reject').reason));
-  for (let k = 1; k <= 5; k++) {
+  let changed = 0;
+  for (let k = 1; k <= 5 || (!changed && k <= 60); k++) {
     clear();
+    const before = { cA: room.conns.cA, cB: room.conns.cB };
     room.onMessage('cA', { t: 'shuffle' });
     const s = last('cB', 'shuffled');
     assert.ok(s, '非房主也能看到随机结果');
     assert.strictEqual(s.count, k, '重随次数对全员可见');
     assert.strictEqual(s.first, room.seats[0].name, '播报的先手就是当前 0 号位');
-    // 每个连接自认为的座位号必须与服务器一致
+    // 每个连接自认为的座位号必须与服务器一致；座位号变了的人必须收到新 welcome
     for (const [cid, tok] of [['cA', 'tA'], ['cB', 'tB']]) {
       assert.strictEqual(room.conns[cid], seatOfToken(room, tok), cid + ' 连接映射正确');
       const w = all(cid, 'welcome').pop();
+      if (room.conns[cid] !== before[cid]) { changed++; assert.ok(w, cid + ' 座位号变了却没收到新 welcome'); }
+      else assert.strictEqual(w, undefined, cid + ' 座位号没变，不应重发 welcome');
       if (w) assert.strictEqual(w.seat, seatOfToken(room, tok), cid + ' welcome 座位号正确');
     }
   }
+  assert.ok(changed > 0, '至少发生过一次座位变化（否则上面的 welcome 检查没被触发）');
   assert.strictEqual(room.seats.length, 3, '随机不增减座位');
 });
 
-test('shuffle: 均匀随机（3 座 6 种排列，各约 1/6）', () => {
-  const { room, clear } = makeRoom();
-  room.onMessage('cA', { t: 'join', token: 'tA' });
-  room.onMessage('cB', { t: 'join', token: 'tB' });
-  room.onMessage('cC', { t: 'join', token: 'tC' });
-  const N = 3000, counts = {};
+test('shuffle: 均匀随机（每次都从同一初始顺序做一次随机；3 座 6 种排列各约 1/6，能抓出常见的偏置写法）', () => {
+  // 注意：不能在同一个房间里连续随机再统计 —— 任何「双随机」的偏置写法连乘下去，
+  // 稳态分布照样是均匀的，测试会形同虚设。必须每次从固定初始顺序出发只随机一次。
+  const N = 24000, counts = {};
   for (let i = 0; i < N; i++) {
+    const room = new Room({ cardDB: DB, send: () => { } });
+    room.onMessage('cA', { t: 'join', token: 'tA' });
+    room.onMessage('cB', { t: 'join', token: 'tB' });
+    room.onMessage('cC', { t: 'join', token: 'tC' });
     room.onMessage('cA', { t: 'shuffle' });
     const key = room.seats.map(s => s.token).join(',');
     counts[key] = (counts[key] || 0) + 1;
-    if (i % 200 === 0) clear();
   }
   const keys = Object.keys(counts);
   assert.strictEqual(keys.length, 6, '6 种排列都应出现');
-  for (const k of keys) assert.ok(Math.abs(counts[k] - N / 6) < 120, '排列 ' + k + ' 次数 ' + counts[k] + ' 偏离 1/6 过多');
+  // 期望 4000、标准差约 58；±300 ≈ 5.2σ，正确实现几乎不会误报。
+  // 常见错误写法（每一步都在全范围里选 j）会让部分排列落到约 3556 / 2667，一定超界。
+  for (const k of keys) assert.ok(Math.abs(counts[k] - N / 6) < 300, '排列 ' + k + ' 出现 ' + counts[k] + ' 次，偏离 1/6 过多');
 });
 
 test('shuffle 后开局：先后手真的按新座位顺序进行（0 号位先走）', () => {
@@ -275,7 +284,7 @@ function playOut(room, humanConns, guardMax) {
     if (room.aiPending()) { room.stepAI(); continue; }
     const seat = room.G.turn;
     const cid = humanConns[seat];
-    const plan = AI.chooseTurn(room.G, { difficulty: 'easy' });
+    const plan = AI.chooseTurn(E.clone(room.G), { difficulty: 'easy' });
     room.onMessage(cid, { t: 'action', action: plan.action || { type: 'pass' } });
     const p = room.G.players[seat];
     let d = 0;
@@ -349,7 +358,7 @@ test('持久化：快照往返保留电脑座位、难度、房主与随机次�
 
 function humanTurn(room, cid) {
   const p = room.G.players[room.G.turn];
-  const plan = AI.chooseTurn(room.G, { difficulty: 'easy' });
+  const plan = AI.chooseTurn(E.clone(room.G), { difficulty: 'easy' });
   room.onMessage(cid, { t: 'action', action: plan.action || { type: 'pass' } });
   let d = 0;
   while (E.needsDiscard(room.G, p) && d++ < 20) {
@@ -358,14 +367,14 @@ function humanTurn(room, cid) {
   room.onMessage(cid, { t: 'action', action: { type: 'endTurn' } });
 }
 
-test('stepAI(attempt)：同一电脑回合重试时逐级降低思考开销（同难度单视图 → 新手 → 不搜索），且每次都能走完', () => {
+test('stepAI(attempt)：同一电脑回合重试时思考开销严格递减（高手：4 视图 → 1 视图 → 不搜索），且每次都能走完', () => {
   const calls = [];
   const spy = { chooseTurn(s, o) { calls.push(o); return AI.chooseTurn(s, o); } };
   const { room } = makeRoom({ ai: spy });
   room.onMessage('cA', { t: 'join', token: 'tA' });
   room.onMessage('cA', { t: 'addAI', level: 'hard' });
   room.onMessage('cA', { t: 'start', opts: {} });
-  const expected = { 0: [{ difficulty: 'hard' }], 1: [{ difficulty: 'hard', beliefs: 1 }], 2: [{ difficulty: 'easy' }], 3: [], 9: [] };
+  const expected = { 0: [{ difficulty: 'hard' }], 1: [{ difficulty: 'hard', beliefs: 1 }], 2: [], 3: [], 9: [] };
   for (const attempt of [0, 1, 2, 3, 9]) {
     humanTurn(room, 'cA');
     assert.ok(room.aiPending(), '轮到电脑');
@@ -373,6 +382,109 @@ test('stepAI(attempt)：同一电脑回合重试时逐级降低思考开销（�
     assert.ok(room.stepAI(attempt));
     assert.strictEqual(room.G.turn, 0, 'attempt ' + attempt + '：电脑回合仍然走完');
     assert.deepStrictEqual(calls, expected[attempt], 'attempt ' + attempt + ' 的思考参数');
+    assertConserved(room.G);
+  }
+});
+
+test('stepAI：新手/普通本来就是单视图，第一次重试就直接不搜索；AI 永远在副本上思考', () => {
+  for (const lv of ['easy', 'normal']) {
+    const calls = [], states = [];
+    const spy = { beliefState: AI.beliefState, chooseTurn(s, o) { calls.push(o); states.push(s); return AI.chooseTurn(s, o); } };
+    const { room } = makeRoom({ ai: spy });
+    room.onMessage('cA', { t: 'join', token: 'tA' });
+    room.onMessage('cA', { t: 'addAI', level: lv });
+    room.onMessage('cA', { t: 'start', opts: {} });
+    humanTurn(room, 'cA');
+    room.stepAI(0);
+    assert.deepStrictEqual(calls, [{ difficulty: lv }], lv + '：首次按原难度');
+    assert.ok(states[0] !== room.G, lv + '：AI 拿到的是副本，不是权威状态');
+    humanTurn(room, 'cA');
+    calls.length = 0;
+    assert.ok(room.stepAI(1));
+    assert.deepStrictEqual(calls, [], lv + '：第一次重试就不再搜索（再搜一次也不会更省）');
+    assert.strictEqual(room.G.turn, 0, lv + '：仍然走完');
+  }
+});
+
+test('PokéMart 电脑对局：AI 的查找缓存（_byName）不会写进权威状态、广播或快照', () => {
+  let states = 0;
+  for (let g = 0; g < 3; g++) {
+    const { room, inbox } = makeRoom();
+    room.onMessage('cA', { t: 'join', token: 'tA' });
+    for (const lv of ['easy', 'normal', 'hard']) room.onMessage('cA', { t: 'addAI', level: lv });
+    room.onMessage('cA', { t: 'start', opts: { pokemart: true } });
+    let guard = 0;
+    while (room.G.phase === 'play' && guard++ < 1500) {
+      if (room.aiPending()) room.stepAI(0); else humanTurn(room, 'cA');
+      assert.ok(!('_byName' in room.G), '权威状态上出现了 _byName（第 ' + guard + ' 步）');
+    }
+    for (const m of inbox.cA || []) if (m.t === 'state') { states++; assert.ok(!('_byName' in m.state), '广播的状态里带了 _byName'); }
+    assert.ok(JSON.stringify(room.snapshot()).indexOf('_byName') < 0, '快照里带了 _byName');
+  }
+  assert.ok(states > 100, '确实检查了足够多的广播');
+  // 旧版本写下的「脏」快照恢复后也会被清掉
+  const dirty = new Room({ cardDB: DB, pokemartDB: PM, send: () => { } });
+  const { room: src } = makeRoom();
+  src.onMessage('cA', { t: 'join', token: 'tA' });
+  src.onMessage('cA', { t: 'addAI' });
+  src.onMessage('cA', { t: 'start', opts: { pokemart: true } });
+  const snap = src.snapshot();
+  snap.g._byName = { 'x': { id: 'x' } };
+  dirty.restore(JSON.parse(JSON.stringify(snap)));
+  assert.ok(!('_byName' in dirty.G), '恢复时丢弃旧快照里的 _byName');
+});
+
+test('removeAI / aiLevel 带上看到的电脑名字：在新名单到达前连点（座位号已过期）时拒绝，而不是误伤另一个电脑', () => {
+  const { room, last } = makeRoom();
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  for (const lv of ['easy', 'normal', 'normal']) room.onMessage('cA', { t: 'addAI', level: lv });
+  // 同一份旧名单 [房主, 电脑1, 电脑2, 电脑3] 上连点：先删电脑1，再对（旧的）2 号位电脑2 改难度 / 删除
+  room.onMessage('cA', { t: 'removeAI', seat: 1, name: '电脑1' });
+  room.onMessage('cA', { t: 'aiLevel', seat: 2, level: 'hard', name: '电脑2' });
+  assert.ok(/座位已变化/.test(last('cA', 'reject').reason), '改难度被拒绝');
+  room.onMessage('cA', { t: 'removeAI', seat: 2, name: '电脑2' });
+  assert.ok(/座位已变化/.test(last('cA', 'reject').reason), '删除被拒绝');
+  assert.deepStrictEqual(room.seats.slice(1).map(s => s.name + ':' + s.ai), ['电脑2:normal', '电脑3:normal'], '电脑3 没被误改、误删');
+  room.onMessage('cA', { t: 'aiLevel', seat: 1, level: 'hard', name: '电脑2' });
+  assert.strictEqual(room.seats[1].ai, 'hard', '按最新名单操作照常生效');
+  room.onMessage('cA', { t: 'removeAI', seat: 2 });
+  assert.strictEqual(room.seats.length, 2, '不带名字（旧客户端）仍按座位号处理');
+});
+
+test('roster 携带随机次数：刷新或晚到的人也能看到房主重随过几次', () => {
+  const { room, last } = makeRoom();
+  room.onMessage('cA', { t: 'join', token: 'tA' });
+  room.onMessage('cA', { t: 'addAI' });
+  for (let i = 0; i < 3; i++) room.onMessage('cA', { t: 'shuffle' });
+  room.onMessage('cL', { t: 'join', token: 'tL' });
+  assert.strictEqual(last('cL', 'roster').shuffleCount, 3);
+});
+
+test('恢复快照时房主以 hostToken 为准（旧规则「第一个真人座位」会认错人）', () => {
+  const r = new Room({ cardDB: DB, send: () => { } });
+  r.restore({ seq: 5, started: false, turnStartedAt: 0, g: null, shuffleCount: 2, hostToken: 'tA',
+    seats: [{ token: 'tB', name: 'B' }, { token: 'tA', name: 'A' }, { token: null, name: '电脑1', ai: 'easy' }] });
+  assert.strictEqual(r.rebind('w1', 'tA'), 1);
+  assert.strictEqual(r.rebind('w2', 'tB'), 0);
+  assert.ok(r._isHost('w1'), '坐 2 号位的 tA 仍是房主');
+  assert.ok(!r._isHost('w2'), '坐 1 号位的 tB 不会被当成房主');
+  assert.strictEqual(r._hostSeat(), 1);
+});
+
+test('代打计划：用 discard/evolve 冒充主行动不会让回合卡住（旧漏洞：回合不结束、每次白扣挂机者一个球）', () => {
+  for (const fake of [{ type: 'discard', color: 'red' }, { type: 'endTurn' }]) {
+    const { room } = makeRoom();
+    room.onMessage('cA', { t: 'join', token: 'tA' });
+    room.onMessage('cB', { t: 'join', token: 'tB' });
+    room.onMessage('cA', { t: 'start', opts: {} });
+    room.onMessage('cA', { t: 'action', action: { type: 'take', colors: ['red', 'blue', 'black'] } });
+    room.onMessage('cA', { t: 'action', action: { type: 'endTurn' } });
+    room.onMessage('cB', { t: 'action', action: { type: 'take', colors: ['red', 'blue', 'black'] } });
+    room.onMessage('cB', { t: 'action', action: { type: 'endTurn' } });
+    assert.strictEqual(room.G.turn, 0);
+    room.now = room.turnStartedAt + 180000;              // A 挂机超时
+    room.onMessage('cB', { t: 'takeover', plan: { action: fake } });
+    assert.strictEqual(room.G.turn, 1, fake.type + '：回合照常交给下一位');
     assertConserved(room.G);
   }
 });

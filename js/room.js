@@ -34,11 +34,11 @@
  *                   {t:'rematch'}                host: finished game → back to lobby
  *                   {t:'takeover', plan}         AI-play a timed-out HUMAN seat
  *                   {t:'addAI', level}           host, lobby: add a bot seat
- *                   {t:'removeAI', seat}         host, lobby: remove a bot seat
- *                   {t:'aiLevel', seat, level}   host, lobby: change a bot's difficulty
+ *                   {t:'removeAI', seat, name}   host, lobby: remove a bot seat (name = the bot as seen; stale → reject)
+ *                   {t:'aiLevel', seat, level, name}  host, lobby: change a bot's difficulty
  *                   {t:'shuffle'}                host, lobby: randomize seat/turn order
  *   room → client:  {t:'welcome', connId, seat, host}   (re-sent whenever my seat index changes)
- *                   {t:'roster', players:[{seat,name,connected,ai}], hostSeat, started, maxSeats}
+ *                   {t:'roster', players:[{seat,name,connected,ai}], hostSeat, started, maxSeats, shuffleCount}
  *                   {t:'shuffled', count, first}  the host randomized the order (count = rerolls this lobby)
  *                   {t:'notice', msg}            short room-wide announcement (a joining friend replaced a bot)
  *                   {t:'state', seq, state}      redacted snapshot for this viewer
@@ -66,11 +66,12 @@
 
   // strip the shared static card refs so a room state is pure data we can persist
   function serializeG(s) {
-    const { cardDB, byId, megaDB, pokemartDB, ...dyn } = s;
+    const { cardDB, byId, megaDB, pokemartDB, _byName, ...dyn } = s;   // _byName: ai.js lookup cache (static data)
     return JSON.parse(JSON.stringify(dyn));
   }
   function reattachG(dyn, DB, megaDB, pokemartDB) {
     const s = JSON.parse(JSON.stringify(dyn));
+    delete s._byName;   // snapshots written before the AI cache was stripped
     s.cardDB = DB; s.megaDB = megaDB || []; s.pokemartDB = pokemartDB || [];
     s.byId = {};
     [].concat(DB, s.megaDB, s.pokemartDB).forEach(c => { if (c) s.byId[c.id] = c; });
@@ -92,13 +93,15 @@
 
   const humanSeat = () => ({ token: null, name: '', connId: null, connected: false, ai: null });
 
-  // Think options for a bot turn on its n-th attempt (see Room#stepAI):
-  //   0 → the chosen level · 1 → same level, one belief view · 2 → 'easy' · 3+ → no search (first legal move)
+  // Think options for a bot turn on its n-th attempt (see Room#stepAI). Every rung must be
+  // strictly cheaper than the one before, or a retry just repeats the work that failed:
+  //   hard:        0 → hard (4 belief views) · 1 → hard with 1 view (~4× cheaper) · 2+ → no search
+  //   easy/normal: 0 → the level (already 1 view)                            · 1+ → no search
+  // null = no search → _applyPlan plays the engine's first legal move.
   function aiThinkOpts(level, attempt) {
     const n = Math.max(0, attempt | 0);
     if (n === 0) return { difficulty: level };
-    if (n === 1) return { difficulty: level, beliefs: 1 };
-    if (n === 2) return { difficulty: 'easy' };
+    if (n === 1 && level === 'hard') return { difficulty: 'hard', beliefs: 1 };
     return null;
   }
 
@@ -221,8 +224,8 @@
         case 'name':     return this._rename(connId, msg.name);
         case 'rematch':  return this._rematch(connId);
         case 'addAI':    return this._addAI(connId, msg.level);
-        case 'removeAI': return this._removeAI(connId, msg.seat);
-        case 'aiLevel':  return this._setAILevel(connId, msg.seat, msg.level);
+        case 'removeAI': return this._removeAI(connId, msg.seat, msg.name);
+        case 'aiLevel':  return this._setAILevel(connId, msg.seat, msg.level, msg.name);
         case 'shuffle':  return this._shuffle(connId);
         case 'sync':     return this._stateTo(connId);
       }
@@ -280,22 +283,30 @@
       this.seats.push({ token: null, name: this._aiName(), connId: null, connected: true, ai: lv });
       this._roster();
     }
-    _removeAI(connId, seat) {
-      if (!this._lobbyHostGuard(connId)) return;
+    // Lobby edits address a bot by seat index AND the name the client saw on that row:
+    // indices shift when a bot is removed or seats are shuffled, so a second tap sent from
+    // a stale roster must be refused instead of silently hitting a different bot.
+    _botSeat(connId, seat, name) {
       seat = Number(seat);
-      if (!Number.isInteger(seat) || !this.seats[seat] || !this.seats[seat].ai) {
-        return this.send(connId, { t: 'reject', reason: '该座位不是电脑' });
+      const st = Number.isInteger(seat) ? this.seats[seat] : null;
+      if (st && name != null && st.name !== name) {
+        this.send(connId, { t: 'reject', reason: '座位已变化，请按最新名单再操作' }); return -1;
       }
+      if (!st || !st.ai) { this.send(connId, { t: 'reject', reason: '该座位不是电脑' }); return -1; }
+      return seat;
+    }
+    _removeAI(connId, seat, name) {
+      if (!this._lobbyHostGuard(connId)) return;
+      seat = this._botSeat(connId, seat, name);
+      if (seat < 0) return;
       const order = [];
       for (let i = 0; i < this.seats.length; i++) if (i !== seat) order.push(i);
       this._reorderSeats(order, false);
     }
-    _setAILevel(connId, seat, level) {
+    _setAILevel(connId, seat, level, name) {
       if (!this._lobbyHostGuard(connId)) return;
-      seat = Number(seat);
-      if (!Number.isInteger(seat) || !this.seats[seat] || !this.seats[seat].ai) {
-        return this.send(connId, { t: 'reject', reason: '该座位不是电脑' });
-      }
+      seat = this._botSeat(connId, seat, name);
+      if (seat < 0) return;
       if (AI_LEVELS.indexOf(level) < 0) return this.send(connId, { t: 'reject', reason: '未知的电脑难度' });
       if (this.seats[seat].ai === level) return;
       this.seats[seat].ai = level;
@@ -390,10 +401,9 @@
     }
 
     // Execute ONE complete bot turn (main action → discards → evolution → end turn)
-    // and broadcast the result. The bot decides from belief views (ai.js chooseTurn
-    // re-samples hidden cards), so running it on the authoritative state does not
-    // let it peek at opponents' reserves or the deck order. Never stalls: a missing
-    // AI module or a thrown/invalid plan falls back to a legal move.
+    // and broadcast the result. The bot thinks on a belief state (hidden cards re-dealt
+    // from public info), so it never sees opponents' reserves or the deck order. Never
+    // stalls: a missing AI module or a thrown/invalid plan falls back to a legal move.
     //
     // `attempt` = how many times this very bot turn already failed to finish (the DO
     // passes its alarm retry count, e.g. after the platform killed an over-CPU-budget
@@ -405,7 +415,14 @@
       const opts = aiThinkOpts(lv, attempt);
       let plan = null;
       if (opts && this.AI && typeof this.AI.chooseTurn === 'function') {
-        try { plan = this.AI.chooseTurn(this.G, opts); } catch (e) { plan = null; }
+        // Think on a re-dealt COPY, never on the live state: (1) the AI's end-of-turn
+        // evolution search simulates refills from the deck it is given, so on the real G it
+        // would score cards nobody has seen yet; (2) ai.js caches lookups on the state object
+        // (_byName), which would then ride along in every broadcast and snapshot.
+        try {
+          const view = typeof this.AI.beliefState === 'function' ? this.AI.beliefState(this.G, seat, 0) : E.clone(this.G);
+          plan = this.AI.chooseTurn(view, opts);
+        } catch (e) { plan = null; }
       }
       this._applyPlan(seat, plan || {});
       this.turnStartedAt = this.now;
@@ -446,13 +463,16 @@
     // something legal, and the turn always ends (a room must never stall).
     _applyPlan(seat, plan) {
       plan = plan || {};
-      // main action (the plan's pick, else any legal action, else a legitimate pass)
-      let acted = false;
-      try { if (plan.action) acted = E.applyAction(this.G, plan.action, seat).ok; } catch (e) { }
-      if (!acted) {
+      // main action (the plan's pick, else any legal action, else a legitimate pass). Only MAIN
+      // action types count here, and "acted" is read from the engine: a plan whose "action" is a
+      // discard/evolve/endTurn used to count as acted — the turn then never ended, and a crafted
+      // takeover could drain an idle player's tokens one per timeout.
+      const MAIN = { take: 1, capture: 1, reserve: 1, takeMega: 1, pass: 1 };
+      try { if (plan.action && MAIN[plan.action.type] && !this.G.acted) E.applyAction(this.G, plan.action, seat); } catch (e) { }
+      if (!this.G.acted) {
         let la = []; try { la = E.legalActions(this.G); } catch (e) { }
-        if (la.length) { try { acted = E.applyAction(this.G, la[0], seat).ok; } catch (e) { } }
-        if (!acted) { try { E.actionPass(this.G); } catch (e) { } }
+        if (la.length) { try { E.applyAction(this.G, la[0], seat); } catch (e) { } }
+        if (!this.G.acted) { try { E.actionPass(this.G); } catch (e) { } }
       }
       // discards (plan first, but never beyond what the cap actually requires)
       if (Array.isArray(plan.discards)) for (const col of plan.discards) {
@@ -486,7 +506,7 @@
       const players = this.seats.map((s, i) => ({
         seat: i, name: s.name, connected: s.ai ? true : s.connected, ai: s.ai || null,
       }));
-      this._broadcast({ t: 'roster', players, hostSeat: this._hostSeat(), started: this.started, maxSeats: this.maxSeats });
+      this._broadcast({ t: 'roster', players, hostSeat: this._hostSeat(), started: this.started, maxSeats: this.maxSeats, shuffleCount: this.shuffleCount });
     }
     _broadcast(msg) { for (const cid in this.conns) this.send(cid, msg); }
 
