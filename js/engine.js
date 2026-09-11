@@ -985,7 +985,8 @@
   // while preserving counts/tiers so the UI still renders pile sizes & card-backs.
   // Static card refs are omitted (every client already has the full card DB).
   function redactFor(s, viewerId) {
-    const { cardDB, byId: _b, megaDB, pokemartDB, ...dyn } = s;
+    // _byName: ai.js's name→card lookup cache, if an AI ever thought on this object — static data, never on the wire
+    const { cardDB, byId: _b, megaDB, pokemartDB, _byName, ...dyn } = s;
     const v = JSON.parse(JSON.stringify(dyn));            // deep copy of dynamic state
     delete v.seed;                                        // server shuffle seed is private
     if (v.decks) for (const t in v.decks) v.decks[t] = v.decks[t].map(() => null); // hide deck order, keep length

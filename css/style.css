@@ -87,6 +87,32 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .lr-dot.off{background:var(--muted);opacity:.45}
 .lobby-roster .muted{color:var(--muted);font-size:13px}
 .lobby-exp{justify-content:center;flex-wrap:wrap}
+/* 大厅座位：座位号 = 行动顺序；空位可「＋ 电脑」，电脑可改难度/移除；房主可随机座位顺序 */
+.lobby-roster .lr-row{min-height:44px}
+.lr-host{flex:none;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:999px;background:rgba(255,213,74,.14);color:var(--gold);white-space:nowrap}
+.lr-seat{flex:none;width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-size:11.5px;font-weight:800;background:var(--panel2);color:var(--muted)}
+.lr-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lr-row.me .lr-name{color:var(--gold);font-weight:700}
+.lr-row.lr-empty .lr-name{color:var(--muted);opacity:.75}
+.lr-bot{flex:none;width:9px;display:inline-grid;place-items:center;font-size:12px;line-height:1}
+.lr-first{flex:none;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:999px;border:1px solid var(--gold);color:var(--gold)}
+.lr-lv{flex:none;font-size:12px;color:var(--muted)}
+.lr-diff{flex:none;min-height:40px;font-size:13px;padding:4px 6px;border-radius:8px;border:1px solid var(--line);background:#0b0f2e;color:var(--ink)}
+.lobby-roster .lr-x,.lobby-roster .lr-add{flex:none;min-height:40px;min-width:40px;padding:4px 12px;font-size:13px;line-height:1.2}
+.lr-first,.lr-host{white-space:nowrap}
+.lr-add:disabled{opacity:.5}
+.lobby-tools{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 10px;margin:-2px 0 8px;font-size:12.5px;color:var(--muted);line-height:1.5}
+.lobby-tools:empty{display:none}
+/* 大厅的扩展开关：两个开关各占自然宽度，窄屏不把「超级进化 (Megas)」挤成三行 */
+#lobby .lobby-exp{gap:8px 14px}
+#lobby .lobby-exp .exp-toggle{flex:0 1 auto;align-items:center;white-space:nowrap}
+.lobby-tools button{min-height:36px;padding:6px 14px;font-size:13px}
+@keyframes lrShuffle{0%{transform:translateY(-6px);opacity:.25}100%{transform:none;opacity:1}}
+.lobby-roster.shuffled .lr-row:not(.lr-empty){animation:lrShuffle .4s ease-out both}
+.lobby-roster.shuffled .lr-row:nth-child(2){animation-delay:.06s}
+.lobby-roster.shuffled .lr-row:nth-child(3){animation-delay:.12s}
+.lobby-roster.shuffled .lr-row:nth-child(4){animation-delay:.18s}
+@media (prefers-reduced-motion:reduce){.lobby-roster.shuffled .lr-row{animation:none}}
 /* ---------- 联机体验：连接状态条 / 在线点 / 昵称 / 胜利弹窗按钮 ---------- */
 .net-bar{text-align:center;line-height:1.4}
 .net-bar:empty{display:none}
