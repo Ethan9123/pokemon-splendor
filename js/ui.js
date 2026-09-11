@@ -209,17 +209,33 @@
     Net.on('roster', (m) => {
       if (!UI.net) return;
       UI.net.roster = m.players || []; UI.net.started = m.started;
+      UI.net.hostSeat = (typeof m.hostSeat === 'number') ? m.hostSeat : -1;   // 房主按身份认，不一定坐 1 号位
+      UI.net.maxSeats = m.maxSeats || 4;
       renderLobby();
       if (G && G.phase !== 'gameover' && UI.net.started) renderPlayers();  // 对局中同步在线状态点
     });
     Net.on('state', onNetState);
     Net.on('reject', (m) => { if (UI.net) { UI.net.takeoverBusy = false; UI.net.pendingAction = false; } flashHint((m && m.reason) || '操作被拒绝'); if (G) render(); });
     Net.on('over', () => { });
+    Net.on('notice', (m) => { if (UI.net && m && m.msg) flashHint(m.msg, 'info'); });   // 例如：朋友加入满员房间、顶替了一个电脑
+    // 房主随机了座位顺序：人人都看得到结果和「第几次」—— 反复重随抢先手会被全桌看见
+    Net.on('shuffled', (m) => {
+      if (!UI.net) return;
+      UI.net.shuffleCount = (m && m.count) || 0;
+      const rr = $('#lobby-roster');
+      if (rr) {
+        rr.classList.remove('shuffled'); void rr.offsetWidth; rr.classList.add('shuffled');
+        clearTimeout(rr._shuffleTimer);   // 只给这次随机的新名单播动画，之后的普通更新（改名/移除）不再重播
+        rr._shuffleTimer = setTimeout(() => rr.classList.remove('shuffled'), 800);
+      }
+      flashHint(`🎲 座位已随机${UI.net.shuffleCount > 1 ? `（第 ${UI.net.shuffleCount} 次）` : ''} · ${(m && m.first) || '1 号位'} 先手`, 'info');
+      renderLobby();
+    });
     // 房主点了「再来一局」：所有人回到大厅，座位和房间码都不变
     Net.on('lobby', () => {
       if (!UI.net) return;
       stopIdleTimer();
-      UI.net.started = false;
+      UI.net.started = false; UI.net.shuffleCount = 0;
       G = null; gameEpoch++;
       UI.phase = 'main'; UI.pick = []; UI.selCard = UI.selDeck = null; UI.busy = false;
       $('#win-modal').classList.add('hidden');
@@ -231,21 +247,75 @@
       flashHint('房主已重开一局，等待开始');
     });
   }
+  const AI_LEVEL_ZH = { easy: '新手', normal: '普通', hard: '高手' };
   function renderLobby() {
     if (!UI.net) return;
     const statusZh = { connecting: '连接中…', connected: '已连接', disconnected: '已断开，重连中…' };
-    const seatTxt = UI.net.seat == null ? '' : (UI.net.seat < 0 ? '（观战）' : `（你是 ${UI.net.seat + 1} 号位${UI.net.host ? ' · 房主' : ''}）`);
+    const host = !!UI.net.host, inLobby = !UI.net.started;
+    const seatTxt = UI.net.seat == null ? '' : (UI.net.seat < 0 ? '（观战）' : `（你是 ${UI.net.seat + 1} 号位${host ? ' · 房主' : ''}）`);
     const st = $('#lobby-status'); if (st) st.textContent = '状态：' + (statusZh[UI.net.status] || UI.net.status) + ' ' + seatTxt;
     const r = UI.net.roster || [];
+    const maxSeats = UI.net.maxSeats || 4;
+    // 只有房主、只在大厅、且连接正常时才给出可操作的控件（服务器也会二次校验）
+    const canEdit = host && inLobby && UI.net.status === 'connected';
     const rr = $('#lobby-roster');
-    if (rr) rr.innerHTML = r.length
-      ? r.map(p => `<div class="lr-row"><span class="lr-dot ${p.connected ? 'on' : 'off'}" aria-hidden="true"></span>${p.seat + 1}. ${escapeHTML(p.name)}${p.seat === 0 ? ' 👑' : ''}${p.seat === UI.net.seat ? '（你）' : ''}<span class="sr-only">，${p.connected ? '在线' : '已断线'}</span></div>`).join('')
-      : '<div class="muted">等待玩家加入…</div>';
+    if (rr) {
+      const rows = r.map(p => {
+        const you = p.seat === UI.net.seat;
+        const mark = p.ai
+          ? '<span class="lr-bot" aria-hidden="true">🤖</span>'
+          : `<span class="lr-dot ${p.connected ? 'on' : 'off'}" aria-hidden="true"></span>`;
+        const sr = p.ai ? `，电脑（${AI_LEVEL_ZH[p.ai] || p.ai}）` : `，${p.connected ? '在线' : '已断线'}`;
+        let tail = (p.seat === UI.net.hostSeat ? '<span class="lr-host">👑 房主</span>' : '') +
+          (p.seat === 0 ? '<span class="lr-first" title="座位号就是行动顺序">先手</span>' : '');
+        if (p.ai) {
+          tail += canEdit
+            ? `<select class="lr-diff" data-seat="${p.seat}" aria-label="${escapeHTML(p.name)} 的难度">` +
+              Object.keys(AI_LEVEL_ZH).map(lv => `<option value="${lv}"${lv === p.ai ? ' selected' : ''}>${AI_LEVEL_ZH[lv]}</option>`).join('') +
+              `</select><button class="ghost lr-x" data-remove="${p.seat}" aria-label="移除 ${escapeHTML(p.name)}" title="移除电脑">✕</button>`
+            : `<span class="lr-lv">${AI_LEVEL_ZH[p.ai] || ''}</span>`;
+        }
+        return `<div class="lr-row${you ? ' me' : ''}">${mark}<span class="lr-seat" aria-hidden="true">${p.seat + 1}</span>` +
+          `<span class="lr-name">${escapeHTML(p.name)}${you ? '（你）' : ''}<span class="sr-only">${sr}</span></span>${tail}</div>`;
+      });
+      if (inLobby && r.length) {
+        for (let i = r.length; i < maxSeats; i++) {
+          rows.push(`<div class="lr-row lr-empty"><span class="lr-dot off" aria-hidden="true"></span><span class="lr-seat" aria-hidden="true">${i + 1}</span>` +
+            '<span class="lr-name">空位 · 等朋友加入</span>' +
+            (canEdit ? '<button class="ghost lr-add" data-add="1" aria-label="添加一个电脑玩家">＋ 电脑</button>' : '') + '</div>');
+        }
+      }
+      const html = rows.length ? rows.join('') : '<div class="muted">等待玩家加入…</div>';
+      // 名单没变就不重绘：否则别人改名时，房主正展开的难度下拉框会被整个替换掉
+      if (rr._html !== html) {
+        const f = document.activeElement;
+        const refocus = (f && rr.contains(f))
+          ? (f.matches('select[data-seat]') ? `select[data-seat="${f.dataset.seat}"]` : '[data-add], select[data-seat]')
+          : null;
+        rr.innerHTML = html; rr._html = html;
+        if (refocus) { const n = rr.querySelector(refocus); if (n) n.focus({ preventScroll: true }); }
+      }
+    }
+    const tools = $('#lobby-tools');
+    if (tools) {
+      let t = '';
+      if (inLobby && r.length) {
+        if (canEdit && r.length >= 2) t += '<button class="ghost" id="lobby-shuffle">🎲 随机座位顺序</button>';
+        if (canEdit && r.length < 2) t += '<span>至少 2 人才能开始 —— 朋友还没到？点空位的「＋ 电脑」补位</span>';
+        else if (UI.net.shuffleCount) t += `<span>已随机 ${UI.net.shuffleCount} 次 · 1 号位先手</span>`;
+        else t += '<span>座位号就是行动顺序，1 号位先手</span>';
+      }
+      if (tools._html !== t) {
+        const hadFocus = document.activeElement && document.activeElement.id === 'lobby-shuffle';
+        tools.innerHTML = t; tools._html = t;
+        if (hadFocus && $('#lobby-shuffle')) $('#lobby-shuffle').focus({ preventScroll: true });
+      }
+    }
     const start = $('#lobby-start');
-    if (start) { start.style.display = UI.net.host ? '' : 'none'; start.disabled = !(r.length >= 2); }
+    if (start) { start.style.display = host ? '' : 'none'; start.disabled = !(r.length >= 2); }
     const mb = $('#lobby-megas'), pb = $('#lobby-pokemart');
-    if (mb) mb.disabled = !UI.net.host;
-    if (pb) pb.disabled = !UI.net.host;
+    if (mb) mb.disabled = !host;
+    if (pb) pb.disabled = !host;
   }
   // 对局中的连接状态条。以前断线只更新大厅，而大厅在对局中是隐藏的，
   // 于是掉线的人什么提示都没有、点什么都没反应（操作被静默丢弃）。
@@ -256,7 +326,7 @@
     if (s === 'connected') {
       // 观战者（座位 -1，通常是开局后才进来的人）要知道自己为什么不能操作
       bar.innerHTML = (UI.net.seat != null && UI.net.seat < 0)
-        ? '<span class="net-spectate">👀 观战中 —— 本局已开始，你可以旁观；房主开下一局时会自动为你安排座位（房间未满时）</span>'
+        ? '<span class="net-spectate">👀 观战中 —— 本局已开始，你可以旁观；房主开下一局时会自动为你安排座位（房间未满或有电脑座位时）</span>'
         : '';
       return;
     }
@@ -354,12 +424,25 @@
     const ib = $('#idle-bar'); if (!ib) return;
     const msLeft = idleMsLeft();
     const secs = Math.max(0, Math.ceil(msLeft / 1000));
+    // 电脑座位由服务器按节奏执行，不走超时代打。万一电脑回合迟迟不动（服务器定时器意外丢失），
+    // 每 8 秒发一次 sync 唤醒房间 —— 服务器收到任何消息都会重新排上电脑回合。
+    const active = G.players[G.turn];
+    if (active && active.isAI) {
+      ib.innerHTML = '';
+      const waited = UI.net.turnTimeoutMs - msLeft;
+      if (waited > 8000 && Date.now() - (UI.net.aiKickAt || 0) > 8000) {
+        UI.net.aiKickAt = Date.now();
+        if (window.Net) Net.sync();
+      }
+      return;
+    }
     const offline = !activeConnected();
+    // 能替你代打的只有「其他在线的真人」（电脑不会发起代打）；只和电脑打时没人会接管你，就不催
+    const othersOnline = (UI.net.roster || []).some(p => !p.ai && p.connected && p.seat !== onlineSeat());
     if (UI.net.takeoverBusy) ib.innerHTML = '<span class="idle-ai">🤖 AI 代打中…</span>';
     else if (!myTurn()) ib.innerHTML = (offline || msLeft < 90000) ? `<span class="idle-wait">${offline ? '⚠ 对手已断线 · ' : ''}${secs} 秒后由 AI 接管</span>` : '';
-    else if (!UI.net.host) ib.innerHTML = (msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由 AI 代打</span>` : ''; // only non-host gets taken over
-    else ib.innerHTML = '';   // host's own turn: the host is never auto-taken-over
-    // the HOST drives takeover for an idle OTHER seat (never its own turn) once the
+    else ib.innerHTML = (othersOnline && msLeft < 60000) ? `<span class="idle-warn">⏱️ 你还有 ${secs} 秒，否则由 AI 代打</span>` : '';
+    // Any OTHER seated player drives the takeover of an idle human seat once the
     // timeout truly elapses (the server re-validates the timing).
     // 任何在座玩家都可触发（不只房主）：否则房主自己掉线时全场卡死。
     // 多人同时触发也无妨 —— 服务端处理完第一个就会重置计时，其余会被「尚未超时」拒绝。
@@ -954,7 +1037,7 @@
   function netDot(seat) {
     if (!isOnline() || !UI.net.roster || !UI.net.roster.length) return '';
     const r = UI.net.roster.find(x => x.seat === seat);
-    if (!r) return '';
+    if (!r || r.ai) return '';   // 电脑座位不会掉线，不画状态点（名字后已有 🤖）
     const on = !!r.connected;
     const title = on ? '在线' : '已断线（可随时重连回来）';
     return '<span class="pdot ' + (on ? 'on' : 'off') + '" title="' + title + '"></span>';
@@ -1676,6 +1759,27 @@
       });
     }
     if ($('#lobby-start')) $('#lobby-start').addEventListener('click', () => { if (window.Net) Net.start({ megas: !!($('#lobby-megas') && $('#lobby-megas').checked), pokemart: !!($('#lobby-pokemart') && $('#lobby-pokemart').checked) }); });
+    // 房主调整座位：空位「＋ 电脑」、改难度、移除电脑、随机座位顺序（服务器会二次校验房主身份）
+    const lobbySent = (ok) => { if (!ok) flashHint('连接已断开，重连后再试'); };
+    const lobbyRoster = $('#lobby-roster');
+    if (lobbyRoster) {
+      lobbyRoster.addEventListener('click', (e) => {
+        if (!window.Net || !UI.net) return;
+        const add = e.target.closest('[data-add]'), rm = e.target.closest('[data-remove]');
+        const btn = add || rm;
+        if (!btn || btn.disabled) return;
+        btn.disabled = true;                                 // 防连点加出两个电脑；名单一变按钮就被重绘
+        setTimeout(() => { btn.disabled = false; }, 1500);   // 被拒绝/没发出时名单不变，稍后恢复可点
+        lobbySent(add ? Net.addAI('normal') : Net.removeAI(Number(rm.dataset.remove)));
+      });
+      lobbyRoster.addEventListener('change', (e) => {
+        const sel = e.target.closest('select[data-seat]');
+        if (sel && window.Net && UI.net) lobbySent(Net.setAILevel(Number(sel.dataset.seat), sel.value));
+      });
+    }
+    if ($('#lobby-tools')) $('#lobby-tools').addEventListener('click', (e) => {
+      if (e.target.closest('#lobby-shuffle') && window.Net && UI.net) lobbySent(Net.shuffle());
+    });
     if ($('#lobby-leave')) $('#lobby-leave').addEventListener('click', leaveOnline);
     if ($('#lobby-copy')) $('#lobby-copy').addEventListener('click', () => {
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(location.href).then(() => flashHint('邀请链接已复制', 'success')).catch(() => flashHint(`请手动复制：${location.href}`, 'info'));

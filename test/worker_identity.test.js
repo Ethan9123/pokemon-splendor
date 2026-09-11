@@ -8,7 +8,7 @@ const source = fs.readFileSync(require.resolve('../worker/index.js'), 'utf8')
   .replace(/^import .*;\r?\n/gm, '')
   .replace('export class Room', 'class Room')
   .replace('export default {', 'const entry = {') + '\nthis.WorkerRoom = Room;';
-const context = { RoomAuthority, DB, MEGA_DB, POKEMART_DB };
+const context = { RoomAuthority, AI: require('../js/ai.js'), DB, MEGA_DB, POKEMART_DB };
 vm.runInNewContext(source, context);
 const sockets = [];
 let snap;

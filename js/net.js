@@ -86,9 +86,14 @@
   // 重新发一次 join：用于「房主重开下一局」后，让观战者（座位 -1）有机会入座。
   // 已入座的人重发 join 会按 token 认回原座位，无副作用。
   function rejoin() { return cfg ? send({ t: 'join', name: cfg.name, token: token(cfg.code) }) : false; }
+  // 房主在大厅调整座位（服务器校验房主身份与大厅阶段）
+  function addAI(level) { return send({ t: 'addAI', level }); }
+  function removeAI(seat) { return send({ t: 'removeAI', seat }); }
+  function setAILevel(seat, level) { return send({ t: 'aiLevel', seat, level }); }
+  function shuffle() { return send({ t: 'shuffle' }); }
   function close() { closedByUs = true; clearTimeout(reconnect); stopBeat(); if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { } } ws = null; }
 
-  const api = { connect, on, send, action, start, sync, setName, rematch, rejoin, close, parseRoomCode,
+  const api = { connect, on, send, action, start, sync, setName, rematch, rejoin, addAI, removeAI, setAILevel, shuffle, close, parseRoomCode,
                 isOpen: () => !!(ws && ws.readyState === 1) };
   if (typeof window !== 'undefined') window.Net = api;
   // 纯函数部分（parseRoomCode）可被 Node 测试直接 require；其余函数依赖浏览器 API。
