@@ -227,7 +227,9 @@
         case 'removeAI': return this._removeAI(connId, msg.seat, msg.name);
         case 'aiLevel':  return this._setAILevel(connId, msg.seat, msg.level, msg.name);
         case 'shuffle':  return this._shuffle(connId);
-        case 'sync':     return this._stateTo(connId);
+        case 'sync':
+          if (this.started) return this._stateTo(connId);
+          return this._roster(); // a missed rematch or lobby edit must also be recoverable
       }
     }
 

@@ -507,5 +507,12 @@ test('server rejects a single-player online start', () => {
   assert.ok(last('a', 'reject'));
 });
 
+test('sync in lobby returns a roster so a missed rematch can recover', () => {
+  const { room, last, clear } = makeRoom();
+  room.join('a', 'A', 'a'); clear();
+  room.onMessage('a', { t: 'sync' });
+  assert.strictEqual(last('a', 'roster').started, false);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -27,6 +27,7 @@ npx serve .
 
 - **服务器权威**：每一步都在服务端用引擎校验（座位即所有权），每个客户端只收到对自己**脱敏**后的状态（看不到牌堆顺序与对手保留牌）。
 - **断线重连**：身份用本地 token 绑定座位，刷新 / 掉线后用同一浏览器重连即可复位座位与隐藏手牌。
+- **连接恢复**：切回前台会同步进度；心跳或操作确认超时后自动恢复连接。同步完成前暂停操作，避免重复提交；也可点击「立即重连」。离开房间会关闭连接，邀请链接可用于重新加入。
 - **超时代打**：某玩家超过 **3 分钟**未行动，房主的「研究级 AI」会仅凭公共信息接管该回合，避免卡局。
 
 联机依赖一个 Cloudflare Worker（见下「部署」），纯静态托管（如 GitHub Pages）只能单机热座 + AI，无法联机。
@@ -93,6 +94,13 @@ python test/mobile_ux_audit.py     # 手机/小屏/横屏 UX 审计（playwright
 `node test/worker_identity.test.js`。最后一项使用内存存储和模拟 WebSocket 检查真实 Worker
 消息处理器的休眠恢复逻辑，不替代 Cloudflare 环境集成测试。
 启动上述本地服务器后，`python test/ui_names.test.py` 验证昵称和日志不会被解析为 HTML。
+
+联机端到端回归需启动真实本地 Worker（普通静态服务器不支持 WebSocket）：
+`npx wrangler@4.129.1 dev --local --ip 127.0.0.1 --port 8765 --persist-to ../_local-state`。
+运行 `python test/online_flow.test.py`（可追加地址和 `webkit`）验证建房、电脑、座位随机、
+保留牌脱敏、观战、断网、刷新及退出；`python test/online_rematch.test.py` 走完合法对局，
+验证离线期间错过重开通知后的恢复。测试只使用自己创建的随机房间。
+`node test/net_recovery.test.js` 验证心跳、确认超时、旧连接事件、前后台与网络切换。
 
 ## 部署
 

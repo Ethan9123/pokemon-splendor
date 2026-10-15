@@ -185,7 +185,7 @@
     const name = defaultNick();
     saveNick(name);
     const nickInput = $('#lobby-nick'); if (nickInput) nickInput.value = name;
-    gameEpoch++;
+    stopIdleTimer(); stopTitleFlash(); G = null; gameEpoch++;
     UI = { pick: [], selCard: null, selDeck: null, phase: 'main', busy: false, humans: 0, hasAI: false,
            net: { code, name, seat: null, host: !!asHost, status: 'connecting', started: false, roster: [] } };
     try { history.replaceState(null, '', location.pathname + '?room=' + code); } catch (e) { }
@@ -200,6 +200,8 @@
     Net.on('status', (s) => {
       if (!UI.net) return;
       UI.net.status = s;
+      if (s !== 'connected') UI.net.pendingAction = false;
+      if (s === 'offline' || s === 'disconnected') $('#toast').classList.add('hidden');
       if (s === 'connected') UI.net.everConnected = true;
       renderLobby();
       renderNetBar();          // 关键：对局中断线也要有提示，不能只更新大厅
@@ -208,6 +210,7 @@
     Net.on('welcome', (m) => { if (UI.net) { UI.net.seat = m.seat; UI.net.host = m.host; renderLobby(); } });
     Net.on('roster', (m) => {
       if (!UI.net) return;
+      if (!m.started && (UI.net.started || !$('#game').classList.contains('hidden'))) resetOnlineLobby();
       UI.net.roster = m.players || []; UI.net.started = m.started;
       UI.net.hostSeat = (typeof m.hostSeat === 'number') ? m.hostSeat : -1;   // 房主按身份认，不一定坐 1 号位
       UI.net.maxSeats = m.maxSeats || 4;
@@ -236,23 +239,28 @@
     // 房主点了「再来一局」：所有人回到大厅，座位和房间码都不变
     Net.on('lobby', () => {
       if (!UI.net) return;
-      stopIdleTimer();
-      UI.net.started = false; UI.net.shuffleCount = 0;
-      G = null; gameEpoch++;
-      UI.phase = 'main'; UI.pick = []; UI.selCard = UI.selDeck = null; UI.busy = false;
-      $('#win-modal').classList.add('hidden');
-      $('#game').classList.add('hidden');
-      $('#lobby').classList.remove('hidden');
+      resetOnlineLobby();
       // 观战者（座位 -1）借这次回大厅的机会重新入座；已入座的人按 token 认回原座，无副作用。
       if (window.Net && Net.rejoin) Net.rejoin();
       renderLobby();
       flashHint('房主已重开一局，等待开始');
     });
   }
+  function resetOnlineLobby() {
+    stopIdleTimer(); stopTitleFlash();
+    UI.net.started = false; UI.net.shuffleCount = 0; UI.net.pendingAction = false;
+    G = null; gameEpoch++;
+    UI.phase = 'main'; UI.pick = []; UI.selCard = UI.selDeck = null; UI.busy = false;
+    document.body.classList.remove('has-card-selection', 'tutorial-choice-open');
+    for (const id of ['win-modal', 'choice-modal', 'inspect', 'game']) {
+      const el = document.getElementById(id); if (el) el.classList.add('hidden');
+    }
+    $('#lobby').classList.remove('hidden'); $('#lobby').inert = false;
+  }
   const AI_LEVEL_ZH = { easy: '新手', normal: '普通', hard: '高手' };
   function renderLobby() {
     if (!UI.net) return;
-    const statusZh = { connecting: '连接中…', connected: '已连接', disconnected: '已断开，重连中…' };
+    const statusZh = { connecting: '连接中…', syncing: '正在同步房间…', connected: '已连接', disconnected: '已断开，自动重连中…', offline: '网络已断开，恢复网络后自动重连' };
     const host = !!UI.net.host, inLobby = !UI.net.started;
     const seatTxt = UI.net.seat == null ? '' : (UI.net.seat < 0 ? '（观战）' : `（你是 ${UI.net.seat + 1} 号位${host ? ' · 房主' : ''}）`);
     const st = $('#lobby-status'); if (st) st.textContent = '状态：' + (statusZh[UI.net.status] || UI.net.status) + ' ' + seatTxt;
@@ -315,10 +323,11 @@
       }
     }
     const start = $('#lobby-start');
-    if (start) { start.style.display = host ? '' : 'none'; start.disabled = !(r.length >= 2); }
+    if (start) { start.style.display = host ? '' : 'none'; start.disabled = !canEdit || r.length < 2; }
     const mb = $('#lobby-megas'), pb = $('#lobby-pokemart');
-    if (mb) mb.disabled = !host;
-    if (pb) pb.disabled = !host;
+    if (mb) mb.disabled = !canEdit;
+    if (pb) pb.disabled = !canEdit;
+    const retry = $('#lobby-retry'); if (retry) retry.classList.toggle('hidden', UI.net.status === 'connected');
   }
   // 对局中的连接状态条。以前断线只更新大厅，而大厅在对局中是隐藏的，
   // 于是掉线的人什么提示都没有、点什么都没反应（操作被静默丢弃）。
@@ -333,20 +342,25 @@
         : '';
       return;
     }
-    const msg = (s === 'connecting' && !UI.net.everConnected)
+    const msg = s === 'offline' ? '网络已断开。恢复网络后会自动找回座位和进度。'
+      : s === 'syncing' ? '正在核对服务器上的最新进度，请稍候…'
+      : (s === 'connecting' && !UI.net.everConnected)
       ? '正在连接房间…'
       : '⚠ 与房间的连接已断开，正在自动重连…（你的座位和进度都保留，重连后继续）';
-    bar.innerHTML = '<span class="net-off">' + msg + '</span>';
+    bar.innerHTML = '<span class="net-off"><span>' + msg + '</span><button class="ghost small" data-net-retry>立即重连</button></span>';
   }
 
   function leaveOnline() {
     stopIdleTimer();
     stopTitleFlash();
     if (window.Net) Net.close();
-    UI.net = null; gameEpoch++; document.body.classList.remove('has-card-selection');
+    UI.net = null; G = null; gameEpoch++; document.body.classList.remove('has-card-selection', 'tutorial-choice-open');
+    for (const id of ['win-modal', 'choice-modal', 'inspect']) {
+      const el = document.getElementById(id); if (el) el.classList.add('hidden');
+    }
     try { history.replaceState(null, '', location.pathname); } catch (e) { }
     $('#lobby').classList.add('hidden'); $('#game').classList.add('hidden');
-    $('#setup').classList.remove('hidden');
+    $('#setup').classList.remove('hidden'); $('#setup').inert = false;
   }
   // Apply an authoritative redacted snapshot from the server (server drives turns).
   function onNetState(m) {
@@ -966,7 +980,9 @@
     const p = me();
     if (p.isAI) { bar.innerHTML = '<div class="act-hint">电脑正在行动…</div>'; return; }
     if (isOnline() && !netReady()) {
-      bar.innerHTML = '<div class="act-hint">🔌 连接已断开，正在重连…<br><span style="font-size:12px;opacity:.7">重连成功后可以继续操作，进度不会丢</span></div>';
+      const message = UI.net.status === 'syncing' ? '正在同步最新进度…'
+        : UI.net.status === 'offline' ? '网络已断开，等待网络恢复…' : '正在重新连接房间…';
+      bar.innerHTML = `<div class="act-hint">${message}<br><span style="font-size:12px;opacity:.7">同步完成后可继续操作，请勿重复提交</span></div>`;
       return;
     }
     if (isOnline() && !myTurn()) { bar.innerHTML = `<div class="act-hint">等待 <b>${escapeHTML(G.players[G.turn].name)}</b> 行动…<br><span style="font-size:12px;opacity:.7">轮到你时这里会出现操作按钮</span></div>`; return; }
@@ -1773,7 +1789,13 @@
         nickTimer = setTimeout(() => { if (window.Net && UI.net) Net.setName(v); }, 350);
       });
     }
-    if ($('#lobby-start')) $('#lobby-start').addEventListener('click', () => { if (window.Net) Net.start({ megas: !!($('#lobby-megas') && $('#lobby-megas').checked), pokemart: !!($('#lobby-pokemart') && $('#lobby-pokemart').checked) }); });
+    if ($('#lobby-start')) $('#lobby-start').addEventListener('click', () => {
+      if (!window.Net || !UI.net || !UI.net.host || UI.net.status !== 'connected') return;
+      if (!Net.start({ megas: !!($('#lobby-megas') && $('#lobby-megas').checked), pokemart: !!($('#lobby-pokemart') && $('#lobby-pokemart').checked) })) flashHint('连接已断开，重连后再开始');
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-net-retry]') && window.Net && UI.net) Net.retry();
+    });
     // 房主调整座位：空位「＋ 电脑」、改难度、移除电脑、随机座位顺序（服务器会二次校验房主身份）
     const lobbySent = (ok) => { if (!ok) flashHint('连接已断开，重连后再试'); };
     const lobbyRoster = $('#lobby-roster');
@@ -1820,7 +1842,8 @@
     $('#rules-modal').addEventListener('click', (e) => { if (e.target.id === 'rules-modal' || e.target.classList.contains('close-rules')) closeRules(); });
     $('#menu-btn').addEventListener('click', () => {
       const inTut = window.Tutorial && Tutorial.active && Tutorial.active();
-      if (confirm(inTut ? '退出教程，返回主菜单？' : '返回主菜单？当前对局将丢失。')) {
+      if (confirm(inTut ? '退出教程，返回主菜单？' : isOnline() ? '离开房间，返回主菜单？座位与进度会保留，可用邀请链接重新加入。' : '返回主菜单？当前对局将丢失。')) {
+        if (isOnline()) { leaveOnline(); return; }
         if (!inTut) clearSave();              // explicit quit of a real game = abandon its autosave
         if (window.Tutorial && Tutorial.stop) Tutorial.stop();
         backToSetup();

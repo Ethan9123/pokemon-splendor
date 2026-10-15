@@ -120,6 +120,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
   background:rgba(122,79,192,.18);border:1px solid var(--purple);color:#cbb6ff}
 .net-off{display:inline-block;margin:4px auto;padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:700;
   background:rgba(224,90,74,.16);border:1px solid var(--bad);color:#ffb3a8}
+.net-off{display:inline-flex;align-items:center;gap:10px;max-width:calc(100% - 12px);border-radius:12px;text-align:left}
+.net-off>span{min-width:0;overflow-wrap:anywhere}
+.net-off button{flex:none;min-height:40px}
 /* 玩家名字前的在线状态点：断线时一眼可见 */
 .pdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;flex:none}
 .pdot.on{background:var(--good);box-shadow:0 0 5px var(--good)}
