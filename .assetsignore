@@ -20,3 +20,18 @@ serve.py
 *.map
 assets/policy.json
 _rep_*.json
+
+# Security: never publish local secrets or deployment metadata.
+**/.git
+**/.hg
+**/.svn
+**/.env*
+**/.dev.vars*
+**/.aws
+**/.docker
+**/.wrangler
+**/node_modules
+**/.DS_Store
+wrangler.jsonc
+wrangler.json
+wrangler.toml

@@ -7,6 +7,8 @@
   // (the Worker only runs for non-asset paths like the WebSocket route).
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pokemon-splendor",
+  "workers_dev": false,
+  "preview_urls": false,
   "main": "worker/index.js",
   "compatibility_date": "2026-06-24",
   "assets": {
